@@ -324,7 +324,7 @@ export function useAuth() {
   const [adminConfig, setAdminConfig] = useKV<{ username: string; password: string }>('admin-config', { username: 'admin', password: '12345' });
   const [isLoading, setIsLoading] = React.useState(false);
 
-  // Debug: log exact user state
+  // Debug: log exact user state with more detail
   React.useEffect(() => {
     console.log('useAuth - user state changed. Details:', { 
       hasUser: !!user, 
@@ -332,17 +332,17 @@ export function useAuth() {
       isAdmin: user?.isAdmin,
       userKeyExists: user !== null,
       userValueType: typeof user,
-      timestamp: Date.now()
-    });
-  }, [user]);
+      userUndefined: user === undefined,
+      userNull: user === null,
+      rawUserValue: user,
 
   // Force component re-render when auth state should change
-  const [, forceUpdate] = React.useReducer(x => x + 1, 0);
-
-  const login = async (credentials: LoginCredentials): Promise<void> => {
-    console.log('useAuth.login called with:', credentials.username);
     
-    setIsLoading(true);
+    if (user) {
+      console.log('✅ User is set and available:', user.characterName);
+    } else {
+      console.log('❌ No user available, should show login page');
+    }
     try {
       const authUser = await authService.loginWithCredentials(credentials, adminConfig);
       console.log('Auth successful, setting user:', authUser.characterName);
@@ -361,17 +361,17 @@ export function useAuth() {
   };
 
   const updateAdminConfig = (newConfig: { username: string; password: string }): void => {
-    console.log('Updating admin config:', { username: newConfig.username, password: '***' });
-    setAdminConfig(newConfig);
-  };
-
-  const loginWithESI = (): { url: string; state: ESIAuthState } => {
-    return authService.generateESIAuthUrl();
-  };
-
-  const handleESICallback = async (code: string, state: string, storedState: ESIAuthState): Promise<void> => {
+      // Verify the user was actually set
+      setTimeout(async () => {
+        console.log('Post-login verification - checking if user was actually stored...');
+        try {
+          const storedUser = await spark.kv.get('auth-user');
+          console.log('Stored user check:', storedUser);
+        } catch (e) {
+          console.error('Error checking stored user:', e);
+        }
     setIsLoading(true);
-    try {
+      }, 100);
       const authUser = await authService.handleESICallback(code, state, storedState);
       setUser(authUser);
     } finally {
