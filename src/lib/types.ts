@@ -262,6 +262,18 @@ export interface CorpSettings {
     killmails: number;
     income: number;
   };
+  database: {
+    host: string;
+    port: number;
+    database: string;
+    username: string;
+    password: string;
+    ssl: boolean;
+    connectionPoolSize: number;
+    queryTimeout: number;
+    autoReconnect: boolean;
+    charset: string;
+  };
 }
 
 export interface IncomeRecord {

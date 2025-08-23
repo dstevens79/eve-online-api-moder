@@ -33,12 +33,17 @@ import {
   HardHat,
   TrendUp,
   Crosshair,
-  DollarSign
+  DollarSign,
+  List,
+  Play,
+  Stop,
+  Info
 } from '@phosphor-icons/react';
 import { useKV } from '@github/spark/hooks';
 import { CorpSettings } from '@/lib/types';
 import { toast } from 'sonner';
 import { eveApi, type CharacterInfo, type CorporationInfo } from '@/lib/eveApi';
+import { DatabaseManager, DatabaseConfig, DatabaseStatus, defaultDatabaseConfig, TableInfo } from '@/lib/database';
 
 interface SyncStatus {
   isRunning: boolean;
@@ -97,6 +102,18 @@ export function Settings() {
       market: 10,
       killmails: 120,
       income: 30
+    },
+    database: {
+      host: 'localhost',
+      port: 3306,
+      database: 'lmeve',
+      username: 'lmeve_user',
+      password: '',
+      ssl: false,
+      connectionPoolSize: 10,
+      queryTimeout: 30,
+      autoReconnect: true,
+      charset: 'utf8mb4'
     }
   });
 
@@ -129,6 +146,19 @@ export function Settings() {
   });
   const [corpInfo, setCorporationInfo] = useState<CorporationInfo | null>(null);
   const [characterInfo, setCharacterInfo] = useState<CharacterInfo | null>(null);
+  
+  // Database state
+  const [dbManager, setDbManager] = useState<DatabaseManager | null>(null);
+  const [dbStatus, setDbStatus] = useState<DatabaseStatus>({
+    connected: false,
+    connectionCount: 0,
+    queryCount: 0,
+    avgQueryTime: 0,
+    uptime: 0
+  });
+  const [tableInfo, setTableInfo] = useState<TableInfo[]>([]);
+  const [showDbPassword, setShowDbPassword] = useState(false);
+  const [testingConnection, setTestingConnection] = useState(false);
 
   // Ensure safe access to settings
   const eveOnlineSync = settings?.eveOnlineSync || {
@@ -137,6 +167,78 @@ export function Settings() {
     syncInterval: 30,
     characterId: 91316135,
     corporationId: 498125261
+  };
+
+  // Initialize database manager when settings change
+  useEffect(() => {
+    if (settings?.database) {
+      const manager = new DatabaseManager(settings.database);
+      setDbManager(manager);
+      setDbStatus(manager.getStatus());
+    }
+  }, [settings?.database]);
+
+  // Database functions
+  const handleTestDbConnection = async () => {
+    if (!dbManager) return;
+    
+    setTestingConnection(true);
+    try {
+      const result = await dbManager.testConnection();
+      if (result.success) {
+        toast.success(`Connection successful! Latency: ${result.latency}ms`);
+      } else {
+        toast.error(`Connection failed: ${result.error}`);
+      }
+    } catch (error) {
+      toast.error('Connection test failed');
+    } finally {
+      setTestingConnection(false);
+    }
+  };
+
+  const handleConnectDb = async () => {
+    if (!dbManager) return;
+    
+    const result = await dbManager.connect();
+    setDbStatus(dbManager.getStatus());
+    
+    if (result.success) {
+      toast.success('Connected to database successfully');
+      loadTableInfo();
+    } else {
+      toast.error(`Failed to connect: ${result.error}`);
+    }
+  };
+
+  const handleDisconnectDb = async () => {
+    if (!dbManager) return;
+    
+    await dbManager.disconnect();
+    setDbStatus(dbManager.getStatus());
+    setTableInfo([]);
+    toast.success('Disconnected from database');
+  };
+
+  const loadTableInfo = async () => {
+    if (!dbManager) return;
+    
+    try {
+      const tables = await dbManager.getTableInfo();
+      setTableInfo(tables);
+    } catch (error) {
+      console.error('Failed to load table info:', error);
+    }
+  };
+
+  const updateDatabaseConfig = (field: keyof DatabaseConfig, value: any) => {
+    setSettings(current => ({
+      ...current,
+      database: {
+        ...current.database,
+        [field]: value
+      }
+    }));
   };
 
   // Generate OAuth authorization URL
@@ -356,10 +458,14 @@ export function Settings() {
       </div>
 
       <Tabs defaultValue="general" className="space-y-6">
-        <TabsList className="grid w-full grid-cols-6">
+        <TabsList className="grid w-full grid-cols-7">
           <TabsTrigger value="general" className="flex items-center gap-2">
             <Globe size={16} />
             General
+          </TabsTrigger>
+          <TabsTrigger value="database" className="flex items-center gap-2">
+            <Database size={16} />
+            Database
           </TabsTrigger>
           <TabsTrigger value="eve" className="flex items-center gap-2">
             <Rocket size={16} />
@@ -429,6 +535,301 @@ export function Settings() {
 
               <div className="pt-4">
                 <Button onClick={handleSaveSettings}>Save Settings</Button>
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="database" className="space-y-6">
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Database size={20} />
+                Database Configuration
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-6">
+              <div className="p-3 bg-muted/50 rounded-lg text-sm text-muted-foreground">
+                <p className="font-medium mb-2">Database Setup:</p>
+                <p>
+                  LMeve requires a MySQL/MariaDB database to store corporation data. Configure your 
+                  database connection settings below. Make sure your database server is running and 
+                  the specified database exists.
+                </p>
+              </div>
+
+              {/* Connection Status */}
+              <div className="border border-border rounded-lg p-4">
+                <div className="flex items-center justify-between mb-4">
+                  <h4 className="font-medium">Connection Status</h4>
+                  <div className="flex gap-2">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={handleTestDbConnection}
+                      disabled={testingConnection}
+                    >
+                      {testingConnection ? (
+                        <Refresh size={16} className="mr-2 animate-spin" />
+                      ) : (
+                        <Play size={16} className="mr-2" />
+                      )}
+                      Test Connection
+                    </Button>
+                    {dbStatus.connected ? (
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={handleDisconnectDb}
+                        className="border-red-500/50 text-red-400 hover:bg-red-500/10"
+                      >
+                        <Stop size={16} className="mr-2" />
+                        Disconnect
+                      </Button>
+                    ) : (
+                      <Button
+                        size="sm"
+                        onClick={handleConnectDb}
+                        className="bg-accent hover:bg-accent/90"
+                      >
+                        <Play size={16} className="mr-2" />
+                        Connect
+                      </Button>
+                    )}
+                  </div>
+                </div>
+
+                {dbStatus.connected ? (
+                  <div className="p-3 border border-green-500/20 bg-green-500/10 rounded-lg">
+                    <div className="flex items-center gap-2 text-green-400 mb-2">
+                      <CheckCircle size={16} />
+                      <span className="font-medium">Connected</span>
+                    </div>
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
+                      <div>
+                        <p className="text-muted-foreground">Connections</p>
+                        <p className="font-medium">{dbStatus.connectionCount}</p>
+                      </div>
+                      <div>
+                        <p className="text-muted-foreground">Queries</p>
+                        <p className="font-medium">{dbStatus.queryCount}</p>
+                      </div>
+                      <div>
+                        <p className="text-muted-foreground">Avg Query Time</p>
+                        <p className="font-medium">{Math.round(dbStatus.avgQueryTime)}ms</p>
+                      </div>
+                      <div>
+                        <p className="text-muted-foreground">Uptime</p>
+                        <p className="font-medium">{Math.floor(dbStatus.uptime / 60)}m</p>
+                      </div>
+                    </div>
+                    {dbStatus.lastConnection && (
+                      <p className="text-xs text-muted-foreground mt-2">
+                        Last connected: {new Date(dbStatus.lastConnection).toLocaleString()}
+                      </p>
+                    )}
+                  </div>
+                ) : (
+                  <div className="p-3 border border-orange-500/20 bg-orange-500/10 rounded-lg">
+                    <div className="flex items-center gap-2 text-orange-400">
+                      <Warning size={16} />
+                      <span className="font-medium">Not Connected</span>
+                    </div>
+                    <p className="text-sm text-muted-foreground mt-1">
+                      Configure connection settings and click Connect to establish database connection.
+                    </p>
+                    {dbStatus.lastError && (
+                      <p className="text-xs text-red-300 mt-2">
+                        Last error: {dbStatus.lastError}
+                      </p>
+                    )}
+                  </div>
+                )}
+              </div>
+
+              {/* Connection Settings */}
+              <div className="space-y-4">
+                <h4 className="font-medium">Connection Settings</h4>
+                
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="dbHost">Host</Label>
+                    <Input
+                      id="dbHost"
+                      value={settings.database?.host || ''}
+                      onChange={(e) => updateDatabaseConfig('host', e.target.value)}
+                      placeholder="localhost"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="dbPort">Port</Label>
+                    <Input
+                      id="dbPort"
+                      type="number"
+                      value={settings.database?.port || ''}
+                      onChange={(e) => updateDatabaseConfig('port', parseInt(e.target.value) || 3306)}
+                      placeholder="3306"
+                    />
+                  </div>
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="dbName">Database Name</Label>
+                  <Input
+                    id="dbName"
+                    value={settings.database?.database || ''}
+                    onChange={(e) => updateDatabaseConfig('database', e.target.value)}
+                    placeholder="lmeve"
+                  />
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="dbUsername">Username</Label>
+                    <Input
+                      id="dbUsername"
+                      value={settings.database?.username || ''}
+                      onChange={(e) => updateDatabaseConfig('username', e.target.value)}
+                      placeholder="lmeve_user"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="dbPassword">Password</Label>
+                    <div className="relative">
+                      <Input
+                        id="dbPassword"
+                        type={showDbPassword ? "text" : "password"}
+                        value={settings.database?.password || ''}
+                        onChange={(e) => updateDatabaseConfig('password', e.target.value)}
+                        placeholder="Database password"
+                      />
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        className="absolute right-0 top-0 h-full px-3"
+                        onClick={() => setShowDbPassword(!showDbPassword)}
+                      >
+                        {showDbPassword ? <EyeSlash size={16} /> : <Eye size={16} />}
+                      </Button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Advanced Settings */}
+              <div className="border-t border-border pt-6 space-y-4">
+                <h4 className="font-medium">Advanced Settings</h4>
+                
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="dbPoolSize">Connection Pool Size</Label>
+                    <Input
+                      id="dbPoolSize"
+                      type="number"
+                      min="1"
+                      max="50"
+                      value={settings.database?.connectionPoolSize || ''}
+                      onChange={(e) => updateDatabaseConfig('connectionPoolSize', parseInt(e.target.value) || 10)}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="dbTimeout">Query Timeout (seconds)</Label>
+                    <Input
+                      id="dbTimeout"
+                      type="number"
+                      min="5"
+                      max="300"
+                      value={settings.database?.queryTimeout || ''}
+                      onChange={(e) => updateDatabaseConfig('queryTimeout', parseInt(e.target.value) || 30)}
+                    />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="dbCharset">Character Set</Label>
+                    <Input
+                      id="dbCharset"
+                      value={settings.database?.charset || ''}
+                      onChange={(e) => updateDatabaseConfig('charset', e.target.value)}
+                      placeholder="utf8mb4"
+                    />
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <div className="space-y-0.5">
+                      <Label>Use SSL</Label>
+                      <p className="text-sm text-muted-foreground">
+                        Enable SSL/TLS encryption
+                      </p>
+                    </div>
+                    <Switch
+                      checked={settings.database?.ssl || false}
+                      onCheckedChange={(checked) => updateDatabaseConfig('ssl', checked)}
+                    />
+                  </div>
+                </div>
+
+                <div className="flex items-center justify-between">
+                  <div className="space-y-0.5">
+                    <Label>Auto Reconnect</Label>
+                    <p className="text-sm text-muted-foreground">
+                      Automatically reconnect on connection loss
+                    </p>
+                  </div>
+                  <Switch
+                    checked={settings.database?.autoReconnect || false}
+                    onCheckedChange={(checked) => updateDatabaseConfig('autoReconnect', checked)}
+                  />
+                </div>
+              </div>
+
+              {/* Database Tables */}
+              {dbStatus.connected && tableInfo.length > 0 && (
+                <div className="border-t border-border pt-6 space-y-4">
+                  <div className="flex items-center justify-between">
+                    <h4 className="font-medium">Database Tables</h4>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={loadTableInfo}
+                    >
+                      <Refresh size={16} className="mr-2" />
+                      Refresh
+                    </Button>
+                  </div>
+                  
+                  <div className="border border-border rounded-lg overflow-hidden">
+                    <div className="bg-muted/50 px-4 py-2 border-b border-border">
+                      <div className="grid grid-cols-5 gap-4 text-sm font-medium text-muted-foreground">
+                        <span>Table Name</span>
+                        <span>Rows</span>
+                        <span>Size</span>
+                        <span>Engine</span>
+                        <span>Last Update</span>
+                      </div>
+                    </div>
+                    <div className="max-h-64 overflow-y-auto">
+                      {tableInfo.map((table, index) => (
+                        <div key={index} className="px-4 py-2 border-b border-border/50 last:border-b-0 hover:bg-muted/30">
+                          <div className="grid grid-cols-5 gap-4 text-sm">
+                            <span className="font-mono">{table.name}</span>
+                            <span>{table.rowCount.toLocaleString()}</span>
+                            <span>{table.size}</span>
+                            <span>{table.engine}</span>
+                            <span className="text-muted-foreground">
+                              {new Date(table.lastUpdate).toLocaleDateString()}
+                            </span>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              <div className="border-t border-border pt-6">
+                <Button onClick={handleSaveSettings}>Save Database Configuration</Button>
               </div>
             </CardContent>
           </Card>
