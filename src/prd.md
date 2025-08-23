@@ -19,7 +19,10 @@
 - **Tabbed Interface**: Core navigation between different management areas (Members, Assets, Manufacturing, Mining, Logistics, etc.)
 - **Member Management**: Track corporation members, their assets, activities, and contributions
 - **Asset Tracking**: Monitor corporation and member assets across different locations and types
-- **Manufacturing Management**: Track production jobs, blueprints, and manufacturing efficiency
+- **Manufacturing Job Scheduling**: Real-time tracking of active manufacturing jobs with progress monitoring, pause/resume capabilities, and completion alerts
+- **Blueprint Management**: Comprehensive blueprint library with research levels, material efficiency tracking, and production planning
+- **Production Planning**: Advanced planning tools for creating production schedules, cost analysis, and profit estimation
+- **Material Requirements Planning**: Automatic calculation of material needs for manufacturing jobs with availability tracking
 - **Mining Operations**: Monitor mining activities, ore processing, and resource allocation
 - **Dashboard Overview**: Quick stats and alerts for corporation health and activity
 

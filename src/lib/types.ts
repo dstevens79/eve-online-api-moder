@@ -33,16 +33,76 @@ export interface ManufacturingJob {
   id: string;
   blueprintId: number;
   blueprintName: string;
+  productTypeId: number;
+  productTypeName: string;
   runs: number;
   startDate: string;
   endDate: string;
-  status: 'active' | 'paused' | 'completed' | 'cancelled';
+  status: 'active' | 'paused' | 'completed' | 'cancelled' | 'ready' | 'delivered';
   facility: string;
   facilityId: number;
   installerId: number;
   installerName: string;
   cost: number;
   productQuantity: number;
+  materialEfficiency: number;
+  timeEfficiency: number;
+  duration: number; // in seconds
+  materials: MaterialRequirement[];
+  outputLocation?: string;
+  priority: 'low' | 'normal' | 'high' | 'urgent';
+}
+
+export interface Blueprint {
+  id: string;
+  typeId: number;
+  typeName: string;
+  productTypeId: number;
+  productTypeName: string;
+  materialEfficiency: number;
+  timeEfficiency: number;
+  runs: number;
+  maxRuns: number;
+  category: 'ship' | 'module' | 'ammunition' | 'structure' | 'other';
+  jobType: 'manufacturing' | 'research' | 'copying' | 'invention';
+  isOriginal: boolean;
+  location: string;
+  locationId: number;
+  ownerId: number;
+  ownerName: string;
+  baseMaterials: MaterialRequirement[];
+  baseTime: number; // in seconds
+  estimatedValue: number;
+}
+
+export interface MaterialRequirement {
+  typeId: number;
+  typeName: string;
+  quantity: number;
+  available: number;
+  category: 'mineral' | 'component' | 'material' | 'other';
+  unitPrice: number;
+  totalValue: number;
+  location?: string;
+}
+
+export interface ProductionPlan {
+  id: string;
+  name: string;
+  targetProduct: {
+    typeId: number;
+    typeName: string;
+    quantity: number;
+  };
+  blueprints: Blueprint[];
+  materials: MaterialRequirement[];
+  estimatedCost: number;
+  estimatedProfit: number;
+  estimatedDuration: number;
+  status: 'draft' | 'approved' | 'in_progress' | 'completed';
+  createdBy: string;
+  createdDate: string;
+  priority: 'low' | 'normal' | 'high' | 'urgent';
 }
 
 export interface MiningOperation {
