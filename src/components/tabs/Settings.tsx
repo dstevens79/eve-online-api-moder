@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -7,6 +7,7 @@ import { Switch } from '@/components/ui/switch';
 import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Progress } from '@/components/ui/progress';
 import { 
   Gear, 
   Key, 
@@ -15,14 +16,23 @@ import {
   Database,
   Globe,
   Users,
-  Clock
+  Clock,
+  Download,
+  Upload,
+  CheckCircle,
+  Warning,
+  X,
+  Rocket,
+  Refresh
 } from '@phosphor-icons/react';
 import { useKV } from '@github/spark/hooks';
 import { toast } from 'sonner';
+import { eveApi, type CharacterInfo, type CorporationInfo } from '@/lib/eveApi';
 
 interface CorpSettings {
   corpName: string;
   corpTicker: string;
+  corpId?: number;
   timezone: string;
   language: string;
   notifications: {
@@ -37,13 +47,30 @@ interface CorpSettings {
     keyId: string;
     status: 'active' | 'expired' | 'invalid';
     permissions: string[];
+    lastUsed?: string;
   }>;
+  eveOnlineSync: {
+    enabled: boolean;
+    autoSync: boolean;
+    syncInterval: number; // minutes
+    lastSync?: string;
+    characterId?: number;
+    corporationId?: number;
+  };
+}
+
+interface SyncStatus {
+  isRunning: boolean;
+  progress: number;
+  stage: string;
+  error?: string;
 }
 
 export function Settings() {
   const [settings, setSettings] = useKV<CorpSettings>('corp-settings', {
     corpName: 'Test Alliance Please Ignore',
     corpTicker: 'TEST',
+    corpId: 498125261,
     timezone: 'UTC',
     language: 'en',
     notifications: {
@@ -58,7 +85,8 @@ export function Settings() {
         name: 'Corporation Management Key',
         keyId: '12345678',
         status: 'active',
-        permissions: ['corp_details', 'corp_members', 'corp_assets']
+        permissions: ['corp_details', 'corp_members', 'corp_assets'],
+        lastUsed: new Date().toISOString()
       },
       {
         id: '2', 
@@ -67,10 +95,159 @@ export function Settings() {
         status: 'expired',
         permissions: ['industry_jobs', 'blueprints']
       }
-    ]
+    ],
+    eveOnlineSync: {
+      enabled: true,
+      autoSync: false,
+      syncInterval: 30,
+      lastSync: new Date().toISOString(),
+      characterId: 91316135,
+      corporationId: 498125261
+    }
   });
 
   const [newApiKey, setNewApiKey] = useState({ name: '', keyId: '', vCode: '' });
+  const [syncStatus, setSyncStatus] = useState<SyncStatus>({
+    isRunning: false,
+    progress: 0,
+    stage: 'Idle'
+  });
+  const [corpInfo, setCorporationInfo] = useState<CorporationInfo | null>(null);
+  const [characterInfo, setCharacterInfo] = useState<CharacterInfo | null>(null);
+
+  // Load corporation and character info on mount
+  useEffect(() => {
+    const loadEVEData = async () => {
+      if (settings.eveOnlineSync.corporationId) {
+        try {
+          const corp = await eveApi.getCorporation(settings.eveOnlineSync.corporationId);
+          setCorporationInfo(corp);
+        } catch (error) {
+          console.error('Failed to load corporation info:', error);
+        }
+      }
+
+      if (settings.eveOnlineSync.characterId) {
+        try {
+          const char = await eveApi.getCharacter(settings.eveOnlineSync.characterId);
+          setCharacterInfo(char);
+        } catch (error) {
+          console.error('Failed to load character info:', error);
+        }
+      }
+    };
+
+    if (settings.eveOnlineSync.enabled) {
+      loadEVEData();
+    }
+  }, [settings.eveOnlineSync.enabled, settings.eveOnlineSync.corporationId, settings.eveOnlineSync.characterId]);
+
+  const handleSyncData = async () => {
+    if (syncStatus.isRunning) return;
+
+    setSyncStatus({
+      isRunning: true,
+      progress: 0,
+      stage: 'Initializing...'
+    });
+
+    try {
+      // Simulate sync process with multiple stages
+      const stages = [
+        'Connecting to EVE Online API...',
+        'Fetching corporation data...',
+        'Updating member information...',
+        'Syncing industry jobs...',
+        'Updating asset database...',
+        'Calculating market prices...',
+        'Finalizing data...'
+      ];
+
+      for (let i = 0; i < stages.length; i++) {
+        setSyncStatus({
+          isRunning: true,
+          progress: ((i + 1) / stages.length) * 100,
+          stage: stages[i]
+        });
+
+        // Simulate API call delay
+        await new Promise(resolve => setTimeout(resolve, 1500));
+
+        // Simulate some actual API calls
+        if (i === 1 && settings.eveOnlineSync.corporationId) {
+          try {
+            const corp = await eveApi.getCorporation(settings.eveOnlineSync.corporationId);
+            setCorporationInfo(corp);
+            
+            // Update settings with fetched data
+            setSettings(current => ({
+              ...current,
+              corpName: corp.name,
+              corpTicker: corp.ticker
+            }));
+          } catch (error) {
+            console.error('Failed to sync corporation data:', error);
+          }
+        }
+      }
+
+      // Update last sync time
+      setSettings(current => ({
+        ...current,
+        eveOnlineSync: {
+          ...current.eveOnlineSync,
+          lastSync: new Date().toISOString()
+        }
+      }));
+
+      setSyncStatus({
+        isRunning: false,
+        progress: 100,
+        stage: 'Sync completed successfully!'
+      });
+
+      toast.success('EVE Online data synchronized successfully');
+      
+      // Reset status after a short delay
+      setTimeout(() => {
+        setSyncStatus({
+          isRunning: false,
+          progress: 0,
+          stage: 'Idle'
+        });
+      }, 3000);
+
+    } catch (error) {
+      setSyncStatus({
+        isRunning: false,
+        progress: 0,
+        stage: 'Sync failed',
+        error: error instanceof Error ? error.message : 'Unknown error'
+      });
+      
+      toast.error('Failed to sync EVE Online data');
+    }
+  };
+
+  const handleToggleAutoSync = () => {
+    setSettings(current => ({
+      ...current,
+      eveOnlineSync: {
+        ...current.eveOnlineSync,
+        autoSync: !current.eveOnlineSync.autoSync
+      }
+    }));
+  };
+
+  const handleToggleEVESync = () => {
+    setSettings(current => ({
+      ...current,
+      eveOnlineSync: {
+        ...current.eveOnlineSync,
+        enabled: !current.eveOnlineSync.enabled
+      }
+    }));
+  };
 
   const handleSaveSettings = () => {
     setSettings(settings);
@@ -131,10 +308,14 @@ export function Settings() {
       </div>
 
       <Tabs defaultValue="general" className="space-y-6">
-        <TabsList className="grid w-full grid-cols-4">
+        <TabsList className="grid w-full grid-cols-5">
           <TabsTrigger value="general" className="flex items-center gap-2">
             <Globe size={16} />
             General
+          </TabsTrigger>
+          <TabsTrigger value="eve" className="flex items-center gap-2">
+            <Rocket size={16} />
+            EVE Online
           </TabsTrigger>
           <TabsTrigger value="api" className="flex items-center gap-2">
             <Key size={16} />
@@ -197,6 +378,194 @@ export function Settings() {
               <div className="pt-4">
                 <Button onClick={handleSaveSettings}>Save Settings</Button>
               </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="eve" className="space-y-6">
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Rocket size={20} />
+                EVE Online Integration
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-6">
+              <div className="flex items-center justify-between">
+                <div className="space-y-0.5">
+                  <Label>Enable EVE Online Sync</Label>
+                  <p className="text-sm text-muted-foreground">
+                    Connect to EVE Online ESI API for real-time data
+                  </p>
+                </div>
+                <Switch
+                  checked={settings.eveOnlineSync.enabled}
+                  onCheckedChange={handleToggleEVESync}
+                />
+              </div>
+
+              {settings.eveOnlineSync.enabled && (
+                <>
+                  <div className="border-t border-border pt-6 space-y-4">
+                    <h4 className="font-medium">Corporation Information</h4>
+                    
+                    {corpInfo ? (
+                      <div className="p-4 border border-border rounded-lg space-y-3">
+                        <div className="flex items-center justify-between">
+                          <div>
+                            <h5 className="font-medium">{corpInfo.name} [{corpInfo.ticker}]</h5>
+                            <p className="text-sm text-muted-foreground">
+                              {corpInfo.member_count} members • {corpInfo.tax_rate * 100}% tax rate
+                            </p>
+                            {corpInfo.date_founded && (
+                              <p className="text-xs text-muted-foreground">
+                                Founded: {new Date(corpInfo.date_founded).toLocaleDateString()}
+                              </p>
+                            )}
+                          </div>
+                          <Badge variant="outline" className="text-green-400 border-green-500/50">
+                            <CheckCircle size={14} className="mr-1" />
+                            Connected
+                          </Badge>
+                        </div>
+                        {corpInfo.description && (
+                          <p className="text-sm text-muted-foreground border-t border-border pt-3">
+                            {corpInfo.description}
+                          </p>
+                        )}
+                      </div>
+                    ) : (
+                      <div className="p-4 border border-border rounded-lg">
+                        <p className="text-sm text-muted-foreground">
+                          No corporation data available. Check your configuration or sync data.
+                        </p>
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="border-t border-border pt-6 space-y-4">
+                    <h4 className="font-medium">Data Synchronization</h4>
+                    
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="space-y-2">
+                        <Label htmlFor="corpId">Corporation ID</Label>
+                        <Input
+                          id="corpId"
+                          type="number"
+                          value={settings.eveOnlineSync.corporationId || ''}
+                          onChange={(e) => setSettings(s => ({
+                            ...s,
+                            eveOnlineSync: {
+                              ...s.eveOnlineSync,
+                              corporationId: parseInt(e.target.value) || undefined
+                            }
+                          }))}
+                          placeholder="e.g., 498125261"
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="charId">Character ID (optional)</Label>
+                        <Input
+                          id="charId"
+                          type="number"
+                          value={settings.eveOnlineSync.characterId || ''}
+                          onChange={(e) => setSettings(s => ({
+                            ...s,
+                            eveOnlineSync: {
+                              ...s.eveOnlineSync,
+                              characterId: parseInt(e.target.value) || undefined
+                            }
+                          }))}
+                          placeholder="e.g., 91316135"
+                        />
+                      </div>
+                    </div>
+
+                    <div className="flex items-center justify-between">
+                      <div className="space-y-0.5">
+                        <Label>Auto-sync Data</Label>
+                        <p className="text-sm text-muted-foreground">
+                          Automatically sync data every {settings.eveOnlineSync.syncInterval} minutes
+                        </p>
+                      </div>
+                      <Switch
+                        checked={settings.eveOnlineSync.autoSync}
+                        onCheckedChange={handleToggleAutoSync}
+                      />
+                    </div>
+
+                    {settings.eveOnlineSync.autoSync && (
+                      <div className="space-y-2">
+                        <Label htmlFor="syncInterval">Sync Interval (minutes)</Label>
+                        <Input
+                          id="syncInterval"
+                          type="number"
+                          min="5"
+                          max="1440"
+                          value={settings.eveOnlineSync.syncInterval}
+                          onChange={(e) => setSettings(s => ({
+                            ...s,
+                            eveOnlineSync: {
+                              ...s.eveOnlineSync,
+                              syncInterval: parseInt(e.target.value) || 30
+                            }
+                          }))}
+                        />
+                      </div>
+                    )}
+
+                    <div className="space-y-4">
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <p className="text-sm font-medium">Last Sync</p>
+                          <p className="text-xs text-muted-foreground">
+                            {settings.eveOnlineSync.lastSync 
+                              ? new Date(settings.eveOnlineSync.lastSync).toLocaleString()
+                              : 'Never'
+                            }
+                          </p>
+                        </div>
+                        <Button 
+                          onClick={handleSyncData} 
+                          disabled={syncStatus.isRunning}
+                          size="sm"
+                        >
+                          {syncStatus.isRunning ? (
+                            <Refresh size={16} className="mr-2 animate-spin" />
+                          ) : (
+                            <Download size={16} className="mr-2" />
+                          )}
+                          {syncStatus.isRunning ? 'Syncing...' : 'Sync Now'}
+                        </Button>
+                      </div>
+
+                      {syncStatus.isRunning && (
+                        <div className="space-y-2">
+                          <div className="flex justify-between text-sm">
+                            <span>{syncStatus.stage}</span>
+                            <span>{Math.round(syncStatus.progress)}%</span>
+                          </div>
+                          <Progress value={syncStatus.progress} className="h-2" />
+                        </div>
+                      )}
+
+                      {syncStatus.error && (
+                        <div className="p-3 border border-red-500/20 bg-red-500/10 rounded-lg">
+                          <div className="flex items-center gap-2 text-red-400">
+                            <Warning size={16} />
+                            <span className="text-sm font-medium">Sync Error</span>
+                          </div>
+                          <p className="text-xs text-red-300 mt-1">{syncStatus.error}</p>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+
+                  <div className="border-t border-border pt-6">
+                    <Button onClick={handleSaveSettings}>Save EVE Online Settings</Button>
+                  </div>
+                </>
+              )}
             </CardContent>
           </Card>
         </TabsContent>

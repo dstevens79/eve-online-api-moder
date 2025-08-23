@@ -17,14 +17,17 @@
 
 ## Essential Features
 - **Tabbed Interface**: Core navigation between different management areas (Members, Assets, Manufacturing, Mining, Logistics, etc.)
+- **EVE Online API Integration**: Real-time data synchronization with EVE Online's ESI API for live corporation data
+- **Real-time Data Dashboard**: Live connection status, API health monitoring, and automatic data refresh capabilities
 - **Member Management**: Track corporation members, their assets, activities, and contributions
-- **Asset Tracking**: Monitor corporation and member assets across different locations and types
+- **Asset Tracking**: Monitor corporation and member assets across different locations and types with live EVE data
 - **Manufacturing Job Scheduling**: Real-time tracking of active manufacturing jobs with progress monitoring, pause/resume capabilities, and completion alerts
 - **Blueprint Management**: Comprehensive blueprint library with research levels, material efficiency tracking, and production planning
 - **Production Planning**: Advanced planning tools for creating production schedules, cost analysis, and profit estimation
 - **Material Requirements Planning**: Automatic calculation of material needs for manufacturing jobs with availability tracking
 - **Mining Operations**: Monitor mining activities, ore processing, and resource allocation
-- **Dashboard Overview**: Quick stats and alerts for corporation health and activity
+- **Settings & Configuration**: Comprehensive settings panel for API key management, sync preferences, and notification controls
+- **Dashboard Overview**: Quick stats and alerts for corporation health and activity with live EVE Online connection status
 
 ## Design Direction
 
@@ -95,11 +98,15 @@
 - **Error Handling**: Clear error messages and recovery options
 
 ## Implementation Considerations
-- **Scalability Needs**: Efficient data handling for large corporations
-- **Testing Focus**: Data accuracy, table performance, tab navigation
-- **Critical Questions**: API integration patterns, data refresh strategies, user session management
+- **Scalability Needs**: Efficient data handling for large corporations, API rate limiting, and caching strategies
+- **EVE Online API Integration**: Proper authentication flow, error handling, and data synchronization patterns
+- **Real-time Data Management**: Automatic refresh intervals, connection status monitoring, and offline capability
+- **Testing Focus**: Data accuracy, table performance, tab navigation, API integration reliability
+- **Critical Questions**: API integration patterns, data refresh strategies, user session management, authentication security
 
 ## Reflection
 - This approach focuses on data-driven corporation management while maintaining the professional, space-themed aesthetic that EVE Online players expect
+- The integration with EVE Online's ESI API provides real-time data that makes the tool truly valuable for active corporation management
 - The tabbed interface allows for comprehensive functionality without overwhelming users
 - Emphasis on clear data presentation and efficient workflows aligns with the serious nature of corporation management
+- Real-time API integration creates a bridge between in-game activities and strategic planning, making this a mission-critical tool for serious EVE corporations

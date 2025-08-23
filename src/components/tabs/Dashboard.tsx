@@ -2,6 +2,7 @@ import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import { EVEApiStatus } from '@/components/EVEApiStatus';
 import { 
   Users, 
   Package, 
@@ -148,35 +149,44 @@ export function Dashboard() {
         </CardContent>
       </Card>
 
-      {/* Recent Activity */}
-      <Card className="bg-card border-border">
-        <CardHeader>
-          <CardTitle>Recent Activity</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="space-y-4">
-            {recentActivity.map((activity) => (
-              <div key={activity.id} className="flex items-center justify-between p-3 rounded-lg bg-muted/50">
-                <div className="flex items-center gap-3">
-                  {getActivityIcon(activity.type)}
-                  <div>
-                    <p className="text-sm font-medium">{activity.member}</p>
-                    <p className="text-xs text-muted-foreground">{activity.action}</p>
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        {/* Recent Activity */}
+        <div className="lg:col-span-2">
+          <Card className="bg-card border-border">
+            <CardHeader>
+              <CardTitle>Recent Activity</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-4">
+                {recentActivity.map((activity) => (
+                  <div key={activity.id} className="flex items-center justify-between p-3 rounded-lg bg-muted/50">
+                    <div className="flex items-center gap-3">
+                      {getActivityIcon(activity.type)}
+                      <div>
+                        <p className="text-sm font-medium">{activity.member}</p>
+                        <p className="text-xs text-muted-foreground">{activity.action}</p>
+                      </div>
+                    </div>
+                    <div className="text-xs text-muted-foreground">
+                      {activity.time}
+                    </div>
                   </div>
-                </div>
-                <div className="text-xs text-muted-foreground">
-                  {activity.time}
-                </div>
+                ))}
               </div>
-            ))}
-          </div>
-          <div className="mt-4 pt-4 border-t border-border">
-            <Button variant="outline" className="w-full">
-              View All Activity
-            </Button>
-          </div>
-        </CardContent>
-      </Card>
+              <div className="mt-4 pt-4 border-t border-border">
+                <Button variant="outline" className="w-full">
+                  View All Activity
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+
+        {/* EVE Online Status */}
+        <div>
+          <EVEApiStatus />
+        </div>
+      </div>
 
       {/* Quick Actions */}
       <Card className="bg-card border-border">

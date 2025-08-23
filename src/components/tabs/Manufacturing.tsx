@@ -10,6 +10,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Progress } from '@/components/ui/progress';
 import { useKV } from '@github/spark/hooks';
+import { useEVEData } from '@/hooks/useEVEData';
 import { 
   Factory, 
   Plus, 
@@ -26,17 +27,22 @@ import {
   Copy,
   Star,
   Warning,
-  CheckCircle
+  CheckCircle,
+  Refresh,
+  Globe
 } from '@phosphor-icons/react';
 import { ManufacturingJob, Blueprint, ProductionPlan, MaterialRequirement } from '@/lib/types';
 import { JobDetailsDialog } from '@/components/manufacturing/JobDetailsDialog';
 import { BlueprintDetailsDialog } from '@/components/manufacturing/BlueprintDetailsDialog';
 import { ProductionPlanDialog } from '@/components/manufacturing/ProductionPlanDialog';
+import { toast } from 'sonner';
 
 export function Manufacturing() {
   const [activeJobs, setActiveJobs] = useKV<ManufacturingJob[]>('manufacturing-jobs', []);
   const [blueprints, setBlueprints] = useKV<Blueprint[]>('blueprints-library', []);
   const [productionPlans, setProductionPlans] = useKV<ProductionPlan[]>('production-plans', []);
+  const [settings] = useKV('corp-settings', { eveOnlineSync: { enabled: false, corporationId: 498125261 } });
+  
   const [selectedTab, setSelectedTab] = useState('jobs');
   const [newJobDialogOpen, setNewJobDialogOpen] = useState(false);
   const [selectedJob, setSelectedJob] = useState<ManufacturingJob | null>(null);
@@ -44,6 +50,12 @@ export function Manufacturing() {
   const [jobDetailsOpen, setJobDetailsOpen] = useState(false);
   const [blueprintDetailsOpen, setBlueprintDetailsOpen] = useState(false);
   const [planDialogOpen, setPlanDialogOpen] = useState(false);
+
+  // EVE Online integration
+  const { data: eveData, refreshData, refreshIndustryJobs } = useEVEData(
+    settings.eveOnlineSync?.corporationId,
+    settings.eveOnlineSync?.characterId
+  );
 
   // Initialize with sample data if empty
   useEffect(() => {
@@ -273,17 +285,97 @@ export function Manufacturing() {
     <div className="space-y-6">
       <div className="flex justify-between items-center">
         <div>
-          <h3 className="text-lg font-semibold">Active Manufacturing Jobs</h3>
-          <p className="text-sm text-muted-foreground">Monitor ongoing production activities</p>
+          <h3 className="text-lg font-semibold">Manufacturing Jobs</h3>
+          <p className="text-sm text-muted-foreground">
+            Monitor ongoing production activities
+            {settings.eveOnlineSync?.enabled && eveData.industryJobs.length > 0 && (
+              <span className="ml-2 text-green-400">
+                • {eveData.industryJobs.length} EVE jobs detected
+              </span>
+            )}
+          </p>
         </div>
-        <Button onClick={() => setNewJobDialogOpen(true)}>
-          <Plus size={16} className="mr-2" />
-          New Job
-        </Button>
+        <div className="flex gap-2">
+          {settings.eveOnlineSync?.enabled && (
+            <Button 
+              variant="outline" 
+              size="sm"
+              onClick={refreshIndustryJobs}
+              disabled={eveData.isLoading}
+            >
+              {eveData.isLoading ? (
+                <Refresh size={16} className="mr-2 animate-spin" />
+              ) : (
+                <Globe size={16} className="mr-2" />
+              )}
+              Sync EVE Data
+            </Button>
+          )}
+          <Button onClick={() => setNewJobDialogOpen(true)}>
+            <Plus size={16} className="mr-2" />
+            New Job
+          </Button>
+        </div>
       </div>
 
-      <div className="grid gap-4">
-        {activeJobs.map((job) => (
+      {/* EVE Online Jobs Section */}
+      {settings.eveOnlineSync?.enabled && eveData.industryJobs.length > 0 && (
+        <div className="space-y-4">
+          <div className="flex items-center gap-2">
+            <Globe size={18} className="text-green-400" />
+            <h4 className="font-medium text-green-400">Live EVE Online Jobs</h4>
+            <Badge variant="outline" className="text-green-400 border-green-500/50">
+              {eveData.industryJobs.length} active
+            </Badge>
+          </div>
+          
+          <div className="grid gap-3">
+            {eveData.industryJobs.slice(0, 3).map((job) => (
+              <Card key={job.job_id} className="bg-card border-green-500/20">
+                <CardContent className="p-4">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <div className="flex items-center gap-2">
+                        <Globe size={16} className="text-green-400" />
+                        <span className="font-medium">EVE Job #{job.job_id}</span>
+                        <Badge variant="outline" className="text-green-400 border-green-500/50 text-xs">
+                          {job.status}
+                        </Badge>
+                      </div>
+                      <p className="text-sm text-muted-foreground mt-1">
+                        Blueprint ID: {job.blueprint_type_id} • Runs: {job.runs}
+                      </p>
+                      <p className="text-xs text-muted-foreground">
+                        Started: {new Date(job.start_date).toLocaleDateString()} • 
+                        Ends: {new Date(job.end_date).toLocaleDateString()}
+                      </p>
+                    </div>
+                    <div className="text-right">
+                      <p className="text-sm text-green-400 font-medium">
+                        {Math.round(((Date.now() - new Date(job.start_date).getTime()) / 
+                                   (new Date(job.end_date).getTime() - new Date(job.start_date).getTime())) * 100)}%
+                      </p>
+                      <p className="text-xs text-muted-foreground">Complete</p>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Local Jobs Section */}
+      <div className="space-y-4">
+        {activeJobs.length > 0 && (
+          <div className="flex items-center gap-2">
+            <Factory size={18} />
+            <h4 className="font-medium">Local Manufacturing Jobs</h4>
+          </div>
+        )}
+        
+        <div className="grid gap-4">
+          {activeJobs.map((job) => (
           <Card key={job.id} className="bg-card border-border">
             <CardContent className="p-6">
               <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
@@ -363,6 +455,7 @@ export function Manufacturing() {
             </CardContent>
           </Card>
         ))}
+        </div>
       </div>
     </div>
   );
@@ -564,7 +657,7 @@ export function Manufacturing() {
       </div>
 
       {/* Stats Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
         <Card className="bg-card border-border">
           <CardContent className="p-4">
             <div className="flex items-center justify-between">
@@ -573,6 +666,11 @@ export function Manufacturing() {
                 <p className="text-2xl font-bold text-green-400">
                   {activeJobs.filter(j => j.status === 'active').length}
                 </p>
+                {eveData.industryJobs.length > 0 && (
+                  <p className="text-xs text-muted-foreground">
+                    EVE: {eveData.industryJobs.filter(j => j.status === 'active').length}
+                  </p>
+                )}
               </div>
               <Factory size={24} className="text-muted-foreground" />
             </div>
@@ -585,6 +683,11 @@ export function Manufacturing() {
               <div>
                 <p className="text-sm text-muted-foreground">Blueprints</p>
                 <p className="text-2xl font-bold text-blue-400">{blueprints.length}</p>
+                {eveData.blueprints.length > 0 && (
+                  <p className="text-xs text-muted-foreground">
+                    EVE: {eveData.blueprints.length}
+                  </p>
+                )}
               </div>
               <Package size={24} className="text-muted-foreground" />
             </div>
@@ -613,6 +716,42 @@ export function Manufacturing() {
                 <p className="text-2xl font-bold text-green-400">94%</p>
               </div>
               <CheckCircle size={24} className="text-muted-foreground" />
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card className="bg-card border-border">
+          <CardContent className="p-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-muted-foreground">EVE Data</p>
+                {settings.eveOnlineSync?.enabled ? (
+                  <div>
+                    <p className="text-sm font-bold text-green-400">Connected</p>
+                    {eveData.lastUpdate && (
+                      <p className="text-xs text-muted-foreground">
+                        {new Date(eveData.lastUpdate).toLocaleTimeString()}
+                      </p>
+                    )}
+                  </div>
+                ) : (
+                  <p className="text-sm font-bold text-muted-foreground">Offline</p>
+                )}
+              </div>
+              <div className="flex flex-col items-center gap-1">
+                <Globe size={20} className={settings.eveOnlineSync?.enabled ? 'text-green-400' : 'text-muted-foreground'} />
+                {settings.eveOnlineSync?.enabled && (
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    className="h-auto p-1"
+                    onClick={refreshIndustryJobs}
+                    disabled={eveData.isLoading}
+                  >
+                    <Refresh size={12} className={eveData.isLoading ? 'animate-spin' : ''} />
+                  </Button>
+                )}
+              </div>
             </div>
           </CardContent>
         </Card>
