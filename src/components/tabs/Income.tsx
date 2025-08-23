@@ -23,7 +23,6 @@ import {
   FloppyDisk
 } from '@phosphor-icons/react';
 import { useKV } from '@github/spark/hooks';
-import { IncomeRecord, IncomeAnalytics } from '@/lib/types';
 import { toast } from 'sonner';
 
 export function Income({ onLoginClick }: TabComponentProps) {

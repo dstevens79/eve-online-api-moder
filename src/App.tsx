@@ -54,6 +54,7 @@ function App() {
   const { user, isAuthenticated, logout, refreshUserToken, isTokenExpired, adminConfig, updateAdminConfig, authTrigger } = useAuth();
   const [isESICallback, setIsESICallback] = useState(false);
   const [forceRender, setForceRender] = useState(0);
+  const [showLoginModal, setShowLoginModal] = useState(false);
 
   // Force re-render when user changes to ensure UI updates
   React.useEffect(() => {
