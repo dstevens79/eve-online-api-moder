@@ -15,7 +15,16 @@ import {
   Gear,
   SignOut,
   Rocket,
-  CurrencyDollar
+  CurrencyDollar,
+  CaretDown,
+  CaretRight,
+  Globe,
+  Database,
+  Key,
+  Clock,
+  Bell,
+  Shield,
+  Archive
 } from '@phosphor-icons/react';
 import { useKV } from '@github/spark/hooks';
 import { TabType } from '@/lib/types';
@@ -39,6 +48,8 @@ import { Settings } from '@/components/tabs/Settings';
 
 function App() {
   const [activeTab, setActiveTab] = useKV<TabType>('active-tab', 'dashboard');
+  const [activeSettingsTab, setActiveSettingsTab] = useKV<string>('active-settings-tab', 'general');
+  const [settingsExpanded, setSettingsExpanded] = useKV<boolean>('settings-expanded', false);
   const { user, isAuthenticated, logout, refreshUserToken, isTokenExpired, adminConfig, updateAdminConfig } = useAuth();
   const [isESICallback, setIsESICallback] = useState(false);
 
@@ -102,11 +113,36 @@ function App() {
     { id: 'killmails', label: 'Killmails', icon: Crosshair, component: Killmails },
     { id: 'market', label: 'Market', icon: TrendUp, component: Market },
     { id: 'income', label: 'Income', icon: CurrencyDollar, component: Income },
-    { id: 'settings', label: 'Settings', icon: Gear, component: Settings },
+  ];
+
+  const settingsTabs = [
+    { id: 'general', label: 'General', icon: Globe },
+    { id: 'database', label: 'Database', icon: Database },
+    { id: 'eve', label: 'EVE Online', icon: Rocket },
+    { id: 'sde', label: 'EVE SDE', icon: Archive },
+    { id: 'esi', label: 'ESI Config', icon: Key },
+    { id: 'sync', label: 'Data Sync', icon: Clock },
+    { id: 'notifications', label: 'Notifications', icon: Bell },
+    { id: 'security', label: 'Security', icon: Shield },
   ];
 
   const handleTabChange = (value: string) => {
-    setActiveTab(value as TabType);
+    if (value === 'settings') {
+      setSettingsExpanded(!settingsExpanded);
+      if (!settingsExpanded) {
+        setActiveTab('settings' as TabType);
+      } else {
+        // If collapsing settings, go back to dashboard
+        setActiveTab('dashboard');
+      }
+    } else {
+      setActiveTab(value as TabType);
+      setSettingsExpanded(false);
+    }
+  };
+
+  const handleSettingsTabChange = (value: string) => {
+    setActiveSettingsTab(value);
   };
 
   return (
@@ -157,7 +193,8 @@ function App() {
         <div className="flex h-[calc(100vh-5rem)]">
           {/* Left Sidebar Navigation */}
           <div className="w-64 bg-card border-r border-border flex flex-col">
-            <div className="p-4 space-y-2">
+            <div className="p-4 space-y-2 flex-1 overflow-y-auto">
+              {/* Main navigation tabs */}
               {tabs.map((tab) => {
                 const IconComponent = tab.icon;
                 const isActive = activeTab === tab.id;
@@ -189,6 +226,53 @@ function App() {
                   </Button>
                 );
               })}
+
+              {/* Settings section with expandable sub-menu */}
+              <div className="pt-2 border-t border-border">
+                <Button
+                  variant={activeTab === 'settings' ? "default" : "ghost"}
+                  className={`w-full justify-start gap-3 ${
+                    activeTab === 'settings'
+                      ? "bg-accent text-accent-foreground shadow-sm" 
+                      : "hover:bg-muted text-muted-foreground hover:text-foreground"
+                  }`}
+                  onClick={() => handleTabChange('settings')}
+                >
+                  <Gear size={18} />
+                  <span className="text-sm font-medium">Settings</span>
+                  {settingsExpanded ? (
+                    <CaretDown size={16} className="ml-auto" />
+                  ) : (
+                    <CaretRight size={16} className="ml-auto" />
+                  )}
+                </Button>
+
+                {/* Settings sub-menu */}
+                {settingsExpanded && (
+                  <div className="mt-2 ml-6 space-y-1">
+                    {settingsTabs.map((settingsTab) => {
+                      const IconComponent = settingsTab.icon;
+                      const isActiveSettings = activeSettingsTab === settingsTab.id;
+                      return (
+                        <Button
+                          key={settingsTab.id}
+                          variant={isActiveSettings ? "secondary" : "ghost"}
+                          size="sm"
+                          className={`w-full justify-start gap-2 text-xs ${
+                            isActiveSettings 
+                              ? "bg-secondary text-secondary-foreground" 
+                              : "hover:bg-muted/50 text-muted-foreground hover:text-foreground"
+                          }`}
+                          onClick={() => handleSettingsTabChange(settingsTab.id)}
+                        >
+                          <IconComponent size={14} />
+                          <span>{settingsTab.label}</span>
+                        </Button>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
             </div>
           </div>
 
@@ -196,16 +280,20 @@ function App() {
           <div className="flex-1 overflow-hidden">
             <div className="h-full overflow-y-auto">
               <div className="container mx-auto px-6 py-6">
-                <Tabs value={activeTab} onValueChange={handleTabChange}>
-                  {tabs.map((tab) => {
-                    const Component = tab.component;
-                    return (
-                      <TabsContent key={tab.id} value={tab.id} className="mt-0">
-                        <Component />
-                      </TabsContent>
-                    );
-                  })}
-                </Tabs>
+                {activeTab === 'settings' ? (
+                  <Settings activeTab={activeSettingsTab} onTabChange={handleSettingsTabChange} />
+                ) : (
+                  <Tabs value={activeTab} onValueChange={handleTabChange}>
+                    {tabs.map((tab) => {
+                      const Component = tab.component;
+                      return (
+                        <TabsContent key={tab.id} value={tab.id} className="mt-0">
+                          <Component />
+                        </TabsContent>
+                      );
+                    })}
+                  </Tabs>
+                )}
               </div>
             </div>
           </div>

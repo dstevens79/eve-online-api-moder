@@ -233,6 +233,16 @@ export type TabType =
   | 'income'
   | 'settings';
 
+export type SettingsTabType = 
+  | 'general'
+  | 'database'
+  | 'eve'
+  | 'sde'
+  | 'esi'
+  | 'sync'
+  | 'notifications'
+  | 'security';
+
 export interface CorpSettings {
   corpName: string;
   corpTicker: string;

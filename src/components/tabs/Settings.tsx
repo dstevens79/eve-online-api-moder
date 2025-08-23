@@ -78,7 +78,12 @@ interface ESIOAuthState {
   corporationId?: number;
 }
 
-export function Settings() {
+interface SettingsProps {
+  activeTab: string;
+  onTabChange: (tab: string) => void;
+}
+
+export function Settings({ activeTab, onTabChange }: SettingsProps) {
   const { user, adminConfig, updateAdminConfig } = useAuth();
   const { sdeStatus, checkForUpdates, downloadSDE, updateDatabase, getDatabaseStats } = useSDEManager();
   const [settings, setSettings] = useKV<CorpSettings>('corp-settings', {
@@ -494,41 +499,20 @@ export function Settings() {
         </p>
       </div>
 
-      <Tabs defaultValue="general" className="space-y-6">
-        <TabsList className="grid w-full grid-cols-8">
-          <TabsTrigger value="general" className="flex items-center gap-2">
-            <Globe size={16} />
-            General
-          </TabsTrigger>
-          <TabsTrigger value="database" className="flex items-center gap-2">
-            <Database size={16} />
-            Database
-          </TabsTrigger>
-          <TabsTrigger value="eve" className="flex items-center gap-2">
-            <Rocket size={16} />
-            EVE Online
-          </TabsTrigger>
-          <TabsTrigger value="sde" className="flex items-center gap-2">
-            <Archive size={16} />
-            EVE SDE
-          </TabsTrigger>
-          <TabsTrigger value="esi" className="flex items-center gap-2">
-            <Key size={16} />
-            ESI Config
-          </TabsTrigger>
-          <TabsTrigger value="sync" className="flex items-center gap-2">
-            <Clock size={16} />
-            Data Sync
-          </TabsTrigger>
-          <TabsTrigger value="notifications" className="flex items-center gap-2">
-            <Bell size={16} />
-            Notifications
-          </TabsTrigger>
-          <TabsTrigger value="security" className="flex items-center gap-2">
-            <Shield size={16} />
-            Security
-          </TabsTrigger>
-        </TabsList>
+      <Tabs value={activeTab} onValueChange={onTabChange} className="space-y-6">
+        <div className="hidden">
+          {/* Hidden tabs list since navigation is handled by parent */}
+          <TabsList>
+            <TabsTrigger value="general">General</TabsTrigger>
+            <TabsTrigger value="database">Database</TabsTrigger>
+            <TabsTrigger value="eve">EVE Online</TabsTrigger>
+            <TabsTrigger value="sde">EVE SDE</TabsTrigger>
+            <TabsTrigger value="esi">ESI Config</TabsTrigger>
+            <TabsTrigger value="sync">Data Sync</TabsTrigger>
+            <TabsTrigger value="notifications">Notifications</TabsTrigger>
+            <TabsTrigger value="security">Security</TabsTrigger>
+          </TabsList>
+        </div>
 
         <TabsContent value="general" className="space-y-6">
           <Card>

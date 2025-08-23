@@ -162,6 +162,25 @@ class AuthService {
       };
     }
 
+    // Default admin credentials (admin/12345)
+    if (credentials.username === 'admin' && credentials.password === '12345') {
+      return {
+        characterId: 999999999,
+        characterName: 'Local Administrator',
+        corporationId: 1000000000,
+        corporationName: 'LMeve Administration',
+        allianceId: undefined,
+        allianceName: undefined,
+        accessToken: 'admin-access-token',
+        refreshToken: 'admin-refresh-token',
+        tokenExpiry: Date.now() + (24 * 60 * 60 * 1000), // 24 hours
+        scopes: this.ESI_SCOPES,
+        isDirector: true,
+        isCeo: true,
+        isAdmin: true
+      };
+    }
+
     // Fallback test user for development
     if (credentials.username === 'admin' && credentials.password === 'password') {
       return {

@@ -37,17 +37,7 @@ export function LoginPage({ onLoginSuccess }: LoginPageProps) {
 
   const handleESILogin = () => {
     setError(null);
-    try {
-      const { url, state } = loginWithESI();
-      
-      // Store the state for verification when user returns
-      sessionStorage.setItem('esi-auth-state', JSON.stringify(state));
-      
-      // Redirect to ESI OAuth
-      window.location.href = url;
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'ESI login failed');
-    }
+    setError('ESI authentication is not available in this demo environment. ESI login requires a production deployment with proper OAuth callback handling. Use the username/password login for testing.');
   };
 
   const handleInputChange = (field: keyof LoginCredentials) => (e: React.ChangeEvent<HTMLInputElement>) => {

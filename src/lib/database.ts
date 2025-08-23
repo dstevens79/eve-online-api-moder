@@ -109,9 +109,40 @@ export class DatabaseManager {
     const startTime = Date.now();
     
     try {
-      // Simulate connection test
-      await new Promise(resolve => setTimeout(resolve, Math.random() * 100 + 50));
+      // Validate configuration first
+      if (!this.config.host || !this.config.database || !this.config.username) {
+        throw new Error('Missing required connection parameters (host, database, username)');
+      }
+
+      if (this.config.port < 1 || this.config.port > 65535) {
+        throw new Error('Invalid port number. Must be between 1 and 65535');
+      }
+
+      // Check for empty password with default settings - common issue
+      if (!this.config.password && this.config.username === 'lmeve_user' && this.config.host === 'localhost') {
+        throw new Error('Database password is required. Please configure your database credentials in the settings.');
+      }
+
+      // Simulate connection test with realistic validation
+      await new Promise(resolve => setTimeout(resolve, Math.random() * 500 + 200));
       
+      // Simulate various failure conditions for testing
+      if (this.config.host === 'invalid-host') {
+        throw new Error('Host not found');
+      }
+      
+      if (this.config.database === 'nonexistent-db') {
+        throw new Error('Database does not exist');
+      }
+      
+      if (this.config.username === 'baduser') {
+        throw new Error('Access denied for user');
+      }
+      
+      if (this.config.password === 'wrongpass') {
+        throw new Error('Authentication failed');
+      }
+
       const latency = Date.now() - startTime;
       return { success: true, latency };
     } catch (error) {
