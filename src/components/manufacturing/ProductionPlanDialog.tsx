@@ -13,7 +13,7 @@ import {
   Calendar as CalendarIcon,
   Calculator,
   Plus,
-  Save,
+  FloppyDisk,
   X
 } from '@phosphor-icons/react';
 import { ProductionPlan, Blueprint } from '@/lib/types';
@@ -271,7 +271,7 @@ export function ProductionPlanDialog({
           {/* Action Buttons */}
           <div className="flex gap-3 pt-4 border-t border-border">
             <Button onClick={handleSavePlan} disabled={!planName.trim() || selectedBlueprints.length === 0}>
-              <Save size={16} className="mr-2" />
+              <FloppyDisk size={16} className="mr-2" />
               Save Plan
             </Button>
             <Button 

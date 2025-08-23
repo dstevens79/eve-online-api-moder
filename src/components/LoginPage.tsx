@@ -166,7 +166,7 @@ export function LoginPage({ onLoginSuccess }: LoginPageProps) {
             <div className="pt-4 border-t border-border">
               <p className="text-xs text-muted-foreground text-center">
                 For testing: Username: <code className="bg-muted px-1 rounded">admin</code>, 
-                Password: <code className="bg-muted px-1 rounded">password</code>
+                Password: <code className="bg-muted px-1 rounded">12345</code>
               </p>
             </div>
           </CardContent>

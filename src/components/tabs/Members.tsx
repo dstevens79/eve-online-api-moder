@@ -13,7 +13,7 @@ import {
   Eye,
   Clock,
   MapPin,
-  Refresh
+  ArrowClockwise
 } from '@phosphor-icons/react';
 import { Member } from '@/lib/types';
 import { useLMeveData } from '@/lib/LMeveDataContext';
@@ -93,7 +93,7 @@ export function Members() {
             onClick={refreshMembers}
             disabled={loading.members}
           >
-            <Refresh size={16} className={`mr-2 ${loading.members ? 'animate-spin' : ''}`} />
+            <ArrowClockwise size={16} className={`mr-2 ${loading.members ? 'animate-spin' : ''}`} />
             Refresh
           </Button>
           <Button variant="outline" size="sm">

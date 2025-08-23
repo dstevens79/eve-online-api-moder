@@ -9,7 +9,7 @@ import {
   Warning, 
   Clock, 
   Database,
-  Refresh,
+  ArrowClockwise,
   TrendUp,
   Factory,
   Package
@@ -26,14 +26,20 @@ interface APIStatus {
 }
 
 export function EVEApiStatus() {
-  const [settings] = useKV('corp-settings', { 
+  const [settings] = useKV<{ eveOnlineSync: { 
+    enabled: boolean;
+    corporationId: number;
+    characterId: number;
+    autoSync: boolean;
+    syncInterval: number;
+  } }>('corp-settings', { 
     eveOnlineSync: { 
       enabled: false,
       corporationId: 498125261,
       characterId: 91316135,
       autoSync: false,
       syncInterval: 30
-    } 
+    }
   });
   const [apiStatus, setApiStatus] = useState<APIStatus>({
     connected: false,
@@ -164,7 +170,7 @@ export function EVEApiStatus() {
             className="w-full"
           >
             {eveData.isLoading ? (
-              <Refresh size={14} className="mr-2 animate-spin" />
+              <ArrowClockwise size={14} className="mr-2 animate-spin" />
             ) : (
               <Database size={14} className="mr-2" />
             )}

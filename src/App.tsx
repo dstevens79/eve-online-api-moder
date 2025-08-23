@@ -128,15 +128,15 @@ function App() {
                   </div>
                 </div>
                 <Badge variant="secondary" className="text-xs bg-accent/20 text-accent border-accent/30">
-                  {user.allianceName || user.corporationName}
+                  {user?.allianceName || user?.corporationName || 'Unknown Corporation'}
                 </Badge>
               </div>
               
               <div className="flex items-center gap-3">
                 <div className="text-right">
-                  <p className="text-sm font-medium">{user.characterName}</p>
+                  <p className="text-sm font-medium">{user?.characterName || 'Unknown User'}</p>
                   <p className="text-xs text-muted-foreground">
-                    {user.isAdmin ? 'Local Admin' : user.isCeo ? 'CEO' : user.isDirector ? 'Director' : 'Member'}
+                    {user?.isAdmin ? 'Local Admin' : user?.isCeo ? 'CEO' : user?.isDirector ? 'Director' : 'Member'}
                   </p>
                 </div>
                 <Button 

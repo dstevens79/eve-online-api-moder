@@ -11,7 +11,7 @@ import {
   MapPin, 
   User, 
   TrendUp,
-  AlertTriangle,
+  Warning,
   CheckCircle,
   Pause,
   Play,
@@ -101,8 +101,8 @@ export function JobDetailsDialog({ job, open, onOpenChange, onJobUpdate }: JobDe
   const getMaterialStatus = (material: MaterialRequirement) => {
     const percentage = (material.available / material.quantity) * 100;
     if (percentage >= 100) return { color: 'text-green-400', icon: CheckCircle };
-    if (percentage >= 50) return { color: 'text-yellow-400', icon: AlertTriangle };
-    return { color: 'text-red-400', icon: AlertTriangle };
+    if (percentage >= 50) return { color: 'text-yellow-400', icon: Warning };
+    return { color: 'text-red-400', icon: Warning };
   };
 
   return (

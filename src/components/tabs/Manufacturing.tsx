@@ -28,7 +28,7 @@ import {
   Star,
   Warning,
   CheckCircle,
-  Refresh,
+  ArrowClockwise,
   Globe
 } from '@phosphor-icons/react';
 import { ManufacturingJob, Blueprint, ProductionPlan, MaterialRequirement, CorpSettings } from '@/lib/types';
@@ -69,6 +69,18 @@ export function Manufacturing() {
       market: 10,
       killmails: 120,
       income: 30
+    },
+    database: {
+      host: 'localhost',
+      port: 3306,
+      database: 'lmeve',
+      username: 'lmeve_user',
+      password: '',
+      ssl: false,
+      connectionPoolSize: 10,
+      queryTimeout: 30,
+      autoReconnect: true,
+      charset: 'utf8mb4'
     }
   });
 
@@ -141,7 +153,7 @@ export function Manufacturing() {
   };
 
   const getStatusBadge = (status: string, priority: string) => {
-    const statusColors = {
+    const statusColors: Record<string, string> = {
       active: 'bg-green-500/20 text-green-400 border-green-500/50',
       paused: 'bg-yellow-500/20 text-yellow-400 border-yellow-500/50',
       completed: 'bg-blue-500/20 text-blue-400 border-blue-500/50',
@@ -150,7 +162,7 @@ export function Manufacturing() {
       delivered: 'bg-gray-500/20 text-gray-400 border-gray-500/50'
     };
 
-    const priorityColors = {
+    const priorityColors: Record<string, string> = {
       low: 'ml-2 bg-gray-500/20 text-gray-400 border-gray-500/50',
       normal: 'ml-2 bg-blue-500/20 text-blue-400 border-blue-500/50',
       high: 'ml-2 bg-orange-500/20 text-orange-400 border-orange-500/50',
@@ -174,7 +186,7 @@ export function Manufacturing() {
   // Event handlers
   const handleJobUpdate = (jobId: string, updates: Partial<ManufacturingJob>) => {
     setActiveJobs(currentJobs => 
-      currentJobs.map(job => 
+      (currentJobs || []).map(job => 
         job.id === jobId ? { ...job, ...updates } : job
       )
     );
@@ -191,7 +203,7 @@ export function Manufacturing() {
   };
 
   const handleStartJobFromBlueprint = (blueprintId: string, runs: number, facility: string) => {
-    const blueprint = blueprints.find(bp => bp.id === blueprintId);
+    const blueprint = blueprints?.find(bp => bp.id === blueprintId);
     if (!blueprint) return;
 
     const newJob: ManufacturingJob = {
@@ -221,12 +233,12 @@ export function Manufacturing() {
       priority: 'normal'
     };
 
-    setActiveJobs(current => [...current, newJob]);
+    setActiveJobs(current => [...(current || []), newJob]);
     toast.success(`Started manufacturing job for ${blueprint.typeName}`);
   };
 
   const handleSaveProductionPlan = (plan: ProductionPlan) => {
-    setProductionPlans(current => [...current, plan]);
+    setProductionPlans(current => [...(current || []), plan]);
     toast.success(`Production plan "${plan.name}" created successfully`);
   };
 
@@ -250,7 +262,7 @@ export function Manufacturing() {
               <div>
                 <p className="text-sm text-muted-foreground">Active Jobs</p>
                 <p className="text-2xl font-bold text-green-400">
-                  {activeJobs.filter(j => j.status === 'active').length}
+                  {(activeJobs || []).filter(j => j.status === 'active').length}
                 </p>
                 {safeEveData.industryJobs.length > 0 && (
                   <p className="text-xs text-muted-foreground">
@@ -268,7 +280,7 @@ export function Manufacturing() {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm text-muted-foreground">Blueprints</p>
-                <p className="text-2xl font-bold text-blue-400">{blueprints.length}</p>
+                <p className="text-2xl font-bold text-blue-400">{(blueprints || []).length}</p>
                 {safeEveData.blueprints.length > 0 && (
                   <p className="text-xs text-muted-foreground">
                     EVE: {safeEveData.blueprints.length}
@@ -286,7 +298,7 @@ export function Manufacturing() {
               <div>
                 <p className="text-sm text-muted-foreground">Total Investment</p>
                 <p className="text-2xl font-bold text-accent">
-                  {formatISK(activeJobs.reduce((sum, job) => sum + job.cost, 0))}
+                  {formatISK((activeJobs || []).reduce((sum, job) => sum + job.cost, 0))}
                 </p>
               </div>
               <TrendUp size={24} className="text-muted-foreground" />
@@ -334,7 +346,7 @@ export function Manufacturing() {
                     onClick={() => refreshIndustryJobs?.()}
                     disabled={isLoading}
                   >
-                    <Refresh size={12} className={isLoading ? 'animate-spin' : ''} />
+                    <ArrowClockwise size={12} className={isLoading ? 'animate-spin' : ''} />
                   </Button>
                 )}
               </div>
@@ -366,7 +378,7 @@ export function Manufacturing() {
               </Button>
             </div>
 
-            {activeJobs.length === 0 ? (
+            {(activeJobs || []).length === 0 ? (
               <Card className="bg-card border-border">
                 <CardContent className="p-6">
                   <div className="text-center py-12">
@@ -384,7 +396,7 @@ export function Manufacturing() {
               </Card>
             ) : (
               <div className="grid gap-4">
-                {activeJobs.map((job) => (
+                {(activeJobs || []).map((job) => (
                   <Card key={job.id} className="bg-card border-border">
                     <CardContent className="p-6">
                       <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
@@ -482,7 +494,7 @@ export function Manufacturing() {
               </Button>
             </div>
 
-            {blueprints.length === 0 ? (
+            {(blueprints || []).length === 0 ? (
               <Card className="bg-card border-border">
                 <CardContent className="p-6">
                   <div className="text-center py-12">
@@ -500,7 +512,7 @@ export function Manufacturing() {
               </Card>
             ) : (
               <div className="grid gap-4">
-                {blueprints.map((blueprint) => (
+                {(blueprints || []).map((blueprint) => (
                   <Card key={blueprint.id} className="bg-card border-border">
                     <CardContent className="p-6">
                       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -582,7 +594,7 @@ export function Manufacturing() {
               </Button>
             </div>
 
-            {productionPlans.length === 0 ? (
+            {(productionPlans || []).length === 0 ? (
               <Card className="bg-card border-border">
                 <CardContent className="p-6">
                   <div className="text-center py-12">
@@ -600,7 +612,7 @@ export function Manufacturing() {
               </Card>
             ) : (
               <div className="grid gap-4">
-                {productionPlans.map((plan) => (
+                {(productionPlans || []).map((plan) => (
                   <Card key={plan.id} className="bg-card border-border">
                     <CardContent className="p-6">
                       <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
@@ -690,7 +702,7 @@ export function Manufacturing() {
       <ProductionPlanDialog
         open={planDialogOpen}
         onOpenChange={setPlanDialogOpen}
-        blueprints={blueprints}
+        blueprints={blueprints || []}
         onSavePlan={handleSaveProductionPlan}
       />
     </div>

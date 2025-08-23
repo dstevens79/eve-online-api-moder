@@ -10,14 +10,14 @@ import {
   TrendDown,
   Factory,
   Package,
-  Filter,
+  Funnel,
   Download,
   Eye,
   ArrowUp,
   ArrowDown,
   Clock,
   Gear,
-  Save
+  FloppyDisk
 } from '@phosphor-icons/react';
 import { useKV } from '@github/spark/hooks';
 import { IncomeRecord, IncomeAnalytics } from '@/lib/types';
@@ -110,11 +110,11 @@ export function Income() {
   ];
 
   // Use mock data if no real data is available
-  const records = incomeRecords.length > 0 ? incomeRecords : mockIncomeRecords;
+  const records = (incomeRecords && incomeRecords.length > 0) ? incomeRecords : mockIncomeRecords;
 
   // Filter records based on selected criteria
   const filteredRecords = useMemo(() => {
-    let filtered = records;
+    let filtered = records || [];
 
     // Filter by period
     const now = new Date();
@@ -249,7 +249,7 @@ export function Income() {
   // Get unique pilots for filter
   const uniquePilots = useMemo(() => {
     const pilots = new Map<number, string>();
-    records.forEach(record => {
+    (records || []).forEach(record => {
       pilots.set(record.pilotId, record.pilotName);
     });
     return Array.from(pilots.entries()).map(([id, name]) => ({ id, name }));
@@ -270,7 +270,7 @@ export function Income() {
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
-            <Filter className="h-4 w-4" />
+            <Funnel className="h-4 w-4" />
             Filters
           </CardTitle>
         </CardHeader>

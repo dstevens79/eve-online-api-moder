@@ -15,7 +15,7 @@ import {
   ArrowDown,
   Clock,
   MapPin,
-  Refresh,
+  ArrowClockwise,
   Download
 } from '@phosphor-icons/react';
 
@@ -92,7 +92,7 @@ export function Dashboard() {
             size="sm"
             disabled={loading.members || loading.assets}
           >
-            <Refresh size={16} className={`mr-2 ${loading.members || loading.assets ? 'animate-spin' : ''}`} />
+            <ArrowClockwise size={16} className={`mr-2 ${loading.members || loading.assets ? 'animate-spin' : ''}`} />
             Refresh
           </Button>
           
@@ -103,7 +103,7 @@ export function Dashboard() {
             className="bg-accent hover:bg-accent/90"
           >
             {syncStatus.isRunning ? (
-              <Refresh size={16} className="mr-2 animate-spin" />
+              <ArrowClockwise size={16} className="mr-2 animate-spin" />
             ) : (
               <Download size={16} className="mr-2" />
             )}

@@ -23,7 +23,7 @@ import {
   Warning,
   X,
   Rocket,
-  Refresh,
+  ArrowClockwise,
   LinkSimple,
   Eye,
   EyeSlash,
@@ -33,7 +33,7 @@ import {
   HardHat,
   TrendUp,
   Crosshair,
-  DollarSign,
+  CurrencyDollar,
   List,
   Play,
   Stop,
@@ -176,6 +176,7 @@ export function Settings() {
     enabled: false,
     autoSync: false,
     syncInterval: 30,
+    lastSync: new Date().toISOString(),
     characterId: 91316135,
     corporationId: 498125261
   };
@@ -243,24 +244,27 @@ export function Settings() {
   };
 
   const updateDatabaseConfig = (field: keyof DatabaseConfig, value: any) => {
-    setSettings(current => ({
-      ...current,
-      database: {
-        ...current.database,
-        [field]: value
-      }
-    }));
+    setSettings(current => {
+      if (!current) return current;
+      return {
+        ...current,
+        database: {
+          ...current.database,
+          [field]: value
+        }
+      };
+    });
   };
 
   // Generate OAuth authorization URL
   const generateAuthUrl = () => {
     const state = Math.random().toString(36).substring(2, 15);
-    const scopes = esiConfig.scopes.join(' ');
+    const scopes = (esiConfig?.scopes || []).join(' ');
     
     const authUrl = `https://login.eveonline.com/v2/oauth/authorize/?` +
       `response_type=code&` +
-      `redirect_uri=${encodeURIComponent(esiConfig.callbackUrl)}&` +
-      `client_id=${esiConfig.clientId}&` +
+      `redirect_uri=${encodeURIComponent(esiConfig?.callbackUrl || '')}&` +
+      `client_id=${esiConfig?.clientId || ''}&` +
       `scope=${encodeURIComponent(scopes)}&` +
       `state=${state}`;
     
@@ -268,7 +272,7 @@ export function Settings() {
   };
 
   const handleESIOAuth = () => {
-    if (!esiConfig.clientId) {
+    if (!esiConfig?.clientId) {
       toast.error('Please configure your ESI Client ID first');
       return;
     }
@@ -607,7 +611,7 @@ export function Settings() {
                       disabled={testingConnection}
                     >
                       {testingConnection ? (
-                        <Refresh size={16} className="mr-2 animate-spin" />
+                        <ArrowClockwise size={16} className="mr-2 animate-spin" />
                       ) : (
                         <Play size={16} className="mr-2" />
                       )}
@@ -831,7 +835,7 @@ export function Settings() {
                       size="sm"
                       onClick={loadTableInfo}
                     >
-                      <Refresh size={16} className="mr-2" />
+                      <ArrowClockwise size={16} className="mr-2" />
                       Refresh
                     </Button>
                   </div>
@@ -1021,7 +1025,7 @@ export function Settings() {
                           size="sm"
                         >
                           {syncStatus.isRunning ? (
-                            <Refresh size={16} className="mr-2 animate-spin" />
+                            <ArrowClockwise size={16} className="mr-2 animate-spin" />
                           ) : (
                             <Download size={16} className="mr-2" />
                           )}
@@ -1088,7 +1092,7 @@ export function Settings() {
                     onClick={checkForUpdates}
                     disabled={sdeStatus.isDownloading || sdeStatus.isUpdating}
                   >
-                    <Refresh size={16} className="mr-2" />
+                    <ArrowClockwise size={16} className="mr-2" />
                     Check for Updates
                   </Button>
                 </div>
@@ -1202,7 +1206,7 @@ export function Settings() {
                     >
                       {sdeStatus.isDownloading ? (
                         <>
-                          <Refresh size={16} className="mr-2 animate-spin" />
+                          <ArrowClockwise size={16} className="mr-2 animate-spin" />
                           Downloading...
                         </>
                       ) : (
@@ -1238,7 +1242,7 @@ export function Settings() {
                     >
                       {sdeStatus.isUpdating ? (
                         <>
-                          <Refresh size={16} className="mr-2 animate-spin" />
+                          <ArrowClockwise size={16} className="mr-2 animate-spin" />
                           Updating...
                         </>
                       ) : (
@@ -1719,7 +1723,7 @@ export function Settings() {
                     <div className="flex items-center justify-between p-4 border border-border rounded-lg">
                       <div className="space-y-1">
                         <div className="flex items-center gap-2">
-                          <DollarSign size={16} className="text-green-400" />
+                          <CurrencyDollar size={16} className="text-green-400" />
                           <Label className="font-medium">Income</Label>
                         </div>
                         <p className="text-sm text-muted-foreground">

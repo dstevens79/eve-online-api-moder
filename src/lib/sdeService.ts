@@ -196,7 +196,9 @@ export const sdeService = new SDEService();
 export function useSDEManager() {
   const [sdeStatus, setSDEStatus] = useKV<SDEStatus>('sde-status', {
     isInstalled: false,
-    isUpdateAvailable: false
+    isUpdateAvailable: false,
+    isDownloading: false,
+    isUpdating: false
   });
 
   const checkForUpdates = async (): Promise<void> => {
@@ -207,25 +209,43 @@ export function useSDEManager() {
         : true;
 
       setSDEStatus(current => ({
-        ...current,
-        latestVersion: latestInfo.version,
+        isInstalled: current?.isInstalled || false,
         isUpdateAvailable,
+        isDownloading: current?.isDownloading || false,
+        isUpdating: current?.isUpdating || false,
+        currentVersion: current?.currentVersion,
+        installedDate: current?.installedDate,
+        latestVersion: latestInfo.version,
         lastChecked: new Date().toISOString(),
+        downloadProgress: current?.downloadProgress,
         error: undefined
       }));
     } catch (error) {
       setSDEStatus(current => ({
-        ...current,
-        error: error instanceof Error ? error.message : 'Failed to check for updates',
-        lastChecked: new Date().toISOString()
+        isInstalled: current?.isInstalled || false,
+        isUpdateAvailable: current?.isUpdateAvailable || false,
+        isDownloading: current?.isDownloading || false,
+        isUpdating: current?.isUpdating || false,
+        currentVersion: current?.currentVersion,
+        installedDate: current?.installedDate,
+        latestVersion: current?.latestVersion,
+        lastChecked: new Date().toISOString(),
+        downloadProgress: current?.downloadProgress,
+        error: error instanceof Error ? error.message : 'Failed to check for updates'
       }));
     }
   };
 
   const downloadSDE = async (): Promise<void> => {
     setSDEStatus(current => ({
-      ...current,
+      isInstalled: current?.isInstalled || false,
+      isUpdateAvailable: current?.isUpdateAvailable || false,
       isDownloading: true,
+      isUpdating: current?.isUpdating || false,
+      currentVersion: current?.currentVersion,
+      installedDate: current?.installedDate,
+      latestVersion: current?.latestVersion,
+      lastChecked: current?.lastChecked,
       downloadProgress: 0,
       error: undefined
     }));
@@ -239,14 +259,27 @@ export function useSDEManager() {
 
     if (result.success) {
       setSDEStatus(current => ({
-        ...current,
+        isInstalled: current?.isInstalled || false,
+        isUpdateAvailable: current?.isUpdateAvailable || false,
         isDownloading: false,
-        downloadProgress: 100
+        isUpdating: current?.isUpdating || false,
+        currentVersion: current?.currentVersion,
+        installedDate: current?.installedDate,
+        latestVersion: current?.latestVersion,
+        lastChecked: current?.lastChecked,
+        downloadProgress: 100,
+        error: current?.error
       }));
     } else {
       setSDEStatus(current => ({
-        ...current,
+        isInstalled: current?.isInstalled || false,
+        isUpdateAvailable: current?.isUpdateAvailable || false,
         isDownloading: false,
+        isUpdating: current?.isUpdating || false,
+        currentVersion: current?.currentVersion,
+        installedDate: current?.installedDate,
+        latestVersion: current?.latestVersion,
+        lastChecked: current?.lastChecked,
         downloadProgress: 0,
         error: result.error
       }));
@@ -255,8 +288,15 @@ export function useSDEManager() {
 
   const updateDatabase = async (): Promise<void> => {
     setSDEStatus(current => ({
-      ...current,
+      isInstalled: current?.isInstalled || false,
+      isUpdateAvailable: current?.isUpdateAvailable || false,
+      isDownloading: current?.isDownloading || false,
       isUpdating: true,
+      currentVersion: current?.currentVersion,
+      installedDate: current?.installedDate,
+      latestVersion: current?.latestVersion,
+      lastChecked: current?.lastChecked,
+      downloadProgress: current?.downloadProgress,
       error: undefined
     }));
 
@@ -268,27 +308,38 @@ export function useSDEManager() {
       const latestInfo = await sdeService.checkLatestVersion();
       
       setSDEStatus(current => ({
-        ...current,
-        isUpdating: false,
         isInstalled: true,
+        isUpdateAvailable: false,
+        isDownloading: current?.isDownloading || false,
+        isUpdating: false,
         currentVersion: latestInfo.version,
         installedDate: new Date().toISOString(),
-        isUpdateAvailable: false
+        latestVersion: latestInfo.version,
+        lastChecked: current?.lastChecked,
+        downloadProgress: current?.downloadProgress,
+        error: current?.error
       }));
       
       // Clean up temporary files
       await sdeService.cleanup();
     } else {
       setSDEStatus(current => ({
-        ...current,
+        isInstalled: current?.isInstalled || false,
+        isUpdateAvailable: current?.isUpdateAvailable || false,
+        isDownloading: current?.isDownloading || false,
         isUpdating: false,
+        currentVersion: current?.currentVersion,
+        installedDate: current?.installedDate,
+        latestVersion: current?.latestVersion,
+        lastChecked: current?.lastChecked,
+        downloadProgress: current?.downloadProgress,
         error: result.error
       }));
     }
   };
 
   const getDatabaseStats = async (): Promise<SDEDatabaseStats | null> => {
-    if (!sdeStatus.isInstalled) return null;
+    if (!sdeStatus || !sdeStatus.isInstalled) return null;
     
     try {
       return await sdeService.getDatabaseStats();
