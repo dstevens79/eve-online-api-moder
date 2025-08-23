@@ -1,8 +1,10 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { EVEApiStatus } from '@/components/EVEApiStatus';
+import { useLMeveData } from '@/lib/LMeveDataContext';
+import { useAuth } from '@/lib/auth';
 import { 
   Users, 
   Package, 
@@ -12,37 +14,48 @@ import {
   ArrowUp, 
   ArrowDown,
   Clock,
-  MapPin
+  MapPin,
+  Refresh,
+  Download
 } from '@phosphor-icons/react';
 
 export function Dashboard() {
-  // Mock data - in a real app this would come from an API
-  const stats = {
+  const { user } = useAuth();
+  const { 
+    dashboardStats, 
+    syncStatus, 
+    syncData, 
+    refreshDashboard,
+    loading 
+  } = useLMeveData();
+
+  // Load dashboard data on component mount
+  useEffect(() => {
+    if (!dashboardStats) {
+      refreshDashboard();
+    }
+  }, [dashboardStats, refreshDashboard]);
+
+  // Use real data if available, fall back to mock data
+  const stats = dashboardStats || {
     totalMembers: 42,
     activeMembers: 38,
     totalAssets: 1247,
-    totalAssetsValue: 15600000000, // 15.6B ISK
+    totalAssetsValue: 15600000000,
     activeJobs: 3,
     completedJobsThisMonth: 28,
     miningOperationsThisMonth: 156,
-    miningValueThisMonth: 2100000000, // 2.1B ISK
-    corpWalletBalance: 45000000000, // 45B ISK
+    miningValueThisMonth: 2100000000,
+    corpWalletBalance: 45000000000,
+    recentActivity: []
   };
 
-  const recentActivity = [
-    { id: 1, time: '2 hours ago', member: 'John Doe', action: 'Completed manufacturing job', type: 'manufacturing' },
-    { id: 2, time: '4 hours ago', member: 'Jane Smith', action: 'Updated asset location', type: 'asset' },
-    { id: 3, time: '6 hours ago', member: 'Bob Wilson', action: 'Mining operation in Jita', type: 'mining' },
-    { id: 4, time: '8 hours ago', member: 'Alice Brown', action: 'Logged in from Dodixie', type: 'login' },
-    { id: 5, time: '12 hours ago', member: 'Charlie Davis', action: 'Started blueprint research', type: 'manufacturing' },
-  ];
-
   const formatISK = (amount: number): string => {
-    if (amount >= 1e12) return `${(amount / 1e12).toFixed(1)}T`;
-    if (amount >= 1e9) return `${(amount / 1e9).toFixed(1)}B`;
-    if (amount >= 1e6) return `${(amount / 1e6).toFixed(1)}M`;
-    if (amount >= 1e3) return `${(amount / 1e3).toFixed(1)}K`;
-    return amount.toString();
+    if (amount >= 1e12) return `${(amount / 1e12).toFixed(1)}T ISK`;
+    if (amount >= 1e9) return `${(amount / 1e9).toFixed(1)}B ISK`;
+    if (amount >= 1e6) return `${(amount / 1e6).toFixed(1)}M ISK`;
+    if (amount >= 1e3) return `${(amount / 1e3).toFixed(1)}K ISK`;
+    return `${amount} ISK`;
   };
 
   const getActivityIcon = (type: string) => {
@@ -58,12 +71,77 @@ export function Dashboard() {
   return (
     <div className="space-y-6">
       {/* Corporation Overview */}
-      <div>
-        <h2 className="text-2xl font-bold mb-4">Corporation Dashboard</h2>
-        <p className="text-muted-foreground mb-6">
-          Overview of Test Alliance Please Ignore corporation activities and metrics
-        </p>
+      <div className="flex items-center justify-between">
+        <div>
+          <h2 className="text-2xl font-bold">Corporation Dashboard</h2>
+          <p className="text-muted-foreground">
+            Overview of {user?.corporationName || 'your corporation'} activities and metrics
+          </p>
+        </div>
+        
+        <div className="flex items-center gap-3">
+          {syncStatus.lastSync && (
+            <p className="text-xs text-muted-foreground">
+              Last sync: {new Date(syncStatus.lastSync).toLocaleTimeString()}
+            </p>
+          )}
+          
+          <Button
+            onClick={refreshDashboard}
+            variant="outline"
+            size="sm"
+            disabled={loading.members || loading.assets}
+          >
+            <Refresh size={16} className={`mr-2 ${loading.members || loading.assets ? 'animate-spin' : ''}`} />
+            Refresh
+          </Button>
+          
+          <Button
+            onClick={syncData}
+            disabled={syncStatus.isRunning}
+            size="sm"
+            className="bg-accent hover:bg-accent/90"
+          >
+            {syncStatus.isRunning ? (
+              <Refresh size={16} className="mr-2 animate-spin" />
+            ) : (
+              <Download size={16} className="mr-2" />
+            )}
+            {syncStatus.isRunning ? 'Syncing...' : 'Sync All Data'}
+          </Button>
+        </div>
       </div>
+
+      {/* Sync Progress */}
+      {syncStatus.isRunning && (
+        <Card className="border-accent/50 bg-accent/10">
+          <CardContent className="pt-6">
+            <div className="space-y-2">
+              <div className="flex justify-between text-sm">
+                <span>{syncStatus.stage}</span>
+                <span>{Math.round(syncStatus.progress)}%</span>
+              </div>
+              <div className="w-full bg-muted rounded-full h-2">
+                <div 
+                  className="bg-accent h-2 rounded-full transition-all duration-300" 
+                  style={{ width: `${syncStatus.progress}%` }}
+                />
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Sync Error */}
+      {syncStatus.error && (
+        <Card className="border-destructive/50 bg-destructive/10">
+          <CardContent className="pt-6">
+            <p className="text-sm text-destructive">
+              Sync failed: {syncStatus.error}
+            </p>
+          </CardContent>
+        </Card>
+      )}
 
       {/* Key Metrics */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
@@ -158,26 +236,36 @@ export function Dashboard() {
             </CardHeader>
             <CardContent>
               <div className="space-y-4">
-                {recentActivity.map((activity) => (
-                  <div key={activity.id} className="flex items-center justify-between p-3 rounded-lg bg-muted/50">
-                    <div className="flex items-center gap-3">
-                      {getActivityIcon(activity.type)}
-                      <div>
-                        <p className="text-sm font-medium">{activity.member}</p>
-                        <p className="text-xs text-muted-foreground">{activity.action}</p>
+                {stats.recentActivity && stats.recentActivity.length > 0 ? (
+                  stats.recentActivity.map((activity) => (
+                    <div key={activity.id} className="flex items-center justify-between p-3 rounded-lg bg-muted/50">
+                      <div className="flex items-center gap-3">
+                        {getActivityIcon(activity.type)}
+                        <div>
+                          <p className="text-sm font-medium">{activity.memberName}</p>
+                          <p className="text-xs text-muted-foreground">{activity.description}</p>
+                        </div>
+                      </div>
+                      <div className="text-xs text-muted-foreground">
+                        {new Date(activity.timestamp).toLocaleTimeString()}
                       </div>
                     </div>
-                    <div className="text-xs text-muted-foreground">
-                      {activity.time}
-                    </div>
+                  ))
+                ) : (
+                  <div className="text-center py-8 text-muted-foreground">
+                    <Clock size={24} className="mx-auto mb-2 opacity-50" />
+                    <p className="text-sm">No recent activity</p>
+                    <p className="text-xs">Activity will appear here as members interact with the system</p>
                   </div>
-                ))}
+                )}
               </div>
-              <div className="mt-4 pt-4 border-t border-border">
-                <Button variant="outline" className="w-full">
-                  View All Activity
-                </Button>
-              </div>
+              {stats.recentActivity && stats.recentActivity.length > 0 && (
+                <div className="mt-4 pt-4 border-t border-border">
+                  <Button variant="outline" className="w-full">
+                    View All Activity
+                  </Button>
+                </div>
+              )}
             </CardContent>
           </Card>
         </div>

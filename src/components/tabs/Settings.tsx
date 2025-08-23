@@ -40,6 +40,7 @@ import {
   Info
 } from '@phosphor-icons/react';
 import { useKV } from '@github/spark/hooks';
+import { useAuth } from '@/lib/auth';
 import { CorpSettings } from '@/lib/types';
 import { toast } from 'sonner';
 import { eveApi, type CharacterInfo, type CorporationInfo } from '@/lib/eveApi';
@@ -74,10 +75,11 @@ interface ESIOAuthState {
 }
 
 export function Settings() {
+  const { user } = useAuth();
   const [settings, setSettings] = useKV<CorpSettings>('corp-settings', {
-    corpName: 'Test Alliance Please Ignore',
+    corpName: user?.corporationName || 'Test Alliance Please Ignore',
     corpTicker: 'TEST',
-    corpId: 498125261,
+    corpId: user?.corporationId || 498125261,
     timezone: 'UTC',
     language: 'en',
     notifications: {

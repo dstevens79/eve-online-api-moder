@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -20,6 +20,10 @@ import {
 import { useKV } from '@github/spark/hooks';
 import { TabType } from '@/lib/types';
 import { DatabaseProvider } from '@/lib/DatabaseContext';
+import { LMeveDataProvider } from '@/lib/LMeveDataContext';
+import { useAuth, ESIAuthState } from '@/lib/auth';
+import { LoginPage } from '@/components/LoginPage';
+import { ESICallback } from '@/components/ESICallback';
 
 // Tab Components (will be implemented)
 import { Dashboard } from '@/components/tabs/Dashboard';
@@ -35,6 +39,58 @@ import { Settings } from '@/components/tabs/Settings';
 
 function App() {
   const [activeTab, setActiveTab] = useKV<TabType>('active-tab', 'dashboard');
+  const { user, isAuthenticated, logout, refreshUserToken, isTokenExpired } = useAuth();
+  const [isESICallback, setIsESICallback] = useState(false);
+
+  // Check if this is an ESI callback
+  useEffect(() => {
+    const urlParams = new URLSearchParams(window.location.search);
+    const code = urlParams.get('code');
+    const state = urlParams.get('state');
+    
+    if (code && state) {
+      setIsESICallback(true);
+    }
+  }, []);
+
+  // Auto-refresh token when it's about to expire
+  useEffect(() => {
+    if (isAuthenticated && isTokenExpired()) {
+      refreshUserToken();
+    }
+  }, [isAuthenticated, isTokenExpired, refreshUserToken]);
+
+  // Handle successful authentication
+  const handleLoginSuccess = () => {
+    setIsESICallback(false);
+    // Clear URL parameters after successful auth
+    if (window.location.search) {
+      window.history.replaceState({}, document.title, window.location.pathname);
+    }
+  };
+
+  const handleLoginError = () => {
+    setIsESICallback(false);
+    // Clear URL parameters after failed auth
+    if (window.location.search) {
+      window.history.replaceState({}, document.title, window.location.pathname);
+    }
+  };
+
+  // Show ESI callback handler if this is a callback
+  if (isESICallback) {
+    return (
+      <ESICallback 
+        onLoginSuccess={handleLoginSuccess}
+        onLoginError={handleLoginError}
+      />
+    );
+  }
+
+  // Show login page if not authenticated
+  if (!isAuthenticated) {
+    return <LoginPage onLoginSuccess={handleLoginSuccess} />;
+  }
 
   const tabs = [
     { id: 'dashboard', label: 'Dashboard', icon: House, component: Dashboard },
@@ -55,7 +111,8 @@ function App() {
 
   return (
     <DatabaseProvider>
-      <div className="min-h-screen bg-background text-foreground">
+      <LMeveDataProvider>
+        <div className="min-h-screen bg-background text-foreground">
         <Toaster />
         
         {/* Header */}
@@ -71,19 +128,22 @@ function App() {
                   </div>
                 </div>
                 <Badge variant="secondary" className="text-xs bg-accent/20 text-accent border-accent/30">
-                  Test Alliance Please Ignore
+                  {user.allianceName || user.corporationName}
                 </Badge>
               </div>
               
               <div className="flex items-center gap-3">
                 <div className="text-right">
-                  <p className="text-sm font-medium">CEO Firstname Lastname</p>
-                  <p className="text-xs text-muted-foreground">Director</p>
+                  <p className="text-sm font-medium">{user.characterName}</p>
+                  <p className="text-xs text-muted-foreground">
+                    {user.isCeo ? 'CEO' : user.isDirector ? 'Director' : 'Member'}
+                  </p>
                 </div>
                 <Button 
                   variant="outline" 
                   size="sm"
                   className="border-border hover:bg-muted"
+                  onClick={logout}
                 >
                   <SignOut size={16} className="mr-2" />
                   Logout
@@ -151,6 +211,7 @@ function App() {
           </div>
         </div>
       </div>
+      </LMeveDataProvider>
     </DatabaseProvider>
   );
 }

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
@@ -12,42 +12,26 @@ import {
   UserPlus,
   Eye,
   Clock,
-  MapPin
+  MapPin,
+  Refresh
 } from '@phosphor-icons/react';
 import { Member } from '@/lib/types';
+import { useLMeveData } from '@/lib/LMeveDataContext';
+import { useAuth } from '@/lib/auth';
 
 export function Members() {
+  const { user } = useAuth();
+  const { members, loading, refreshMembers } = useLMeveData();
   const [searchTerm, setSearchTerm] = useState('');
   const [roleFilter, setRoleFilter] = useState('all');
   const [statusFilter, setStatusFilter] = useState('all');
 
-  // Mock member data
-  const members: Member[] = [
-    {
-      id: 1,
-      name: 'John Doe',
-      corporationId: 123,
-      characterId: 456,
-      joinDate: '2023-01-15',
-      lastLogin: '2024-01-20T10:30:00Z',
-      title: 'Director',
-      roles: ['Director', 'Factory Manager'],
-      isActive: true,
-      securityStatus: 4.8,
-      location: 'Jita IV - Moon 4',
-      ship: 'Raven'
-    },
-    {
-      id: 2,
-      name: 'Jane Smith',
-      corporationId: 123,
-      characterId: 789,
-      joinDate: '2023-03-20',
-      lastLogin: '2024-01-20T08:15:00Z',
-      title: 'Mining Foreman',
-      roles: ['Mining Foreman', 'Hangar Access'],
-      isActive: true,
-      securityStatus: 3.2,
+  // Load members data on component mount
+  useEffect(() => {
+    if (members.length === 0 && !loading.members) {
+      refreshMembers();
+    }
+  }, [members.length, loading.members, refreshMembers]);
       location: 'Dodixie IX - Moon 20',
       ship: 'Hulk'
     },
@@ -142,13 +126,22 @@ export function Members() {
         <div>
           <h2 className="text-2xl font-bold flex items-center gap-2">
             <Users size={24} />
-            Corporation Members
+            {user?.corporationName} Members
           </h2>
           <p className="text-muted-foreground">
             Manage and monitor corporation member activities and roles
           </p>
         </div>
         <div className="flex gap-2">
+          <Button 
+            variant="outline" 
+            size="sm"
+            onClick={refreshMembers}
+            disabled={loading.members}
+          >
+            <Refresh size={16} className={`mr-2 ${loading.members ? 'animate-spin' : ''}`} />
+            Refresh
+          </Button>
           <Button variant="outline" size="sm">
             <Download size={16} className="mr-2" />
             Export
