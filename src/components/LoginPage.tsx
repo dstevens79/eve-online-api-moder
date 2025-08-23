@@ -145,7 +145,7 @@ export function LoginPage({ onLoginSuccess }: LoginPageProps) {
                   value={credentials.username}
                   onChange={handleInputChange('username')}
                   onKeyDown={handleKeyDown}
-                  disabled={isLoading || isLocalLoginLoading}
+                  disabled={authIsLoading || isLocalLoginLoading}
                   className="bg-input border-border"
                   autoComplete="username"
                 />
