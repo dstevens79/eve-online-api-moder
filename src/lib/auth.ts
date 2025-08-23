@@ -152,10 +152,23 @@ class AuthService {
    */
   async loginWithCredentials(credentials: LoginCredentials, adminConfig?: { username: string; password: string }): Promise<AuthUser> {
     console.log('AuthService - login attempt for:', credentials.username);
+    console.log('AuthService - received credentials:', { 
+      username: `"${credentials.username}"`, 
+      password: `"${credentials.password}"`,
+      usernameLength: credentials.username?.length,
+      passwordLength: credentials.password?.length
+    });
     
     // Trim whitespace from inputs
     const username = credentials.username?.trim() || '';
     const password = credentials.password?.trim() || '';
+    
+    console.log('AuthService - trimmed credentials:', { 
+      username: `"${username}"`, 
+      password: `"${password}"`,
+      usernameLength: username.length,
+      passwordLength: password.length
+    });
     
     // Check for admin login if configured
     if (adminConfig && username === adminConfig.username && password === adminConfig.password) {
@@ -178,6 +191,10 @@ class AuthService {
     }
 
     // Default admin credentials (admin/12345)
+    console.log('AuthService - checking default admin credentials...');
+    console.log('AuthService - username check:', { input: username, expected: 'admin', match: username === 'admin' });
+    console.log('AuthService - password check:', { input: password, expected: '12345', match: password === '12345' });
+    
     if (username === 'admin' && password === '12345') {
       console.log('AuthService - admin login successful (default)');
       return {
@@ -198,7 +215,7 @@ class AuthService {
     }
 
     console.log('AuthService - login failed for:', username);
-    throw new Error('Invalid credentials');
+    throw new Error(`Invalid credentials for user: ${username}`);
   }
 
   /**
@@ -373,6 +390,13 @@ export function useAuth() {
   const login = async (credentials: LoginCredentials, onSuccess?: () => void): Promise<void> => {
     setIsLoading(true);
     console.log('🚀 Starting login for:', credentials.username);
+    console.log('🔍 Admin config:', adminConfig);
+    console.log('🔍 Credentials check:', { 
+      usernameMatch: credentials.username?.trim() === 'admin',
+      passwordMatch: credentials.password?.trim() === '12345',
+      username: `"${credentials.username}"`,
+      password: `"${credentials.password}"`
+    });
     
     try {
       const authUser = await authService.loginWithCredentials(credentials, adminConfig);

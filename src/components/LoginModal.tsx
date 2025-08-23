@@ -25,6 +25,14 @@ export function LoginModal({ open, onOpenChange, onLoginSuccess }: LoginModalPro
     setError(null);
     
     console.log('🔑 Login attempt for:', credentials.username);
+    console.log('🔍 Form values:', { 
+      username: `"${credentials.username}"`, 
+      password: `"${credentials.password}"`,
+      hasUsername: !!credentials.username,
+      hasPassword: !!credentials.password,
+      usernameLength: credentials.username?.length,
+      passwordLength: credentials.password?.length
+    });
 
     if (!credentials.username?.trim() || !credentials.password?.trim()) {
       setError('Please enter both username and password');
@@ -32,6 +40,7 @@ export function LoginModal({ open, onOpenChange, onLoginSuccess }: LoginModalPro
     }
 
     try {
+      console.log('🚀 Calling login function...');
       await login(credentials);
       console.log('✅ Login successful - closing modal');
       onOpenChange(false);
