@@ -88,11 +88,14 @@ export function Manufacturing() {
     corporationId: 498125261
   };
 
-  const { data: eveData, isLoading, refreshIndustryJobs } = useEVEData(
-    eveOnlineSync.enabled,
+  const eveDataHook = useEVEData(
     eveOnlineSync.corporationId,
     eveOnlineSync.characterId
   );
+
+  const eveData = eveDataHook?.data;
+  const isLoading = eveDataHook?.data?.isLoading || false;
+  const refreshIndustryJobs = eveDataHook?.refreshIndustryJobs;
 
   const safeEveData = eveData || {
     industryJobs: [],
@@ -328,10 +331,10 @@ export function Manufacturing() {
                     size="sm"
                     variant="ghost"
                     className="h-auto p-1"
-                    onClick={refreshIndustryJobs}
-                    disabled={safeEveData.isLoading}
+                    onClick={() => refreshIndustryJobs?.()}
+                    disabled={isLoading}
                   >
-                    <Refresh size={12} className={safeEveData.isLoading ? 'animate-spin' : ''} />
+                    <Refresh size={12} className={isLoading ? 'animate-spin' : ''} />
                   </Button>
                 )}
               </div>
