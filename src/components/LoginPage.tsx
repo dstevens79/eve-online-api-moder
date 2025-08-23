@@ -17,13 +17,16 @@ export function LoginPage({ onLoginSuccess }: LoginPageProps) {
   const [credentials, setCredentials] = useState<LoginCredentials>({ username: '', password: '' });
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [isLocalLoginLoading, setIsLocalLoginLoading] = useState(false);
 
   const handleCredentialLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
+    setIsLocalLoginLoading(true);
 
     if (!credentials.username || !credentials.password) {
       setError('Please enter both username and password');
+      setIsLocalLoginLoading(false);
       return;
     }
 
@@ -32,6 +35,8 @@ export function LoginPage({ onLoginSuccess }: LoginPageProps) {
       onLoginSuccess?.();
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Login failed');
+    } finally {
+      setIsLocalLoginLoading(false);
     }
   };
 
@@ -83,11 +88,11 @@ export function LoginPage({ onLoginSuccess }: LoginPageProps) {
             <Button
               onClick={handleESILogin}
               disabled={isLoading}
-              className="w-full bg-accent hover:bg-accent/90 text-accent-foreground"
+              className="w-full bg-accent hover:bg-accent/90 active:bg-accent/80 text-accent-foreground transition-all duration-200 hover:shadow-lg hover:shadow-accent/20 active:scale-[0.98]"
               size="lg"
             >
               <SignIn size={18} className="mr-2" />
-              Login with EVE Online
+              {isLoading ? 'Connecting...' : 'Login with EVE Online'}
             </Button>
 
             <div className="relative">
@@ -109,7 +114,7 @@ export function LoginPage({ onLoginSuccess }: LoginPageProps) {
                   placeholder="Enter your username"
                   value={credentials.username}
                   onChange={handleInputChange('username')}
-                  disabled={isLoading}
+                  disabled={isLoading || isLocalLoginLoading}
                   className="bg-input border-border"
                 />
               </div>
@@ -123,7 +128,7 @@ export function LoginPage({ onLoginSuccess }: LoginPageProps) {
                     placeholder="Enter your password"
                     value={credentials.password}
                     onChange={handleInputChange('password')}
-                    disabled={isLoading}
+                    disabled={isLoading || isLocalLoginLoading}
                     className="bg-input border-border pr-10"
                   />
                   <Button
@@ -144,11 +149,11 @@ export function LoginPage({ onLoginSuccess }: LoginPageProps) {
 
               <Button
                 type="submit"
-                disabled={isLoading}
-                className="w-full"
-                variant="outline"
+                disabled={isLoading || isLocalLoginLoading}
+                className="w-full bg-primary hover:bg-primary/90 active:bg-primary/80 text-primary-foreground border-primary/20 transition-all duration-200 hover:shadow-lg hover:shadow-primary/20 active:scale-[0.98]"
+                variant="default"
               >
-                {isLoading ? 'Signing in...' : 'Sign In'}
+                {isLocalLoginLoading ? 'Signing in...' : 'Sign In'}
               </Button>
             </form>
 
