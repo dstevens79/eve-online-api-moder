@@ -1962,6 +1962,7 @@ export function Settings() {
             </CardContent>
           </Card>
         </TabsContent>
+        
       </Tabs>
     </div>
   );

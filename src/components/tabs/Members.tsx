@@ -32,52 +32,6 @@ export function Members() {
       refreshMembers();
     }
   }, [members.length, loading.members, refreshMembers]);
-      location: 'Dodixie IX - Moon 20',
-      ship: 'Hulk'
-    },
-    {
-      id: 3,
-      name: 'Bob Wilson',
-      corporationId: 123,
-      characterId: 101112,
-      joinDate: '2023-06-10',
-      lastLogin: '2024-01-19T22:45:00Z',
-      title: 'Member',
-      roles: ['Member'],
-      isActive: true,
-      securityStatus: 1.1,
-      location: 'Amarr VIII (Oris)',
-      ship: 'Retriever'
-    },
-    {
-      id: 4,
-      name: 'Alice Brown',
-      corporationId: 123,
-      characterId: 131415,
-      joinDate: '2023-02-28',
-      lastLogin: '2024-01-18T14:20:00Z',
-      title: 'Logistics',
-      roles: ['Logistics', 'Station Manager'],
-      isActive: true,
-      securityStatus: 2.7,
-      location: 'Rens VI - Moon 8',
-      ship: 'Bustard'
-    },
-    {
-      id: 5,
-      name: 'Charlie Davis',
-      corporationId: 123,
-      characterId: 161718,
-      joinDate: '2023-08-05',
-      lastLogin: '2024-01-15T09:10:00Z',
-      title: 'Member',
-      roles: ['Member'],
-      isActive: false,
-      securityStatus: -0.3,
-      location: 'Unknown',
-      ship: 'Unknown'
-    }
-  ];
 
   const filteredMembers = members.filter(member => {
     const matchesSearch = member.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
