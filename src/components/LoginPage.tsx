@@ -8,11 +8,7 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Rocket, SignIn, Eye, EyeSlash } from '@phosphor-icons/react';
 import { useAuth, LoginCredentials } from '@/lib/auth';
 
-interface LoginPageProps {
-  onLoginSuccess?: () => void;
-}
-
-export function LoginPage({ onLoginSuccess }: LoginPageProps) {
+export function LoginPage() {
   const { login, loginWithESI, isLoading: authIsLoading } = useAuth();
   const [credentials, setCredentials] = useState<LoginCredentials>({ username: '', password: '' });
   const [showPassword, setShowPassword] = useState(false);
@@ -44,8 +40,7 @@ export function LoginPage({ onLoginSuccess }: LoginPageProps) {
     try {
       console.log('LoginPage: Calling auth.login...');
       await login(credentials);
-      console.log('LoginPage: Login successful, calling onLoginSuccess');
-      onLoginSuccess?.();
+      console.log('LoginPage: Login successful');
     } catch (err) {
       console.error('LoginPage: Login error:', err);
       setError(err instanceof Error ? err.message : 'Login failed');
@@ -206,7 +201,6 @@ export function LoginPage({ onLoginSuccess }: LoginPageProps) {
                       setIsLocalLoginLoading(true);
                       try {
                         await login({ username: 'admin', password: '12345' });
-                        onLoginSuccess?.();
                       } catch (err) {
                         console.error('Debug login error:', err);
                         setError(err instanceof Error ? err.message : 'Login failed');

@@ -53,14 +53,27 @@ function App() {
   const { user, isAuthenticated, logout, refreshUserToken, isTokenExpired, adminConfig, updateAdminConfig } = useAuth();
   const [isESICallback, setIsESICallback] = useState(false);
 
+  // Debug user state changes
+  useEffect(() => {
+    console.log('App useEffect - user state changed:', { 
+      user: user?.characterName, 
+      isAuthenticated, 
+      isAdmin: user?.isAdmin 
+    });
+  }, [user, isAuthenticated]);
+
   // Check if this is an ESI callback
   useEffect(() => {
     const urlParams = new URLSearchParams(window.location.search);
     const code = urlParams.get('code');
     const state = urlParams.get('state');
     
+    // Only consider it an ESI callback if we have both code AND state AND stored ESI state
     if (code && state) {
-      setIsESICallback(true);
+      const storedStateData = sessionStorage.getItem('esi-auth-state');
+      if (storedStateData) {
+        setIsESICallback(true);
+      }
     }
   }, []);
 
@@ -102,10 +115,14 @@ function App() {
 
   // Show login page if not authenticated
   console.log('App render - auth check:', { isAuthenticated, user: user?.characterName, isESICallback });
+  console.log('App render - full user object:', user);
   
   if (!isAuthenticated) {
-    return <LoginPage onLoginSuccess={handleLoginSuccess} />;
+    console.log('Not authenticated, showing login page');
+    return <LoginPage />;
   }
+
+  console.log('Authenticated, showing main app');
 
   const tabs = [
     { id: 'dashboard', label: 'Dashboard', icon: House, component: Dashboard },

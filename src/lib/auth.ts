@@ -340,9 +340,9 @@ export function useAuth() {
   const [adminConfig, setAdminConfig] = useKV<{ username: string; password: string }>('admin-config', { username: 'admin', password: '12345' });
   const [isLoading, setIsLoading] = React.useState(false);
 
-  console.log('useAuth hook - current user:', user);
-  console.log('useAuth hook - isAuthenticated:', !!user);
-  console.log('useAuth hook - adminConfig:', { username: adminConfig?.username, hasPassword: !!adminConfig?.password });
+  console.log('useAuth hook render - current user:', user);
+  console.log('useAuth hook render - isAuthenticated:', !!user);
+  console.log('useAuth hook render - adminConfig:', { username: adminConfig?.username, hasPassword: !!adminConfig?.password });
 
   const login = async (credentials: LoginCredentials): Promise<void> => {
     console.log('useAuth.login called with credentials:', { username: credentials.username, password: '***' });
@@ -360,13 +360,13 @@ export function useAuth() {
       const authUser = await authService.loginWithCredentials(credentials, adminConfig);
       console.log('Auth successful, setting user:', { characterName: authUser.characterName, isAdmin: authUser.isAdmin });
       
-      // Set user with a direct assignment to avoid any timing issues
-      setUser(authUser);
-      console.log('User set successfully');
+      // Use functional update to ensure we get the latest value
+      setUser(() => {
+        console.log('Setting user state to:', authUser);
+        return authUser;
+      });
       
-      // Force a small delay to ensure state propagation
-      await new Promise(resolve => setTimeout(resolve, 100));
-      console.log('Post-login delay complete');
+      console.log('User set successfully');
     } catch (error) {
       console.error('Auth error in useAuth:', error);
       throw error; // Re-throw to let the login component handle it
