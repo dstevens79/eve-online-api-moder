@@ -1288,6 +1288,7 @@ export function Settings() {
               </div>
             </CardContent>
           </Card>
+        </TabsContent>
 
         <TabsContent value="esi" className="space-y-6">
           <Card>
