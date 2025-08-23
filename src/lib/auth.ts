@@ -375,9 +375,9 @@ export function useAuth() {
   // Simplify: derive authentication state directly from user presence
   const isAuthenticated = Boolean(user);
 
-  // Debug logging
+  // Debug logging - log every time user state changes
   React.useEffect(() => {
-    console.log('🔄 AUTH HOOK STATE:', { 
+    console.log('🔄 AUTH HOOK - User state changed:', { 
       hasUser: !!user, 
       characterName: user?.characterName,
       isAdmin: user?.isAdmin,
@@ -385,38 +385,38 @@ export function useAuth() {
       authTrigger,
       timestamp: Date.now()
     });
+    
+    // Log the actual user object for inspection
+    if (user) {
+      console.log('👤 AUTH HOOK - User object:', user);
+    }
   }, [user, isAuthenticated, authTrigger]);
 
   const login = async (credentials: LoginCredentials, onSuccess?: () => void): Promise<void> => {
     setIsLoading(true);
     console.log('🚀 Starting login for:', credentials.username);
-    console.log('🔍 Admin config:', adminConfig);
-    console.log('🔍 Credentials check:', { 
-      usernameMatch: credentials.username?.trim() === 'admin',
-      passwordMatch: credentials.password?.trim() === '12345',
-      username: `"${credentials.username}"`,
-      password: `"${credentials.password}"`
-    });
     
     try {
       const authUser = await authService.loginWithCredentials(credentials, adminConfig);
       console.log('✅ Auth service returned user:', authUser.characterName);
       
-      // Update auth trigger first to prepare for state change
-      setAuthTrigger(prev => prev + 1);
+      // Use functional update to ensure proper state setting
+      setUser(() => {
+        console.log('📍 Setting user in KV state:', authUser.characterName);
+        return authUser;
+      });
       
-      // Set user with explicit logging
-      console.log('🔄 Setting user in state:', authUser.characterName);
-      setUser(authUser);
+      // Update auth trigger to force re-renders
+      setAuthTrigger(prev => {
+        console.log('🔄 Updating auth trigger:', prev + 1);
+        return prev + 1;
+      });
       
-      // Force a small delay to ensure state propagation
-      await new Promise(resolve => setTimeout(resolve, 100));
+      console.log('✅ Login process complete');
       
-      console.log('🔄 User state should now trigger App to show main interface');
-      
-      // Call success callback if provided (for direct navigation)
+      // Call success callback if provided
       if (onSuccess) {
-        console.log('📍 Executing login success callback for direct navigation');
+        console.log('📍 Executing login success callback');
         onSuccess();
       }
       

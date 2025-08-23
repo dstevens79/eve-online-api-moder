@@ -24,15 +24,7 @@ export function LoginModal({ open, onOpenChange, onLoginSuccess }: LoginModalPro
     e?.preventDefault();
     setError(null);
     
-    console.log('🔑 Login attempt for:', credentials.username);
-    console.log('🔍 Form values:', { 
-      username: `"${credentials.username}"`, 
-      password: `"${credentials.password}"`,
-      hasUsername: !!credentials.username,
-      hasPassword: !!credentials.password,
-      usernameLength: credentials.username?.length,
-      passwordLength: credentials.password?.length
-    });
+    console.log('🔑 Modal: Login attempt for:', credentials.username);
 
     if (!credentials.username?.trim() || !credentials.password?.trim()) {
       setError('Please enter both username and password');
@@ -40,15 +32,17 @@ export function LoginModal({ open, onOpenChange, onLoginSuccess }: LoginModalPro
     }
 
     try {
-      console.log('🚀 Calling login function...');
-      await login(credentials);
-      console.log('✅ Login successful - closing modal');
-      onOpenChange(false);
-      if (onLoginSuccess) {
-        onLoginSuccess();
-      }
+      console.log('🚀 Modal: Calling login function...');
+      await login(credentials, () => {
+        console.log('📍 Modal: Login success callback - closing modal');
+        onOpenChange(false);
+        if (onLoginSuccess) {
+          onLoginSuccess();
+        }
+      });
+      console.log('✅ Modal: Login process completed');
     } catch (err) {
-      console.error('❌ Login error:', err);
+      console.error('❌ Modal: Login error:', err);
       const errorMessage = err instanceof Error ? err.message : 'Login failed';
       setError(errorMessage);
     }

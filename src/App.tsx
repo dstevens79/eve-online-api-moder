@@ -51,22 +51,55 @@ function App() {
   const [activeTab, setActiveTab] = useKV<TabType>('active-tab', 'dashboard');
   const [activeSettingsTab, setActiveSettingsTab] = useKV<string>('active-settings-tab', 'general');
   const [settingsExpanded, setSettingsExpanded] = useKV<boolean>('settings-expanded', false);
-  const { user, isAuthenticated, logout, refreshUserToken, isTokenExpired, adminConfig, updateAdminConfig, authTrigger } = useAuth();
+  const { user, isAuthenticated, logout, refreshUserToken, isTokenExpired, adminConfig, updateAdminConfig, authTrigger, login } = useAuth();
   const [isESICallback, setIsESICallback] = useState(false);
   const [forceRender, setForceRender] = useState(0);
   const [showLoginModal, setShowLoginModal] = useState(false);
+
+  // TEST: Direct login on page load for debugging
+  React.useEffect(() => {
+    const testLogin = async () => {
+      if (!user) {
+        console.log('🧪 TEST: No user found, attempting direct login...');
+        try {
+          await login({ username: 'admin', password: '12345' });
+          console.log('✅ TEST: Direct login successful');
+        } catch (error) {
+          console.error('❌ TEST: Direct login failed:', error);
+        }
+      }
+    };
+    
+    // Only run once on mount and if no user exists
+    const hasRunTest = sessionStorage.getItem('login-test-run');
+    if (!hasRunTest && !user) {
+      sessionStorage.setItem('login-test-run', 'true');
+      testLogin();
+    }
+  }, []); // Empty dependency array - run once on mount
 
   // Force re-render when user changes to ensure UI updates
   React.useEffect(() => {
     console.log('🔄 User state changed:', {
       hasUser: !!user,
       characterName: user?.characterName,
+      isAdmin: user?.isAdmin,
       timestamp: Date.now()
     });
     
     if (user) {
       console.log('✅ User object exists - should show main app');
+      console.log('👤 User details:', {
+        id: user.characterId,
+        name: user.characterName,
+        corp: user.corporationName,
+        isAdmin: user.isAdmin,
+        tokenExpiry: user.tokenExpiry
+      });
       setForceRender(prev => prev + 1);
+      
+      // Clear test marker since login was successful
+      sessionStorage.removeItem('login-test-run');
     } else {
       console.log('❌ No user object - should show login');
     }
@@ -227,8 +260,19 @@ function App() {
             <div className="text-accent font-bold mb-2">DEBUG AUTH STATE</div>
             <div>User: {user?.characterName || 'null'}</div>
             <div>Has User Object: {user ? 'true' : 'false'}</div>
+            <div>Is Admin: {user?.isAdmin ? 'true' : 'false'}</div>
+            <div>Is Authenticated: {isAuthenticated ? 'true' : 'false'}</div>
             <div>Show Login Modal: {showLoginModal ? 'true' : 'false'}</div>
             <div>Active Tab: {activeTab}</div>
+            <div>Auth Trigger: {authTrigger}</div>
+            <div>Force Render: {forceRender}</div>
+            <div className="mt-2 text-xs">
+              {user ? (
+                <span className="text-green-400">✅ AUTHENTICATED</span>
+              ) : (
+                <span className="text-red-400">❌ NOT AUTHENTICATED</span>
+              )}
+            </div>
           </div>
         )}
         

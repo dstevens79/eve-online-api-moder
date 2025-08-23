@@ -4,6 +4,8 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { EVEApiStatus } from '@/components/EVEApiStatus';
 import { LoginPrompt } from '@/components/LoginPrompt';
+import { LoginDebug } from '@/components/LoginDebug';
+import { AuthServiceTest } from '@/components/AuthServiceTest';
 import { useLMeveData } from '@/lib/LMeveDataContext';
 import { useAuth } from '@/lib/auth';
 import { 
@@ -76,11 +78,19 @@ export function Dashboard({ onLoginClick }: DashboardProps) {
   // Show login prompt if not authenticated
   if (!user && onLoginClick) {
     return (
-      <LoginPrompt 
-        onLoginClick={onLoginClick}
-        title="Welcome to LMeve"
-        description="Sign in to access your corporation's dashboard, view assets, and manage operations"
-      />
+      <div className="space-y-6">
+        <LoginPrompt 
+          onLoginClick={onLoginClick}
+          title="Welcome to LMeve"
+          description="Sign in to access your corporation's dashboard, view assets, and manage operations"
+        />
+        
+        {/* Debug tools for testing login functionality */}
+        <div className="grid gap-4 md:grid-cols-2">
+          <LoginDebug />
+          <AuthServiceTest />
+        </div>
+      </div>
     );
   }
 
