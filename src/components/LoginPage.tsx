@@ -8,11 +8,7 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Rocket, SignIn, Eye, EyeSlash } from '@phosphor-icons/react';
 import { useAuth, LoginCredentials } from '@/lib/auth';
 
-interface LoginPageProps {
-  onAuthSuccess?: () => void;
-}
-
-export function LoginPage({ onAuthSuccess }: LoginPageProps) {
+export function LoginPage() {
   const { login, user, isAuthenticated, logout } = useAuth();
   const [credentials, setCredentials] = useState<LoginCredentials>({ username: '', password: '' });
   const [showPassword, setShowPassword] = useState(false);
@@ -21,14 +17,6 @@ export function LoginPage({ onAuthSuccess }: LoginPageProps) {
 
   // Debug: show current auth state
   console.log('LoginPage render - auth state:', { isAuthenticated, user: user?.characterName });
-
-  // Watch for authentication state changes and trigger callback
-  React.useEffect(() => {
-    if (isAuthenticated && user) {
-      console.log('LoginPage detected authentication success, calling onAuthSuccess');
-      onAuthSuccess?.();
-    }
-  }, [isAuthenticated, user, onAuthSuccess]);
 
   const handleCredentialLogin = async (e?: React.FormEvent) => {
     e?.preventDefault();
@@ -44,8 +32,8 @@ export function LoginPage({ onAuthSuccess }: LoginPageProps) {
     setIsLocalLoginLoading(true);
     try {
       await login(credentials);
-      console.log('LoginPage - login successful');
-      // The useEffect above will handle the navigation
+      console.log('LoginPage - login successful, user should be set in auth state');
+      // No callback needed - App.tsx will handle navigation based on auth state
     } catch (err) {
       console.error('LoginPage - login error:', err);
       setError(err instanceof Error ? err.message : 'Login failed');
@@ -67,8 +55,8 @@ export function LoginPage({ onAuthSuccess }: LoginPageProps) {
     
     try {
       await login({ username: 'admin', password: '12345' });
-      console.log('Direct login successful');
-      // The useEffect above will handle the navigation
+      console.log('Direct login successful, auth state should be updated');
+      // No callback needed - App.tsx will handle navigation based on auth state
     } catch (err) {
       console.error('Direct login failed:', err);
       setError(err instanceof Error ? err.message : 'Login failed');
@@ -238,7 +226,34 @@ export function LoginPage({ onAuthSuccess }: LoginPageProps) {
                     className="text-xs"
                     disabled={isLocalLoginLoading}
                   >
-                    Direct Login Test
+                    {isLocalLoginLoading ? 'Testing...' : 'Direct Login Test'}
+                  </Button>
+                  
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={async () => {
+                      console.log('=== IMMEDIATE LOGIN TEST ===');
+                      console.log('Current auth state before:', { isAuthenticated, user: user?.characterName });
+                      setIsLocalLoginLoading(true);
+                      try {
+                        // Bypass all form logic and directly call login
+                        await login({ username: 'admin', password: '12345' });
+                        console.log('Immediate login completed');
+                        // Give a moment for state to propagate
+                        setTimeout(() => {
+                          console.log('Current auth state after delay:', { isAuthenticated, user: user?.characterName });
+                        }, 500);
+                      } catch (err) {
+                        console.error('Immediate login failed:', err);
+                      } finally {
+                        setIsLocalLoginLoading(false);
+                      }
+                    }}
+                    className="text-xs bg-destructive/20 hover:bg-destructive/30"
+                    disabled={isLocalLoginLoading}
+                  >
+                    {isLocalLoginLoading ? 'Testing...' : 'IMMEDIATE LOGIN TEST'}
                   </Button>
                   
                   {user && (

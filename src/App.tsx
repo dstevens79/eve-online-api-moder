@@ -51,19 +51,7 @@ function App() {
   const [activeSettingsTab, setActiveSettingsTab] = useKV<string>('active-settings-tab', 'general');
   const [settingsExpanded, setSettingsExpanded] = useKV<boolean>('settings-expanded', false);
   const { user, isAuthenticated, logout, refreshUserToken, isTokenExpired, adminConfig, updateAdminConfig } = useAuth();
-  const [authCheckCounter, setAuthCheckCounter] = useState(0);
   const [isESICallback, setIsESICallback] = useState(false);
-  
-  // Force re-check of auth state
-  const refreshAuthState = () => {
-    console.log('Forcing auth state refresh');
-    setAuthCheckCounter(prev => prev + 1);
-    
-    // Force a check of the current user state after a small delay
-    setTimeout(() => {
-      console.log('Post-refresh auth check:', { isAuthenticated, user: user?.characterName });
-    }, 200);
-  };
 
   // Debug user state changes
   useEffect(() => {
@@ -72,7 +60,8 @@ function App() {
       characterName: user?.characterName, 
       isAuthenticated, 
       isAdmin: user?.isAdmin,
-      shouldShowApp: isAuthenticated && !!user
+      shouldShowApp: isAuthenticated && !!user,
+      timestamp: Date.now()
     });
   }, [user, isAuthenticated]);
 
@@ -100,8 +89,7 @@ function App() {
 
   // Handle successful authentication
   const handleLoginSuccess = () => {
-    console.log('App.handleLoginSuccess called');
-    console.log('Current auth state after login:', { isAuthenticated, user: user?.characterName });
+    console.log('App.handleLoginSuccess called - clearing ESI callback state');
     setIsESICallback(false);
     // Clear URL parameters after successful auth
     if (window.location.search) {
@@ -127,21 +115,27 @@ function App() {
     );
   }
 
-  // Show login page if not authenticated
-  const shouldShowLoginPage = !user || !isAuthenticated;
+  // Show login page if not authenticated or no user data
+  // Don't use a derived variable - check directly in the conditional
+  const shouldShowApp = isAuthenticated && !!user;
+  const shouldShowLogin = !shouldShowApp && !isESICallback;
   
   console.log('App render check:', { 
     isAuthenticated, 
     hasUser: !!user, 
-    shouldShowLoginPage,
+    shouldShowApp,
+    shouldShowLogin,
     isESICallback,
     userType: typeof user,
-    userCharacterName: user?.characterName
+    userCharacterName: user?.characterName,
+    timestamp: Date.now()
   });
   
-  if (shouldShowLoginPage && !isESICallback) {
-    console.log('Showing login page');
-    return <LoginPage onAuthSuccess={refreshAuthState} />;
+  // Simple check: if we don't have a user AND we're authenticated, show app
+  // If we don't have both, show login page (unless it's an ESI callback)
+  if (shouldShowLogin) {
+    console.log('Showing login page - missing auth or user data');
+    return <LoginPage />;
   }
 
   console.log('Showing main app for user:', user?.characterName);

@@ -331,7 +331,8 @@ export function useAuth() {
       characterName: user?.characterName,
       isAdmin: user?.isAdmin,
       userKeyExists: user !== null,
-      userValueType: typeof user
+      userValueType: typeof user,
+      timestamp: Date.now()
     });
   }, [user]);
 
@@ -346,17 +347,10 @@ export function useAuth() {
       const authUser = await authService.loginWithCredentials(credentials, adminConfig);
       console.log('Auth successful, setting user:', authUser.characterName);
       
-      // Use functional update to ensure proper state setting
-      setUser(() => {
-        console.log('Setting user in functional update:', authUser.characterName);
-        return authUser;
-      });
+      // Set user directly without functional update for immediacy
+      setUser(authUser);
       
-      // Small delay to ensure KV store propagation
-      await new Promise(resolve => setTimeout(resolve, 150));
-      
-      console.log('User set successfully, forcing update');
-      forceUpdate();
+      console.log('User set successfully');
       
     } catch (error) {
       console.error('Auth error:', error);
