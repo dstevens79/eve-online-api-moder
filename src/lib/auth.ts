@@ -143,10 +143,25 @@ class AuthService {
    * Traditional username/password login (for development/testing and admin access)
    */
   async loginWithCredentials(credentials: LoginCredentials, adminConfig?: { username: string; password: string }): Promise<AuthUser> {
-    console.log('AuthService.loginWithCredentials called with:', { username: credentials.username, password: '***' });
+    console.log('AuthService.loginWithCredentials called with:', { 
+      username: credentials.username, 
+      password: '***',
+      usernameType: typeof credentials.username,
+      passwordType: typeof credentials.password,
+      usernameLength: credentials.username?.length,
+      passwordLength: credentials.password?.length
+    });
+    console.log('Admin config:', { 
+      username: adminConfig?.username, 
+      password: adminConfig?.password ? '***' : 'undefined'
+    });
+    
+    // Trim whitespace from inputs
+    const username = credentials.username?.trim() || '';
+    const password = credentials.password?.trim() || '';
     
     // Check for admin login if configured
-    if (adminConfig && credentials.username === adminConfig.username && credentials.password === adminConfig.password) {
+    if (adminConfig && username === adminConfig.username && password === adminConfig.password) {
       console.log('Admin login successful with configured credentials');
       return {
         characterId: 999999999,
@@ -166,7 +181,7 @@ class AuthService {
     }
 
     // Default admin credentials (admin/12345)
-    if (credentials.username === 'admin' && credentials.password === '12345') {
+    if (username === 'admin' && password === '12345') {
       console.log('Default admin login successful');
       return {
         characterId: 999999999,
@@ -186,7 +201,7 @@ class AuthService {
     }
 
     // Fallback test user for development
-    if (credentials.username === 'admin' && credentials.password === 'password') {
+    if (username === 'admin' && password === 'password') {
       console.log('Test user login successful');
       return {
         characterId: 123456789,
@@ -204,7 +219,12 @@ class AuthService {
       };
     }
 
-    console.log('Login failed - invalid credentials');
+    console.log('Login failed - invalid credentials. Checked:', {
+      inputUsername: username,
+      inputPassword: password,
+      expectedAdmin: 'admin',
+      expectedPassword: '12345'
+    });
     throw new Error('Invalid credentials');
   }
 
@@ -343,13 +363,13 @@ export function useAuth() {
   console.log('useAuth hook - isAuthenticated:', !!user);
 
   const login = async (credentials: LoginCredentials): Promise<void> => {
-    console.log('useAuth.login called');
+    console.log('useAuth.login called with credentials:', { username: credentials.username, password: '***' });
     setIsLoading(true);
     try {
       console.log('Calling authService.loginWithCredentials...');
       const authUser = await authService.loginWithCredentials(credentials, adminConfig);
       console.log('Auth successful, setting user:', authUser);
-      setUser(authUser);
+      setUser(() => authUser); // Use functional update to ensure proper setting
       console.log('User set successfully');
     } catch (error) {
       console.error('Auth error in useAuth:', error);
@@ -360,7 +380,8 @@ export function useAuth() {
   };
 
   const updateAdminConfig = (newConfig: { username: string; password: string }): void => {
-    setAdminConfig(newConfig);
+    console.log('Updating admin config:', { username: newConfig.username, password: '***' });
+    setAdminConfig(() => newConfig);
   };
 
   const loginWithESI = (): { url: string; state: ESIAuthState } => {
@@ -371,14 +392,15 @@ export function useAuth() {
     setIsLoading(true);
     try {
       const authUser = await authService.handleESICallback(code, state, storedState);
-      setUser(authUser);
+      setUser(() => authUser);
     } finally {
       setIsLoading(false);
     }
   };
 
   const logout = (): void => {
-    setUser(null);
+    console.log('useAuth.logout called');
+    setUser(() => null);
   };
 
   const refreshUserToken = async (): Promise<void> => {

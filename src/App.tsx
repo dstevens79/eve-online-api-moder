@@ -73,6 +73,8 @@ function App() {
 
   // Handle successful authentication
   const handleLoginSuccess = () => {
+    console.log('App.handleLoginSuccess called');
+    console.log('Current auth state:', { isAuthenticated, user: user?.characterName });
     setIsESICallback(false);
     // Clear URL parameters after successful auth
     if (window.location.search) {
@@ -99,6 +101,7 @@ function App() {
   }
 
   // Show login page if not authenticated
+  console.log('App render - auth check:', { isAuthenticated, user: user?.characterName, isESICallback });
   if (!isAuthenticated) {
     return <LoginPage onLoginSuccess={handleLoginSuccess} />;
   }

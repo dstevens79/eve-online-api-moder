@@ -24,16 +24,21 @@ export function LoginPage({ onLoginSuccess }: LoginPageProps) {
     setError(null);
     setIsLocalLoginLoading(true);
 
-    if (!credentials.username || !credentials.password) {
+    console.log('LoginPage.handleCredentialLogin called with:', credentials);
+
+    if (!credentials.username?.trim() || !credentials.password?.trim()) {
       setError('Please enter both username and password');
       setIsLocalLoginLoading(false);
       return;
     }
 
     try {
+      console.log('LoginPage: Calling auth.login...');
       await login(credentials);
+      console.log('LoginPage: Login successful, calling onLoginSuccess');
       onLoginSuccess?.();
     } catch (err) {
+      console.error('LoginPage: Login error:', err);
       setError(err instanceof Error ? err.message : 'Login failed');
     } finally {
       setIsLocalLoginLoading(false);
@@ -46,7 +51,16 @@ export function LoginPage({ onLoginSuccess }: LoginPageProps) {
   };
 
   const handleInputChange = (field: keyof LoginCredentials) => (e: React.ChangeEvent<HTMLInputElement>) => {
-    setCredentials(prev => ({ ...prev, [field]: e.target.value }));
+    const value = e.target.value;
+    setCredentials(prev => ({ ...prev, [field]: value }));
+    console.log(`Input changed - ${field}:`, value);
+  };
+
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter' && credentials.username?.trim() && credentials.password?.trim()) {
+      e.preventDefault();
+      handleCredentialLogin(e as any);
+    }
   };
 
   return (
@@ -114,6 +128,7 @@ export function LoginPage({ onLoginSuccess }: LoginPageProps) {
                   placeholder="Enter your username"
                   value={credentials.username}
                   onChange={handleInputChange('username')}
+                  onKeyDown={handleKeyDown}
                   disabled={isLoading || isLocalLoginLoading}
                   className="bg-input border-border"
                   autoComplete="username"
@@ -129,6 +144,7 @@ export function LoginPage({ onLoginSuccess }: LoginPageProps) {
                     placeholder="Enter your password"
                     value={credentials.password}
                     onChange={handleInputChange('password')}
+                    onKeyDown={handleKeyDown}
                     disabled={isLoading || isLocalLoginLoading}
                     className="bg-input border-border pr-10"
                     autoComplete="current-password"
@@ -162,10 +178,28 @@ export function LoginPage({ onLoginSuccess }: LoginPageProps) {
 
             {/* Development Info */}
             <div className="pt-4 border-t border-border">
-              <p className="text-xs text-muted-foreground text-center">
-                For testing: Username: <code className="bg-muted px-1 rounded">admin</code>, 
-                Password: <code className="bg-muted px-1 rounded">12345</code>
-              </p>
+              <div className="space-y-2">
+                <p className="text-xs text-muted-foreground text-center">
+                  For testing: Username: <code className="bg-muted px-1 rounded">admin</code>, 
+                  Password: <code className="bg-muted px-1 rounded">12345</code>
+                </p>
+                
+                {/* Debug button for testing */}
+                <div className="flex justify-center">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => {
+                      console.log('Debug login button clicked');
+                      setCredentials({ username: 'admin', password: '12345' });
+                      handleCredentialLogin({ preventDefault: () => {} } as any);
+                    }}
+                    className="text-xs"
+                  >
+                    Debug: Auto Login
+                  </Button>
+                </div>
+              </div>
             </div>
           </CardContent>
         </Card>
