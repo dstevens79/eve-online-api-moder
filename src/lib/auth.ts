@@ -353,6 +353,7 @@ export function useAuth() {
   const [user, setUser] = useKV<AuthUser | null>('auth-user', null);
   const [adminConfig, setAdminConfig] = useKV<{ username: string; password: string }>('admin-config', { username: 'admin', password: '12345' });
   const [isLoading, setIsLoading] = React.useState(false);
+  const [authTrigger, setAuthTrigger] = React.useState(0);
 
   // Simplify: derive authentication state directly from user presence
   const isAuthenticated = Boolean(user);
@@ -364,9 +365,10 @@ export function useAuth() {
       characterName: user?.characterName,
       isAdmin: user?.isAdmin,
       isAuthenticated,
+      authTrigger,
       timestamp: Date.now()
     });
-  }, [user, isAuthenticated]);
+  }, [user, isAuthenticated, authTrigger]);
 
   const login = async (credentials: LoginCredentials): Promise<void> => {
     setIsLoading(true);
@@ -379,6 +381,9 @@ export function useAuth() {
       // Set user using functional update for consistency
       setUser(() => {
         console.log('🔄 Setting user in state:', authUser.characterName);
+        console.log('🔄 User state should now trigger App to show main interface');
+        // Trigger auth state change to force re-renders
+        setAuthTrigger(prev => prev + 1);
         return authUser;
       });
       
@@ -425,6 +430,7 @@ export function useAuth() {
   const logout = (): void => {
     console.log('🚪 Logging out user');
     setUser(() => null);
+    setAuthTrigger(prev => prev + 1);
   };
 
   const refreshUserToken = async (): Promise<void> => {
@@ -459,6 +465,7 @@ export function useAuth() {
     handleESICallback,
     logout,
     refreshUserToken,
-    isTokenExpired
+    isTokenExpired,
+    authTrigger
   };
 }

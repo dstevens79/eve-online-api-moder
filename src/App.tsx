@@ -50,8 +50,17 @@ function App() {
   const [activeTab, setActiveTab] = useKV<TabType>('active-tab', 'dashboard');
   const [activeSettingsTab, setActiveSettingsTab] = useKV<string>('active-settings-tab', 'general');
   const [settingsExpanded, setSettingsExpanded] = useKV<boolean>('settings-expanded', false);
-  const { user, isAuthenticated, logout, refreshUserToken, isTokenExpired, adminConfig, updateAdminConfig } = useAuth();
+  const { user, isAuthenticated, logout, refreshUserToken, isTokenExpired, adminConfig, updateAdminConfig, authTrigger } = useAuth();
   const [isESICallback, setIsESICallback] = useState(false);
+  const [forceRender, setForceRender] = useState(0);
+
+  // Force re-render when user changes to ensure UI updates
+  React.useEffect(() => {
+    if (user) {
+      console.log('🔄 User state changed, forcing re-render');
+      setForceRender(prev => prev + 1);
+    }
+  }, [user]);
 
   // Simple, clear auth state logging
   React.useEffect(() => {
@@ -59,10 +68,18 @@ function App() {
       hasUser: !!user,
       characterName: user?.characterName, 
       isAuthenticated, 
-      shouldShowApp: isAuthenticated && !!user,
+      shouldShowApp: !!user,
+      forceRender,
+      authTrigger,
       timestamp: Date.now()
     });
-  }, [user, isAuthenticated]);
+    
+    if (user) {
+      console.log('✅ User is authenticated, app should show main interface');
+    } else {
+      console.log('❌ No user, showing login page');
+    }
+  }, [user, isAuthenticated, forceRender, authTrigger]);
 
   // Check if this is an ESI callback
   useEffect(() => {
@@ -116,12 +133,12 @@ function App() {
     );
   }
 
-  // Show login page if not authenticated
-  if (!isAuthenticated || !user) {
-    console.log('🔐 No auth or user - showing login page.', {
-      isAuthenticated,
+  // Show login page if not authenticated (user presence means authenticated)
+  if (!user) {
+    console.log('🔐 No user - showing login page.', {
       hasUser: !!user,
       userCharacterName: user?.characterName,
+      shouldShowLogin: !user,
       timestamp: Date.now()
     });
     return <LoginPage />;
@@ -190,13 +207,10 @@ function App() {
           <div className="fixed top-4 right-4 z-50 bg-card border border-border rounded p-3 text-xs font-mono max-w-sm">
             <div className="text-accent font-bold mb-2">DEBUG AUTH STATE</div>
             <div>User: {user?.characterName || 'null'}</div>
-            <div>Authenticated: {isAuthenticated ? 'true' : 'false'}</div>
-            <div>IsAdmin: {user?.isAdmin ? 'true' : 'false'}</div>
-            <div>IsDirector: {user?.isDirector ? 'true' : 'false'}</div>
-            <div>IsCEO: {user?.isCeo ? 'true' : 'false'}</div>
+            <div>Has User Object: {user ? 'true' : 'false'}</div>
+            <div>Should Show App: {user ? 'true' : 'false'}</div>
             <div>Active Tab: {activeTab}</div>
-            <div>Settings Expanded: {settingsExpanded ? 'true' : 'false'}</div>
-            <div>Should Show App: {(isAuthenticated && !!user) ? 'true' : 'false'}</div>
+            <div>Auth Trigger: {authTrigger}</div>
           </div>
         )}
         
