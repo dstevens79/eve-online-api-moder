@@ -22,21 +22,27 @@ export function LoginPage() {
     e?.preventDefault();
     setError(null);
     
-    console.log('LoginPage - attempting login with:', credentials.username);
+    console.log('🔑 LoginPage - attempting login with:', credentials.username);
 
     if (!credentials.username?.trim() || !credentials.password?.trim()) {
       setError('Please enter both username and password');
       return;
     }
 
+    console.log('🚀 LoginPage - starting login process...');
     setIsLocalLoginLoading(true);
     try {
-      console.log('LoginPage - calling auth.login...');
+      console.log('📞 LoginPage - calling auth.login...');
       await login(credentials);
-      console.log('LoginPage - login successful');
+      console.log('✅ LoginPage - login successful, auth state should change now');
+      
+      // Give some time for state propagation
+      setTimeout(() => {
+        console.log('⏰ LoginPage - checking post-login state:', { isAuthenticated, user: user?.characterName });
+      }, 200);
       
     } catch (err) {
-      console.error('LoginPage - login error:', err);
+      console.error('❌ LoginPage - login error:', err);
       setError(err instanceof Error ? err.message : 'Login failed');
     } finally {
       setIsLocalLoginLoading(false);
@@ -188,7 +194,7 @@ export function LoginPage() {
                 className="w-full bg-primary hover:bg-primary/90 active:bg-primary/80 text-primary-foreground border-primary/20 transition-all duration-200 hover:shadow-lg hover:shadow-primary/20 active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:shadow-none disabled:active:scale-100"
                 variant="default"
                 onClick={(e) => {
-                  console.log('Sign In button clicked');
+                  console.log('🖱️ Sign In button clicked, loading state:', isLocalLoginLoading);
                   handleCredentialLogin(e);
                 }}
               >
@@ -249,27 +255,73 @@ export function LoginPage() {
                     variant="outline"
                     size="sm"
                     onClick={async () => {
-                      console.log('=== IMMEDIATE LOGIN TEST ===');
-                      console.log('Current auth state before:', { isAuthenticated, user: user?.characterName });
-                      setIsLocalLoginLoading(true);
+                      console.log('=== AUTH STATE CHECK ===');
+                      console.log('useAuth state:', { isAuthenticated, user: user?.characterName, hasUser: !!user });
+                      
                       try {
-                        // Bypass all form logic and directly call login
-                        await login({ username: 'admin', password: '12345' });
-                        console.log('Immediate login completed');
-                        // Give a moment for state to propagate
-                        setTimeout(() => {
-                          console.log('Current auth state after delay:', { isAuthenticated, user: user?.characterName });
-                        }, 500);
-                      } catch (err) {
-                        console.error('Immediate login failed:', err);
-                      } finally {
-                        setIsLocalLoginLoading(false);
+                        const kvUser = await spark.kv.get('auth-user');
+                        console.log('KV auth-user:', kvUser?.characterName || 'null');
+                        
+                        const kvKeys = await spark.kv.keys();
+                        console.log('All KV keys:', kvKeys);
+                      } catch (error) {
+                        console.error('Error checking auth state:', error);
                       }
                     }}
-                    className="text-xs bg-destructive/20 hover:bg-destructive/30"
+                    className="text-xs bg-yellow-500/20 hover:bg-yellow-500/30"
+                  >
+                    Check Auth State
+                  </Button>
+                  
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={async () => {
+                      console.log('=== KV DIRECT TEST ===');
+                      try {
+                        // Test direct KV operations
+                        await spark.kv.set('test-key', { name: 'Test User', isAdmin: true });
+                        const retrieved = await spark.kv.get('test-key');
+                        console.log('KV test - set and retrieved:', retrieved);
+                        
+                        // Test auth user KV
+                        const authUser = await spark.kv.get('auth-user');
+                        console.log('Current auth-user in KV:', authUser);
+                        
+                        if (!authUser) {
+                          console.log('Setting test auth user directly...');
+                          const testUser = {
+                            characterId: 999999999,
+                            characterName: 'Direct Test Admin',
+                            corporationId: 1000000000,
+                            corporationName: 'Test Corp',
+                            accessToken: 'test-token',
+                            refreshToken: 'test-refresh',
+                            tokenExpiry: Date.now() + 86400000,
+                            scopes: [],
+                            isDirector: true,
+                            isCeo: true,
+                            isAdmin: true
+                          };
+                          
+                          await spark.kv.set('auth-user', testUser);
+                          console.log('Test auth user set directly');
+                          
+                          // Force re-check
+                          setTimeout(async () => {
+                            const newAuthUser = await spark.kv.get('auth-user');
+                            console.log('Auth user after direct set:', newAuthUser);
+                          }, 100);
+                        }
+                        
+                      } catch (error) {
+                        console.error('KV test failed:', error);
+                      }
+                    }}
+                    className="text-xs bg-blue-500/20 hover:bg-blue-500/30"
                     disabled={isLocalLoginLoading}
                   >
-                    {isLocalLoginLoading ? 'Testing...' : 'IMMEDIATE LOGIN TEST'}
+                    KV Direct Test
                   </Button>
                   
                   {user && (

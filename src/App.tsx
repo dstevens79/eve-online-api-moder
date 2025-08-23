@@ -60,7 +60,7 @@ function App() {
 
   // Debug user state changes
   useEffect(() => {
-    console.log('App - auth state change detected:', { 
+    console.log('🔄 App - auth state change detected:', { 
       hasUser: !!user,
       characterName: user?.characterName, 
       isAuthenticated, 
@@ -74,7 +74,7 @@ function App() {
     
     // If user just logged in, ensure we're on dashboard
     if (isAuthenticated && user && activeTab !== 'dashboard') {
-      console.log('User authenticated, resetting to dashboard from:', activeTab);
+      console.log('🏠 User authenticated, resetting to dashboard from:', activeTab);
       setActiveTab('dashboard');
       setSettingsExpanded(false);
     }
@@ -140,7 +140,7 @@ function App() {
   const shouldShowApp = Boolean(user && isAuthenticated);
   const shouldShowLogin = !shouldShowApp && !isESICallback;
   
-  console.log('App render decision:', { 
+  console.log('🎯 App render decision:', { 
     hasUser: !!user,
     isAuthenticated, 
     shouldShowApp,
@@ -148,22 +148,23 @@ function App() {
     isESICallback,
     userType: typeof user,
     userCharacterName: user?.characterName,
+    userIsAdmin: user?.isAdmin,
     timestamp: Date.now()
   });
   
   // Simple check: if we don't have a user AND are authenticated, show app
   // If we don't have both, show login page (unless it's an ESI callback)
   if (shouldShowLogin) {
-    console.log('Showing login page - missing auth or user data');
+    console.log('🔐 Showing login page - missing auth or user data');
     return <LoginPage />;
   }
 
   if (!shouldShowApp) {
-    console.log('Auth state unclear, showing login for safety');
+    console.log('⚠️ Auth state unclear, showing login for safety');
     return <LoginPage />;
   }
 
-  console.log('Showing main app for user:', user?.characterName, 'with admin permissions:', user?.isAdmin);
+  console.log('🏠 Showing main app for user:', user?.characterName, 'with admin permissions:', user?.isAdmin);
 
   const tabs = [
     { id: 'dashboard', label: 'Dashboard', icon: House, component: Dashboard },
@@ -189,10 +190,10 @@ function App() {
   ];
 
   const handleTabChange = (value: string) => {
-    console.log('=== TAB CHANGE REQUEST ===');
-    console.log('Requested tab:', value);
-    console.log('Current tab:', activeTab);
-    console.log('User state:', {
+    console.log('🔄 === TAB CHANGE REQUEST ===');
+    console.log('📍 Requested tab:', value);
+    console.log('📍 Current tab:', activeTab);
+    console.log('👤 User state:', {
       hasUser: !!user,
       characterName: user?.characterName,
       isAdmin: user?.isAdmin,
@@ -212,10 +213,10 @@ function App() {
       console.log('🔧 Settings tab logic');
       setSettingsExpanded(!settingsExpanded);
       if (!settingsExpanded) {
-        console.log('Expanding settings, setting active tab to settings');
+        console.log('📂 Expanding settings, setting active tab to settings');
         setActiveTab('settings' as TabType);
       } else {
-        console.log('Collapsing settings, returning to dashboard');
+        console.log('📁 Collapsing settings, returning to dashboard');
         setActiveTab('dashboard');
       }
     } else {
@@ -224,7 +225,7 @@ function App() {
       setSettingsExpanded(false);
     }
     
-    console.log('Tab change completed. New tab should be:', value === 'settings' && settingsExpanded ? 'dashboard' : value);
+    console.log('🏁 Tab change completed. New tab should be:', value === 'settings' && settingsExpanded ? 'dashboard' : value);
   };
 
   const handleSettingsTabChange = (value: string) => {
@@ -323,11 +324,11 @@ function App() {
                     } ${!user ? "opacity-50 cursor-not-allowed" : ""}`}
                     disabled={!user}
                     onClick={() => {
-                      console.log('Navigation button clicked:', tab.id, 'User available:', !!user);
+                      console.log('🖱️ Navigation button clicked:', tab.id, 'User available:', !!user, 'User name:', user?.characterName);
                       if (user) {
                         handleTabChange(tab.id);
                       } else {
-                        console.log('Blocked - no user');
+                        console.log('🚫 Blocked - no user');
                       }
                     }}
                   >
@@ -360,11 +361,11 @@ function App() {
                   } ${!user ? "opacity-50 cursor-not-allowed" : ""}`}
                   disabled={!user}
                   onClick={() => {
-                    console.log('Settings button clicked, User available:', !!user);
+                    console.log('🖱️ Settings button clicked, User available:', !!user, 'User name:', user?.characterName);
                     if (user) {
                       handleTabChange('settings');
                     } else {
-                      console.log('Blocked - no user');
+                      console.log('🚫 Blocked - no user');
                     }
                   }}
                 >
