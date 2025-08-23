@@ -89,44 +89,61 @@ function App() {
       </header>
 
       {/* Main Content */}
-      <div className="container mx-auto px-6 py-6">
-        <Tabs value={activeTab} onValueChange={handleTabChange} className="space-y-6">
-          {/* Tab Navigation */}
-          <div className="border-b border-border">
-            <TabsList className="grid grid-cols-9 w-full bg-transparent h-auto p-0 space-x-0">
-              {tabs.map((tab) => {
-                const IconComponent = tab.icon;
-                return (
-                  <TabsTrigger
-                    key={tab.id}
-                    value={tab.id}
-                    className="flex flex-col items-center gap-2 px-4 py-3 border-b-2 border-transparent data-[state=active]:border-accent data-[state=active]:bg-accent/5 data-[state=active]:text-accent hover:bg-muted/50 rounded-none"
-                  >
-                    <div className="flex items-center gap-2">
-                      <IconComponent size={18} />
-                      <span className="text-sm font-medium">{tab.label}</span>
-                      {'badge' in tab && tab.badge && (
-                        <Badge variant="secondary" className="text-xs h-5 px-1.5 bg-accent/20 text-accent">
-                          {tab.badge}
-                        </Badge>
-                      )}
-                    </div>
-                  </TabsTrigger>
-                );
-              })}
-            </TabsList>
+      <div className="flex h-[calc(100vh-5rem)]">
+        {/* Left Sidebar Navigation */}
+        <div className="w-64 bg-card border-r border-border flex flex-col">
+          <div className="p-4 space-y-2">
+            {tabs.map((tab) => {
+              const IconComponent = tab.icon;
+              const isActive = activeTab === tab.id;
+              return (
+                <Button
+                  key={tab.id}
+                  variant={isActive ? "default" : "ghost"}
+                  className={`w-full justify-start gap-3 ${
+                    isActive 
+                      ? "bg-accent text-accent-foreground shadow-sm" 
+                      : "hover:bg-muted text-muted-foreground hover:text-foreground"
+                  }`}
+                  onClick={() => handleTabChange(tab.id)}
+                >
+                  <IconComponent size={18} />
+                  <span className="text-sm font-medium">{tab.label}</span>
+                  {'badge' in tab && tab.badge && (
+                    <Badge 
+                      variant="secondary" 
+                      className={`ml-auto text-xs h-5 px-1.5 ${
+                        isActive 
+                          ? "bg-accent-foreground/20 text-accent-foreground" 
+                          : "bg-accent/20 text-accent"
+                      }`}
+                    >
+                      {tab.badge}
+                    </Badge>
+                  )}
+                </Button>
+              );
+            })}
           </div>
+        </div>
 
-          {/* Tab Content */}
-          {tabs.map((tab) => {
-            const Component = tab.component;
-            return (
-              <TabsContent key={tab.id} value={tab.id} className="mt-6">
-                <Component />
-              </TabsContent>
-            );
-          })}
-        </Tabs>
+        {/* Main Content Area */}
+        <div className="flex-1 overflow-hidden">
+          <div className="h-full overflow-y-auto">
+            <div className="container mx-auto px-6 py-6">
+              <Tabs value={activeTab} onValueChange={handleTabChange}>
+                {tabs.map((tab) => {
+                  const Component = tab.component;
+                  return (
+                    <TabsContent key={tab.id} value={tab.id} className="mt-0">
+                      <Component />
+                    </TabsContent>
+                  );
+                })}
+              </Tabs>
+            </div>
+          </div>
+        </div>
       </div>
     </div>
   );
