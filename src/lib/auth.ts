@@ -26,6 +26,7 @@ export interface LoginCredentials {
 export interface ESIAuthState {
   state: string;
   codeVerifier: string;
+  timestamp: number;
   redirectUri: string;
 }
 
@@ -55,6 +56,7 @@ class AuthService {
     const authState: ESIAuthState = {
       state,
       codeVerifier,
+      timestamp: Date.now(),
       redirectUri
     };
 

@@ -9,7 +9,7 @@ import { Rocket, SignIn, Eye, EyeSlash } from '@phosphor-icons/react';
 import { useAuth, LoginCredentials } from '@/lib/auth';
 
 export function LoginPage() {
-  const { login, isLoading } = useAuth();
+  const { login, loginWithESI, isLoading } = useAuth();
   const [credentials, setCredentials] = useState<LoginCredentials>({ username: '', password: '' });
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -35,7 +35,17 @@ export function LoginPage() {
   };
 
   const handleESILogin = () => {
-    setError('ESI authentication is not available in this demo environment. Use the admin login below.');
+    setError(null);
+    console.log('🚀 Starting ESI authentication...');
+    
+    try {
+      const authUrl = loginWithESI();
+      console.log('🔗 Redirecting to EVE SSO:', authUrl);
+      window.location.href = authUrl;
+    } catch (err) {
+      console.error('❌ ESI login error:', err);
+      setError(err instanceof Error ? err.message : 'Failed to start ESI authentication');
+    }
   };
 
   const handleInputChange = (field: keyof LoginCredentials) => (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -165,6 +175,9 @@ export function LoginPage() {
 
             {/* Development Info */}
             <div className="pt-4 border-t border-border">
+              <p className="text-xs text-muted-foreground text-center mb-2">
+                <strong>Demo Mode:</strong> EVE Online SSO requires valid client credentials.
+              </p>
               <p className="text-xs text-muted-foreground text-center">
                 For testing: Username: <code className="bg-muted px-1 rounded">admin</code>, 
                 Password: <code className="bg-muted px-1 rounded">12345</code>

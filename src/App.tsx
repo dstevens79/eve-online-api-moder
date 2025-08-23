@@ -33,7 +33,6 @@ import { LMeveDataProvider } from '@/lib/LMeveDataContext';
 import { useAuth, ESIAuthState } from '@/lib/auth';
 import { LoginPage } from '@/components/LoginPage';
 import { ESICallback } from '@/components/ESICallback';
-import { TestLogin } from '@/test-login';
 
 // Tab Components (will be implemented)
 import { Dashboard } from '@/components/tabs/Dashboard';
@@ -116,10 +115,10 @@ function App() {
     );
   }
 
-  // Simple authentication check - use test component for debugging
+  // Show login page if not authenticated
   if (!isAuthenticated || !user) {
-    console.log('🔐 No auth or user - showing test login');
-    return <TestLogin />;
+    console.log('🔐 No auth or user - showing login page');
+    return <LoginPage />;
   }
 
   console.log('🏠 Authenticated user:', user.characterName, '- showing main app');
