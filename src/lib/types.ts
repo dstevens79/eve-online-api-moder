@@ -244,14 +244,6 @@ export interface CorpSettings {
     killmails: boolean;
     markets: boolean;
   };
-  apiKeys: Array<{
-    id: string;
-    name: string;
-    keyId: string;
-    status: 'active' | 'expired' | 'invalid';
-    permissions: string[];
-    lastUsed?: string;
-  }>;
   eveOnlineSync: {
     enabled: boolean;
     autoSync: boolean;

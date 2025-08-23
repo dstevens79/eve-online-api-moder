@@ -23,7 +23,11 @@ import {
   Warning,
   X,
   Rocket,
-  Refresh
+  Refresh,
+  LinkSimple,
+  Eye,
+  EyeSlash,
+  Copy
 } from '@phosphor-icons/react';
 import { useKV } from '@github/spark/hooks';
 import { CorpSettings } from '@/lib/types';
@@ -35,6 +39,27 @@ interface SyncStatus {
   progress: number;
   stage: string;
   error?: string;
+}
+
+interface ESIConfig {
+  clientId: string;
+  clientSecret: string;
+  callbackUrl: string;
+  scopes: string[];
+  userAgent: string;
+  serverIp: string;
+  serverPort: number;
+  useSSL: boolean;
+}
+
+interface ESIOAuthState {
+  isAuthenticated: boolean;
+  accessToken?: string;
+  refreshToken?: string;
+  expiresAt?: number;
+  characterId?: number;
+  characterName?: string;
+  corporationId?: number;
 }
 
 export function Settings() {
@@ -50,23 +75,6 @@ export function Settings() {
       killmails: false,
       markets: true,
     },
-    apiKeys: [
-      {
-        id: '1',
-        name: 'Corporation Management Key',
-        keyId: '12345678',
-        status: 'active',
-        permissions: ['corp_details', 'corp_members', 'corp_assets'],
-        lastUsed: new Date().toISOString()
-      },
-      {
-        id: '2', 
-        name: 'Manufacturing API Key',
-        keyId: '87654321',
-        status: 'expired',
-        permissions: ['industry_jobs', 'blueprints']
-      }
-    ],
     eveOnlineSync: {
       enabled: true,
       autoSync: false,
@@ -77,7 +85,28 @@ export function Settings() {
     }
   });
 
-  const [newApiKey, setNewApiKey] = useState({ name: '', keyId: '', vCode: '' });
+  const [esiConfig, setESIConfig] = useKV<ESIConfig>('esi-config', {
+    clientId: '',
+    clientSecret: '',
+    callbackUrl: 'http://localhost:3000/callback',
+    scopes: [
+      'esi-corporations.read_corporation_membership.v1',
+      'esi-industry.read_corporation_jobs.v1',
+      'esi-assets.read_corporation_assets.v1',
+      'esi-universe.read_structures.v1',
+      'esi-corporations.read_structures.v1'
+    ],
+    userAgent: 'LMeve Corporation Management Tool',
+    serverIp: '127.0.0.1',
+    serverPort: 3000,
+    useSSL: false
+  });
+
+  const [oauthState, setOAuthState] = useKV<ESIOAuthState>('esi-oauth', {
+    isAuthenticated: false
+  });
+
+  const [showSecrets, setShowSecrets] = useState(false);
   const [syncStatus, setSyncStatus] = useState<SyncStatus>({
     isRunning: false,
     progress: 0,
@@ -93,6 +122,61 @@ export function Settings() {
     syncInterval: 30,
     characterId: 91316135,
     corporationId: 498125261
+  };
+
+  // Generate OAuth authorization URL
+  const generateAuthUrl = () => {
+    const state = Math.random().toString(36).substring(2, 15);
+    const scopes = esiConfig.scopes.join(' ');
+    
+    const authUrl = `https://login.eveonline.com/v2/oauth/authorize/?` +
+      `response_type=code&` +
+      `redirect_uri=${encodeURIComponent(esiConfig.callbackUrl)}&` +
+      `client_id=${esiConfig.clientId}&` +
+      `scope=${encodeURIComponent(scopes)}&` +
+      `state=${state}`;
+    
+    return authUrl;
+  };
+
+  const handleESIOAuth = () => {
+    if (!esiConfig.clientId) {
+      toast.error('Please configure your ESI Client ID first');
+      return;
+    }
+    
+    const authUrl = generateAuthUrl();
+    window.open(authUrl, '_blank', 'width=600,height=700');
+    toast.info('Complete authorization in the opened window');
+  };
+
+  const handleCopyAuthUrl = () => {
+    const authUrl = generateAuthUrl();
+    navigator.clipboard.writeText(authUrl);
+    toast.success('Authorization URL copied to clipboard');
+  };
+
+  const handleRevokeESI = () => {
+    setOAuthState({
+      isAuthenticated: false
+    });
+    toast.success('ESI authorization revoked');
+  };
+
+  const handleSaveESIConfig = () => {
+    setESIConfig(esiConfig);
+    toast.success('ESI configuration saved');
+  };
+
+  const getScopeDescription = (scope: string): string => {
+    const descriptions: Record<string, string> = {
+      'esi-corporations.read_corporation_membership.v1': 'Read corporation member list',
+      'esi-industry.read_corporation_jobs.v1': 'Read corporation manufacturing jobs',
+      'esi-assets.read_corporation_assets.v1': 'Read corporation assets',
+      'esi-universe.read_structures.v1': 'Read structure information',
+      'esi-corporations.read_structures.v1': 'Read corporation-owned structures'
+    };
+    return descriptions[scope] || 'EVE Online API access scope';
   };
 
   // Load corporation and character info on mount
@@ -122,7 +206,49 @@ export function Settings() {
     }
   }, [eveOnlineSync.enabled, eveOnlineSync.corporationId, eveOnlineSync.characterId]);
 
-  const handleSyncData = async () => {
+  // Generate OAuth authorization URL
+  const generateAuthUrl = () => {
+    const state = Math.random().toString(36).substring(2, 15);
+    const scopes = esiConfig.scopes.join(' ');
+    
+    const authUrl = `https://login.eveonline.com/v2/oauth/authorize/?` +
+      `response_type=code&` +
+      `redirect_uri=${encodeURIComponent(esiConfig.callbackUrl)}&` +
+      `client_id=${esiConfig.clientId}&` +
+      `scope=${encodeURIComponent(scopes)}&` +
+      `state=${state}`;
+    
+    return authUrl;
+  };
+
+  const handleESIOAuth = () => {
+    if (!esiConfig.clientId) {
+      toast.error('Please configure your ESI Client ID first');
+      return;
+    }
+    
+    const authUrl = generateAuthUrl();
+    window.open(authUrl, '_blank', 'width=600,height=700');
+    toast.info('Complete authorization in the opened window');
+  };
+
+  const handleCopyAuthUrl = () => {
+    const authUrl = generateAuthUrl();
+    navigator.clipboard.writeText(authUrl);
+    toast.success('Authorization URL copied to clipboard');
+  };
+
+  const handleRevokeESI = () => {
+    setOAuthState({
+      isAuthenticated: false
+    });
+    toast.success('ESI authorization revoked');
+  };
+
+  const handleSaveESIConfig = () => {
+    setESIConfig(esiConfig);
+    toast.success('ESI configuration saved');
+  };
     if (syncStatus.isRunning) return;
 
     setSyncStatus({
@@ -244,37 +370,6 @@ export function Settings() {
     }));
   };
 
-  const handleAddApiKey = () => {
-    if (!newApiKey.name || !newApiKey.keyId || !newApiKey.vCode) {
-      toast.error('Please fill in all API key fields');
-      return;
-    }
-
-    const newKey = {
-      id: Date.now().toString(),
-      name: newApiKey.name,
-      keyId: newApiKey.keyId,
-      status: 'active' as const,
-      permissions: ['corp_details'] // Default permission
-    };
-
-    setSettings(current => ({
-      ...current,
-      apiKeys: [...current.apiKeys, newKey]
-    }));
-
-    setNewApiKey({ name: '', keyId: '', vCode: '' });
-    toast.success('API key added successfully');
-  };
-
-  const handleRemoveApiKey = (keyId: string) => {
-    setSettings(current => ({
-      ...current,
-      apiKeys: current.apiKeys.filter(key => key.id !== keyId)
-    }));
-    toast.success('API key removed');
-  };
-
   return (
     <div className="space-y-6">
       <div>
@@ -297,9 +392,9 @@ export function Settings() {
             <Rocket size={16} />
             EVE Online
           </TabsTrigger>
-          <TabsTrigger value="api" className="flex items-center gap-2">
+          <TabsTrigger value="esi" className="flex items-center gap-2">
             <Key size={16} />
-            API Keys
+            ESI Config
           </TabsTrigger>
           <TabsTrigger value="notifications" className="flex items-center gap-2">
             <Bell size={16} />
@@ -550,79 +645,228 @@ export function Settings() {
           </Card>
         </TabsContent>
 
-        <TabsContent value="api" className="space-y-6">
+        <TabsContent value="esi" className="space-y-6">
           <Card>
             <CardHeader>
-              <CardTitle>EVE Online API Keys</CardTitle>
+              <CardTitle className="flex items-center gap-2">
+                <Key size={20} />
+                ESI Configuration
+              </CardTitle>
             </CardHeader>
             <CardContent className="space-y-6">
+              {/* Server Configuration */}
               <div className="space-y-4">
-                <h4 className="font-medium">Current API Keys</h4>
-                {settings.apiKeys.map((key) => (
-                  <div key={key.id} className="flex items-center justify-between p-4 border border-border rounded-lg">
-                    <div className="space-y-1">
-                      <div className="flex items-center gap-2">
-                        <span className="font-medium">{key.name}</span>
-                        <Badge 
-                          variant={key.status === 'active' ? 'default' : 'destructive'}
-                          className="text-xs"
-                        >
-                          {key.status}
-                        </Badge>
-                      </div>
-                      <p className="text-sm text-muted-foreground">Key ID: {key.keyId}</p>
-                      <div className="flex gap-1 flex-wrap">
-                        {key.permissions.map((perm) => (
-                          <Badge key={perm} variant="outline" className="text-xs">
-                            {perm}
-                          </Badge>
-                        ))}
-                      </div>
-                    </div>
-                    <Button 
-                      variant="destructive" 
-                      size="sm"
-                      onClick={() => handleRemoveApiKey(key.id)}
-                    >
-                      Remove
-                    </Button>
-                  </div>
-                ))}
-              </div>
-
-              <div className="border-t border-border pt-6 space-y-4">
-                <h4 className="font-medium">Add New API Key</h4>
-                <div className="grid grid-cols-3 gap-4">
+                <h4 className="font-medium">Server Configuration</h4>
+                <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-2">
-                    <Label htmlFor="apiName">Key Name</Label>
+                    <Label htmlFor="serverIp">Server IP Address</Label>
                     <Input
-                      id="apiName"
-                      placeholder="e.g., Main Corp Key"
-                      value={newApiKey.name}
-                      onChange={(e) => setNewApiKey(k => ({ ...k, name: e.target.value }))}
+                      id="serverIp"
+                      value={esiConfig.serverIp}
+                      onChange={(e) => setESIConfig(c => ({ ...c, serverIp: e.target.value }))}
+                      placeholder="127.0.0.1"
                     />
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="keyId">Key ID</Label>
+                    <Label htmlFor="serverPort">Server Port</Label>
                     <Input
-                      id="keyId"
-                      placeholder="12345678"
-                      value={newApiKey.keyId}
-                      onChange={(e) => setNewApiKey(k => ({ ...k, keyId: e.target.value }))}
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="vCode">Verification Code</Label>
-                    <Input
-                      id="vCode"
-                      placeholder="vCode"
-                      type="password"
-                      value={newApiKey.vCode}
-                      onChange={(e) => setNewApiKey(k => ({ ...k, vCode: e.target.value }))}
+                      id="serverPort"
+                      type="number"
+                      value={esiConfig.serverPort}
+                      onChange={(e) => setESIConfig(c => ({ ...c, serverPort: parseInt(e.target.value) || 3000 }))}
+                      placeholder="3000"
                     />
                   </div>
                 </div>
-                <Button onClick={handleAddApiKey}>Add API Key</Button>
+                
+                <div className="flex items-center justify-between">
+                  <div className="space-y-0.5">
+                    <Label>Use SSL/HTTPS</Label>
+                    <p className="text-sm text-muted-foreground">
+                      Enable HTTPS for secure connections
+                    </p>
+                  </div>
+                  <Switch
+                    checked={esiConfig.useSSL}
+                    onCheckedChange={(checked) => setESIConfig(c => ({ ...c, useSSL: checked }))}
+                  />
+                </div>
+              </div>
+
+              {/* ESI Application Settings */}
+              <div className="border-t border-border pt-6 space-y-4">
+                <div className="flex items-center justify-between">
+                  <h4 className="font-medium">ESI Application</h4>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => window.open('https://developers.eveonline.com/applications', '_blank')}
+                  >
+                    <Globe size={16} className="mr-2" />
+                    Manage Apps
+                  </Button>
+                </div>
+                
+                <div className="p-3 bg-muted/50 rounded-lg text-sm text-muted-foreground">
+                  <p className="font-medium mb-2">Setup Instructions:</p>
+                  <ol className="list-decimal list-inside space-y-1">
+                    <li>Create an application at developers.eveonline.com</li>
+                    <li>Set the callback URL to match your server configuration</li>
+                    <li>Copy the Client ID and Client Secret below</li>
+                    <li>Save configuration and authorize ESI access</li>
+                  </ol>
+                </div>
+                
+                <div className="grid grid-cols-1 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="clientId">Client ID</Label>
+                    <Input
+                      id="clientId"
+                      value={esiConfig.clientId}
+                      onChange={(e) => setESIConfig(c => ({ ...c, clientId: e.target.value }))}
+                      placeholder="Your EVE Online application Client ID"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="clientSecret">Client Secret</Label>
+                    <div className="relative">
+                      <Input
+                        id="clientSecret"
+                        type={showSecrets ? "text" : "password"}
+                        value={esiConfig.clientSecret}
+                        onChange={(e) => setESIConfig(c => ({ ...c, clientSecret: e.target.value }))}
+                        placeholder="Your EVE Online application Client Secret"
+                      />
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        className="absolute right-0 top-0 h-full px-3"
+                        onClick={() => setShowSecrets(!showSecrets)}
+                      >
+                        {showSecrets ? <EyeSlash size={16} /> : <Eye size={16} />}
+                      </Button>
+                    </div>
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="callbackUrl">Callback URL</Label>
+                    <Input
+                      id="callbackUrl"
+                      value={esiConfig.callbackUrl}
+                      onChange={(e) => setESIConfig(c => ({ ...c, callbackUrl: e.target.value }))}
+                      placeholder="http://localhost:3000/callback"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="userAgent">User Agent</Label>
+                    <Input
+                      id="userAgent"
+                      value={esiConfig.userAgent}
+                      onChange={(e) => setESIConfig(c => ({ ...c, userAgent: e.target.value }))}
+                      placeholder="Your Application Name"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* ESI Scopes */}
+              <div className="border-t border-border pt-6 space-y-4">
+                <h4 className="font-medium">Required ESI Scopes</h4>
+                <p className="text-sm text-muted-foreground">
+                  These scopes are required for LMeve to access your corporation data through the EVE Online ESI API.
+                </p>
+                <div className="grid grid-cols-1 gap-2">
+                  {esiConfig.scopes.map((scope, index) => (
+                    <div key={index} className="flex items-center justify-between p-3 border border-border rounded-lg">
+                      <div className="space-y-1">
+                        <span className="text-sm font-mono">{scope}</span>
+                        <p className="text-xs text-muted-foreground">
+                          {getScopeDescription(scope)}
+                        </p>
+                      </div>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => {
+                          const newScopes = esiConfig.scopes.filter((_, i) => i !== index);
+                          setESIConfig(c => ({ ...c, scopes: newScopes }));
+                        }}
+                      >
+                        <X size={16} />
+                      </Button>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* OAuth Status */}
+              <div className="border-t border-border pt-6 space-y-4">
+                <h4 className="font-medium">ESI Authorization Status</h4>
+                
+                {oauthState.isAuthenticated ? (
+                  <div className="p-4 border border-green-500/20 bg-green-500/10 rounded-lg">
+                    <div className="flex items-center justify-between">
+                      <div className="space-y-1">
+                        <div className="flex items-center gap-2 text-green-400">
+                          <CheckCircle size={16} />
+                          <span className="font-medium">Authorized</span>
+                        </div>
+                        {oauthState.characterName && (
+                          <p className="text-sm text-muted-foreground">
+                            Character: {oauthState.characterName}
+                          </p>
+                        )}
+                        {oauthState.expiresAt && (
+                          <p className="text-xs text-muted-foreground">
+                            Expires: {new Date(oauthState.expiresAt).toLocaleString()}
+                          </p>
+                        )}
+                      </div>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={handleRevokeESI}
+                        className="border-red-500/50 text-red-400 hover:bg-red-500/10"
+                      >
+                        Revoke
+                      </Button>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="p-4 border border-orange-500/20 bg-orange-500/10 rounded-lg">
+                    <div className="space-y-3">
+                      <div className="flex items-center gap-2 text-orange-400">
+                        <Warning size={16} />
+                        <span className="font-medium">Not Authorized</span>
+                      </div>
+                      <p className="text-sm text-muted-foreground">
+                        Corporation leaders must authorize ESI access to sync EVE Online data.
+                      </p>
+                      <div className="flex gap-2">
+                        <Button
+                          onClick={handleESIOAuth}
+                          disabled={!esiConfig.clientId}
+                          className="bg-accent hover:bg-accent/90"
+                        >
+                          <LinkSimple size={16} className="mr-2" />
+                          Authorize ESI Access
+                        </Button>
+                        <Button
+                          variant="outline"
+                          onClick={handleCopyAuthUrl}
+                          disabled={!esiConfig.clientId}
+                        >
+                          <Copy size={16} className="mr-2" />
+                          Copy Auth URL
+                        </Button>
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              <div className="border-t border-border pt-6">
+                <Button onClick={handleSaveESIConfig}>Save ESI Configuration</Button>
               </div>
             </CardContent>
           </Card>
