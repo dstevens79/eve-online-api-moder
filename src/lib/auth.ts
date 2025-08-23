@@ -369,7 +369,7 @@ export function useAuth() {
       console.log('Calling authService.loginWithCredentials...');
       const authUser = await authService.loginWithCredentials(credentials, adminConfig);
       console.log('Auth successful, setting user:', authUser);
-      setUser(() => authUser); // Use functional update to ensure proper setting
+      setUser(authUser); // Direct setting should work better
       console.log('User set successfully');
     } catch (error) {
       console.error('Auth error in useAuth:', error);
@@ -381,7 +381,7 @@ export function useAuth() {
 
   const updateAdminConfig = (newConfig: { username: string; password: string }): void => {
     console.log('Updating admin config:', { username: newConfig.username, password: '***' });
-    setAdminConfig(() => newConfig);
+    setAdminConfig(newConfig);
   };
 
   const loginWithESI = (): { url: string; state: ESIAuthState } => {
@@ -392,7 +392,7 @@ export function useAuth() {
     setIsLoading(true);
     try {
       const authUser = await authService.handleESICallback(code, state, storedState);
-      setUser(() => authUser);
+      setUser(authUser);
     } finally {
       setIsLoading(false);
     }
@@ -400,7 +400,7 @@ export function useAuth() {
 
   const logout = (): void => {
     console.log('useAuth.logout called');
-    setUser(() => null);
+    setUser(null);
   };
 
   const refreshUserToken = async (): Promise<void> => {
