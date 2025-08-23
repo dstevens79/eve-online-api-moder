@@ -5,34 +5,39 @@
   * {
     @apply border-border
   }
+  
+  body {
+    font-feature-settings: "rlig" 1, "calt" 1;
+  }
 }
 
 :root {
-  /* EVE Online API Explorer Theme */
-  --background: oklch(0.98 0.02 250);
-  --foreground: oklch(0.2 0.02 250);
+  /* LMeve - EVE Online Corporation Management Theme */
+  /* Dark space theme with EVE Online aesthetic */
+  --background: oklch(0.08 0.02 220);
+  --foreground: oklch(0.98 0.01 220);
 
-  --card: oklch(1 0 0);
-  --card-foreground: oklch(0.2 0.02 250);
-  --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.2 0.02 250);
+  --card: oklch(0.12 0.02 220);
+  --card-foreground: oklch(0.9 0.01 220);
+  --popover: oklch(0.12 0.02 220);
+  --popover-foreground: oklch(0.9 0.01 220);
 
-  --primary: oklch(0.45 0.15 250);
-  --primary-foreground: oklch(0.98 0.02 250);
-  --secondary: oklch(0.95 0.02 250);
-  --secondary-foreground: oklch(0.2 0.02 250);
-  --accent: oklch(0.65 0.15 45);
-  --accent-foreground: oklch(0.98 0.02 250);
-  --destructive: oklch(0.6 0.2 15);
-  --destructive-foreground: oklch(0.98 0.02 250);
+  --primary: oklch(0.35 0.1 220);
+  --primary-foreground: oklch(0.98 0.01 220);
+  --secondary: oklch(0.2 0.02 220);
+  --secondary-foreground: oklch(0.85 0.01 220);
+  --accent: oklch(0.65 0.2 35);
+  --accent-foreground: oklch(0.98 0.01 220);
+  --destructive: oklch(0.6 0.25 15);
+  --destructive-foreground: oklch(0.98 0.01 220);
 
-  --muted: oklch(0.95 0.02 250);
-  --muted-foreground: oklch(0.7 0.05 250);
-  --border: oklch(0.9 0.02 250);
-  --input: oklch(0.9 0.02 250);
-  --ring: oklch(0.45 0.15 250);
+  --muted: oklch(0.16 0.02 220);
+  --muted-foreground: oklch(0.7 0.02 220);
+  --border: oklch(0.2 0.02 220);
+  --input: oklch(0.16 0.02 220);
+  --ring: oklch(0.65 0.2 35);
 
-  --radius: 0.5rem;
+  --radius: 0.375rem;
 }
 
 @theme {
@@ -65,4 +70,45 @@
 
   --font-sans: Inter, system-ui, sans-serif;
   --font-mono: 'JetBrains Mono', monospace;
+}
+
+/* Custom styles for professional data tables */
+.data-table {
+  @apply text-sm;
+}
+
+.data-table th {
+  @apply bg-muted/50 font-medium text-muted-foreground border-b border-border;
+}
+
+.data-table td {
+  @apply border-b border-border/50;
+}
+
+.data-table tr:hover {
+  @apply bg-muted/30;
+}
+
+/* Professional scrollbars */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: oklch(0.3 0.02 220) oklch(0.16 0.02 220);
+}
+
+*::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+*::-webkit-scrollbar-track {
+  background: oklch(0.16 0.02 220);
+}
+
+*::-webkit-scrollbar-thumb {
+  background: oklch(0.3 0.02 220);
+  border-radius: 4px;
+}
+
+*::-webkit-scrollbar-thumb:hover {
+  background: oklch(0.4 0.02 220);
 }
