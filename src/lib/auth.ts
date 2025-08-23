@@ -15,6 +15,7 @@ export interface AuthUser {
   scopes: string[];
   isDirector: boolean;
   isCeo: boolean;
+  isAdmin?: boolean; // Local admin user flag
 }
 
 export interface LoginCredentials {
@@ -139,11 +140,29 @@ class AuthService {
   }
 
   /**
-   * Traditional username/password login (for development/testing)
+   * Traditional username/password login (for development/testing and admin access)
    */
-  async loginWithCredentials(credentials: LoginCredentials): Promise<AuthUser> {
-    // In a real application, this would validate against your backend
-    // For now, we'll create a mock user for testing
+  async loginWithCredentials(credentials: LoginCredentials, adminConfig?: { username: string; password: string }): Promise<AuthUser> {
+    // Check for admin login if configured
+    if (adminConfig && credentials.username === adminConfig.username && credentials.password === adminConfig.password) {
+      return {
+        characterId: 999999999,
+        characterName: 'Local Administrator',
+        corporationId: 1000000000,
+        corporationName: 'LMeve Administration',
+        allianceId: undefined,
+        allianceName: undefined,
+        accessToken: 'admin-access-token',
+        refreshToken: 'admin-refresh-token',
+        tokenExpiry: Date.now() + (24 * 60 * 60 * 1000), // 24 hours
+        scopes: this.ESI_SCOPES,
+        isDirector: true,
+        isCeo: true,
+        isAdmin: true
+      };
+    }
+
+    // Fallback test user for development
     if (credentials.username === 'admin' && credentials.password === 'password') {
       return {
         characterId: 123456789,
@@ -292,16 +311,21 @@ export const authService = new AuthService();
  */
 export function useAuth() {
   const [user, setUser] = useKV<AuthUser | null>('auth-user', null);
+  const [adminConfig, setAdminConfig] = useKV<{ username: string; password: string }>('admin-config', { username: 'admin', password: '12345' });
   const [isLoading, setIsLoading] = React.useState(false);
 
   const login = async (credentials: LoginCredentials): Promise<void> => {
     setIsLoading(true);
     try {
-      const authUser = await authService.loginWithCredentials(credentials);
+      const authUser = await authService.loginWithCredentials(credentials, adminConfig);
       setUser(authUser);
     } finally {
       setIsLoading(false);
     }
+  };
+
+  const updateAdminConfig = (newConfig: { username: string; password: string }): void => {
+    setAdminConfig(newConfig);
   };
 
   const loginWithESI = (): { url: string; state: ESIAuthState } => {
@@ -323,7 +347,7 @@ export function useAuth() {
   };
 
   const refreshUserToken = async (): Promise<void> => {
-    if (!user?.refreshToken) return;
+    if (!user?.refreshToken || user?.isAdmin) return; // Skip token refresh for admin users
 
     try {
       const { accessToken, expiresIn } = await authService.refreshToken(user.refreshToken);
@@ -339,6 +363,7 @@ export function useAuth() {
   };
 
   const isTokenExpired = (): boolean => {
+    if (user?.isAdmin) return false; // Admin tokens don't expire
     return user ? Date.now() >= user.tokenExpiry - 300000 : false; // 5 min buffer
   };
 
@@ -346,6 +371,8 @@ export function useAuth() {
     user,
     isLoading,
     isAuthenticated: !!user,
+    adminConfig,
+    updateAdminConfig,
     login,
     loginWithESI,
     handleESICallback,

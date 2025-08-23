@@ -37,7 +37,10 @@ import {
   List,
   Play,
   Stop,
-  Info
+  Info,
+  CloudArrowDown,
+  Archive,
+  UserCheck
 } from '@phosphor-icons/react';
 import { useKV } from '@github/spark/hooks';
 import { useAuth } from '@/lib/auth';
@@ -45,6 +48,7 @@ import { CorpSettings } from '@/lib/types';
 import { toast } from 'sonner';
 import { eveApi, type CharacterInfo, type CorporationInfo } from '@/lib/eveApi';
 import { DatabaseManager, DatabaseConfig, DatabaseStatus, defaultDatabaseConfig, TableInfo } from '@/lib/database';
+import { useSDEManager, type SDEDatabaseStats } from '@/lib/sdeService';
 
 interface SyncStatus {
   isRunning: boolean;
@@ -75,7 +79,8 @@ interface ESIOAuthState {
 }
 
 export function Settings() {
-  const { user } = useAuth();
+  const { user, adminConfig, updateAdminConfig } = useAuth();
+  const { sdeStatus, checkForUpdates, downloadSDE, updateDatabase, getDatabaseStats } = useSDEManager();
   const [settings, setSettings] = useKV<CorpSettings>('corp-settings', {
     corpName: user?.corporationName || 'Test Alliance Please Ignore',
     corpTicker: 'TEST',
@@ -161,6 +166,10 @@ export function Settings() {
   const [tableInfo, setTableInfo] = useState<TableInfo[]>([]);
   const [showDbPassword, setShowDbPassword] = useState(false);
   const [testingConnection, setTestingConnection] = useState(false);
+  const [sdeStats, setSDEStats] = useState<SDEDatabaseStats | null>(null);
+  
+  // Admin configuration state
+  const [tempAdminConfig, setTempAdminConfig] = useState(adminConfig);
 
   // Ensure safe access to settings
   const eveOnlineSync = settings?.eveOnlineSync || {
@@ -325,6 +334,23 @@ export function Settings() {
     }
   }, [eveOnlineSync.enabled, eveOnlineSync.corporationId, eveOnlineSync.characterId]);
 
+  // Load SDE stats when component mounts
+  useEffect(() => {
+    const loadSDEStats = async () => {
+      if (sdeStatus.isInstalled) {
+        const stats = await getDatabaseStats();
+        setSDEStats(stats);
+      }
+    };
+    
+    loadSDEStats();
+  }, [sdeStatus.isInstalled, getDatabaseStats]);
+
+  // Check for SDE updates on mount
+  useEffect(() => {
+    checkForUpdates();
+  }, [checkForUpdates]);
+
   const handleSyncData = async () => {
     if (syncStatus.isRunning) return;
 
@@ -437,6 +463,11 @@ export function Settings() {
     toast.success('Settings saved successfully');
   };
 
+  const handleSaveAdminConfig = () => {
+    updateAdminConfig(tempAdminConfig);
+    toast.success('Admin configuration updated');
+  };
+
   const handleNotificationToggle = (type: keyof typeof settings.notifications) => {
     setSettings(current => ({
       ...current,
@@ -460,7 +491,7 @@ export function Settings() {
       </div>
 
       <Tabs defaultValue="general" className="space-y-6">
-        <TabsList className="grid w-full grid-cols-7">
+        <TabsList className="grid w-full grid-cols-8">
           <TabsTrigger value="general" className="flex items-center gap-2">
             <Globe size={16} />
             General
@@ -472,6 +503,10 @@ export function Settings() {
           <TabsTrigger value="eve" className="flex items-center gap-2">
             <Rocket size={16} />
             EVE Online
+          </TabsTrigger>
+          <TabsTrigger value="sde" className="flex items-center gap-2">
+            <Archive size={16} />
+            EVE SDE
           </TabsTrigger>
           <TabsTrigger value="esi" className="flex items-center gap-2">
             <Key size={16} />
@@ -1024,6 +1059,235 @@ export function Settings() {
             </CardContent>
           </Card>
         </TabsContent>
+
+        <TabsContent value="sde" className="space-y-6">
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Archive size={20} />
+                EVE Static Data Export (SDE)
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-6">
+              <div className="p-3 bg-muted/50 rounded-lg text-sm text-muted-foreground">
+                <p className="font-medium mb-2">EVE SDE Database:</p>
+                <p>
+                  The Static Data Export contains reference data for all items, ships, solar systems, 
+                  and other static information in EVE Online. This data is essential for features like 
+                  item pricing, manufacturing calculations, and location lookups.
+                </p>
+              </div>
+
+              {/* Current Status */}
+              <div className="border border-border rounded-lg p-4">
+                <div className="flex items-center justify-between mb-4">
+                  <h4 className="font-medium">Current Status</h4>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={checkForUpdates}
+                    disabled={sdeStatus.isDownloading || sdeStatus.isUpdating}
+                  >
+                    <Refresh size={16} className="mr-2" />
+                    Check for Updates
+                  </Button>
+                </div>
+
+                {sdeStatus.isInstalled ? (
+                  <div className="space-y-4">
+                    <div className="p-3 border border-green-500/20 bg-green-500/10 rounded-lg">
+                      <div className="flex items-center gap-2 text-green-400 mb-2">
+                        <CheckCircle size={16} />
+                        <span className="font-medium">SDE Installed</span>
+                      </div>
+                      <div className="grid grid-cols-2 md:grid-cols-3 gap-4 text-sm">
+                        <div>
+                          <p className="text-muted-foreground">Version</p>
+                          <p className="font-medium">{sdeStatus.currentVersion}</p>
+                        </div>
+                        <div>
+                          <p className="text-muted-foreground">Installed</p>
+                          <p className="font-medium">
+                            {sdeStatus.installedDate 
+                              ? new Date(sdeStatus.installedDate).toLocaleDateString()
+                              : 'Unknown'
+                            }
+                          </p>
+                        </div>
+                        {sdeStats && (
+                          <div>
+                            <p className="text-muted-foreground">Database Size</p>
+                            <p className="font-medium">{sdeStats.totalSize}</p>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+
+                    {sdeStats && (
+                      <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                        <div className="p-3 border border-border rounded-lg">
+                          <div className="flex items-center gap-2 mb-2">
+                            <Database size={16} className="text-blue-400" />
+                            <span className="font-medium">Tables</span>
+                          </div>
+                          <p className="text-xl font-bold">{sdeStats.tables}</p>
+                        </div>
+                        <div className="p-3 border border-border rounded-lg">
+                          <div className="flex items-center gap-2 mb-2">
+                            <List size={16} className="text-green-400" />
+                            <span className="font-medium">Total Rows</span>
+                          </div>
+                          <p className="text-xl font-bold">{sdeStats.totalRows.toLocaleString()}</p>
+                        </div>
+                        <div className="p-3 border border-border rounded-lg">
+                          <div className="flex items-center gap-2 mb-2">
+                            <Clock size={16} className="text-purple-400" />
+                            <span className="font-medium">Last Update</span>
+                          </div>
+                          <p className="text-sm font-medium">
+                            {new Date(sdeStats.lastUpdate).toLocaleDateString()}
+                          </p>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                ) : (
+                  <div className="p-3 border border-orange-500/20 bg-orange-500/10 rounded-lg">
+                    <div className="flex items-center gap-2 text-orange-400">
+                      <Warning size={16} />
+                      <span className="font-medium">SDE Not Installed</span>
+                    </div>
+                    <p className="text-sm text-muted-foreground mt-1">
+                      The EVE Static Data Export is not installed. Download and install it to enable 
+                      full functionality.
+                    </p>
+                  </div>
+                )}
+
+                {sdeStatus.isUpdateAvailable && (
+                  <div className="p-3 border border-blue-500/20 bg-blue-500/10 rounded-lg">
+                    <div className="flex items-center gap-2 text-blue-400 mb-2">
+                      <Info size={16} />
+                      <span className="font-medium">Update Available</span>
+                    </div>
+                    <p className="text-sm text-muted-foreground mb-3">
+                      A newer version of the SDE is available: {sdeStatus.latestVersion}
+                    </p>
+                  </div>
+                )}
+
+                {sdeStatus.lastChecked && (
+                  <p className="text-xs text-muted-foreground">
+                    Last checked: {new Date(sdeStatus.lastChecked).toLocaleString()}
+                  </p>
+                )}
+              </div>
+
+              {/* Download and Update */}
+              <div className="border-t border-border pt-6 space-y-4">
+                <h4 className="font-medium">Download & Update</h4>
+                
+                <div className="space-y-4">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="font-medium">Download Latest SDE</p>
+                      <p className="text-sm text-muted-foreground">
+                        Download the latest EVE Static Data Export from Fuzzwork
+                      </p>
+                    </div>
+                    <Button
+                      onClick={downloadSDE}
+                      disabled={sdeStatus.isDownloading || sdeStatus.isUpdating || (!sdeStatus.isUpdateAvailable && sdeStatus.isInstalled)}
+                      className="bg-accent hover:bg-accent/90"
+                    >
+                      {sdeStatus.isDownloading ? (
+                        <>
+                          <Refresh size={16} className="mr-2 animate-spin" />
+                          Downloading...
+                        </>
+                      ) : (
+                        <>
+                          <CloudArrowDown size={16} className="mr-2" />
+                          Download SDE
+                        </>
+                      )}
+                    </Button>
+                  </div>
+
+                  {sdeStatus.isDownloading && typeof sdeStatus.downloadProgress === 'number' && (
+                    <div className="space-y-2">
+                      <div className="flex justify-between text-sm">
+                        <span>Downloading SDE archive...</span>
+                        <span>{Math.round(sdeStatus.downloadProgress)}%</span>
+                      </div>
+                      <Progress value={sdeStatus.downloadProgress} className="h-2" />
+                    </div>
+                  )}
+
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="font-medium">Update Database</p>
+                      <p className="text-sm text-muted-foreground">
+                        Import SDE data into the database (requires download first)
+                      </p>
+                    </div>
+                    <Button
+                      onClick={updateDatabase}
+                      disabled={sdeStatus.isDownloading || sdeStatus.isUpdating || sdeStatus.downloadProgress !== 100}
+                      variant="outline"
+                    >
+                      {sdeStatus.isUpdating ? (
+                        <>
+                          <Refresh size={16} className="mr-2 animate-spin" />
+                          Updating...
+                        </>
+                      ) : (
+                        <>
+                          <Upload size={16} className="mr-2" />
+                          Update Database
+                        </>
+                      )}
+                    </Button>
+                  </div>
+
+                  {sdeStatus.error && (
+                    <div className="p-3 border border-red-500/20 bg-red-500/10 rounded-lg">
+                      <div className="flex items-center gap-2 text-red-400">
+                        <Warning size={16} />
+                        <span className="font-medium">Error</span>
+                      </div>
+                      <p className="text-sm text-red-300 mt-1">{sdeStatus.error}</p>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* Source Information */}
+              <div className="border-t border-border pt-6 space-y-4">
+                <h4 className="font-medium">Data Source</h4>
+                <div className="p-3 border border-border rounded-lg space-y-2">
+                  <div className="flex items-center justify-between">
+                    <span className="font-medium">Fuzzwork Enterprises</span>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => window.open('https://www.fuzzwork.co.uk/dump/', '_blank')}
+                    >
+                      <Globe size={16} className="mr-2" />
+                      Visit Source
+                    </Button>
+                  </div>
+                  <p className="text-sm text-muted-foreground">
+                    https://www.fuzzwork.co.uk/dump/mysql-latest.tar.bz2
+                  </p>
+                  <p className="text-xs text-muted-foreground">
+                    Fuzzwork provides regular exports of the EVE Online Static Data Export in MySQL format.
+                    This service is maintained by Steve Ronuken and is widely used by EVE third-party applications.
+                  </p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
 
         <TabsContent value="esi" className="space-y-6">
           <Card>
@@ -1613,6 +1877,54 @@ export function Settings() {
               <CardTitle>Security Settings</CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
+              {/* Admin Configuration - Only show to admins */}
+              {user?.isAdmin && (
+                <div className="space-y-4">
+                  <div className="p-4 border border-accent/20 bg-accent/5 rounded-lg space-y-4">
+                    <div className="flex items-center gap-2">
+                      <UserCheck size={16} className="text-accent" />
+                      <span className="font-medium">Local Administrator Account</span>
+                    </div>
+                    <p className="text-sm text-muted-foreground">
+                      Configure the local administrator login credentials. This account has full system access.
+                    </p>
+                    
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="space-y-2">
+                        <Label htmlFor="adminUsername">Admin Username</Label>
+                        <Input
+                          id="adminUsername"
+                          value={tempAdminConfig.username}
+                          onChange={(e) => setTempAdminConfig(c => ({ ...c, username: e.target.value }))}
+                          placeholder="admin"
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="adminPassword">Admin Password</Label>
+                        <Input
+                          id="adminPassword"
+                          type="password"
+                          value={tempAdminConfig.password}
+                          onChange={(e) => setTempAdminConfig(c => ({ ...c, password: e.target.value }))}
+                          placeholder="Enter secure password"
+                        />
+                      </div>
+                    </div>
+                    
+                    <div className="flex items-center gap-2">
+                      <Button onClick={handleSaveAdminConfig} size="sm">
+                        Update Admin Credentials
+                      </Button>
+                      <Badge variant="outline" className="text-xs">
+                        Current: {adminConfig.username}
+                      </Badge>
+                    </div>
+                  </div>
+                  
+                  <div className="border-t border-border pt-4"></div>
+                </div>
+              )}
+
               <div className="space-y-4">
                 <div className="p-4 border border-border rounded-lg space-y-2">
                   <div className="flex items-center gap-2">

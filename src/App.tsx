@@ -39,7 +39,7 @@ import { Settings } from '@/components/tabs/Settings';
 
 function App() {
   const [activeTab, setActiveTab] = useKV<TabType>('active-tab', 'dashboard');
-  const { user, isAuthenticated, logout, refreshUserToken, isTokenExpired } = useAuth();
+  const { user, isAuthenticated, logout, refreshUserToken, isTokenExpired, adminConfig, updateAdminConfig } = useAuth();
   const [isESICallback, setIsESICallback] = useState(false);
 
   // Check if this is an ESI callback
@@ -136,7 +136,7 @@ function App() {
                 <div className="text-right">
                   <p className="text-sm font-medium">{user.characterName}</p>
                   <p className="text-xs text-muted-foreground">
-                    {user.isCeo ? 'CEO' : user.isDirector ? 'Director' : 'Member'}
+                    {user.isAdmin ? 'Local Admin' : user.isCeo ? 'CEO' : user.isDirector ? 'Director' : 'Member'}
                   </p>
                 </div>
                 <Button 
