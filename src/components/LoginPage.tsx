@@ -8,7 +8,11 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Rocket, SignIn, Eye, EyeSlash } from '@phosphor-icons/react';
 import { useAuth, LoginCredentials } from '@/lib/auth';
 
-export function LoginPage() {
+interface LoginPageProps {
+  onLoginSuccess?: () => void;
+}
+
+export function LoginPage({ onLoginSuccess }: LoginPageProps) {
   const { login, loginWithESI, isLoading, user, isAuthenticated } = useAuth();
   const [credentials, setCredentials] = useState<LoginCredentials>({ username: '', password: '' });
   const [showPassword, setShowPassword] = useState(false);
@@ -46,24 +50,23 @@ export function LoginPage() {
 
     try {
       setDebugInfo('Calling auth service...');
-      await login(credentials);
       
-      setDebugInfo('✅ Login successful - checking user state...');
-      console.log('✅ Login successful');
-      
-      // Wait a moment for state to propagate and check
-      setTimeout(() => {
-        console.log('🔍 Post-login check - User state:', { 
-          hasUser: !!user, 
-          characterName: user?.characterName 
-        });
+      // Pass navigation callback for direct page change
+      await login(credentials, () => {
+        console.log('📍 LOGIN SUCCESS CALLBACK EXECUTING - immediate navigation');
+        setDebugInfo('✅ Login successful - executing immediate navigation');
         
-        if (user) {
-          setDebugInfo('✅ User state confirmed - login complete');
+        // Call the immediate navigation function from App
+        if (onLoginSuccess) {
+          console.log('📍 Calling onLoginSuccess navigation function');
+          onLoginSuccess();
         } else {
-          setDebugInfo('⚠️ Login succeeded but user state not updated yet');
+          console.log('❌ No onLoginSuccess callback provided');
         }
-      }, 200);
+      });
+      
+      setDebugInfo('✅ Login successful - navigation should be complete');
+      console.log('✅ Login process completed');
       
     } catch (err) {
       console.error('❌ Login error:', err);

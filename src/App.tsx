@@ -173,7 +173,30 @@ function App() {
       shouldShowLogin: !user,
       timestamp: Date.now()
     });
-    return <LoginPage />;
+    
+    // Provide immediate navigation function to LoginPage
+    const handleDirectNavigation = () => {
+      console.log('📍 IMMEDIATE NAVIGATION - Force render update');
+      
+      // Force immediate state updates
+      setActiveTab('dashboard');
+      setSettingsExpanded(false);
+      
+      // Trigger immediate re-render
+      setForceRender(prev => {
+        const newValue = prev + 1;
+        console.log('📍 Force render update:', newValue);
+        return newValue;
+      });
+      
+      // Double-check: force another update after a tiny delay
+      setTimeout(() => {
+        console.log('📍 Secondary navigation check - ensuring we\'re on dashboard');
+        setActiveTab('dashboard');
+      }, 50);
+    };
+    
+    return <LoginPage onLoginSuccess={handleDirectNavigation} />;
   }
 
   console.log('🏠 Authenticated user:', user.characterName, '- showing main app');

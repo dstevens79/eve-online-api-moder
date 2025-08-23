@@ -370,7 +370,7 @@ export function useAuth() {
     });
   }, [user, isAuthenticated, authTrigger]);
 
-  const login = async (credentials: LoginCredentials): Promise<void> => {
+  const login = async (credentials: LoginCredentials, onSuccess?: () => void): Promise<void> => {
     setIsLoading(true);
     console.log('🚀 Starting login for:', credentials.username);
     
@@ -389,6 +389,12 @@ export function useAuth() {
       await new Promise(resolve => setTimeout(resolve, 100));
       
       console.log('🔄 User state should now trigger App to show main interface');
+      
+      // Call success callback if provided (for direct navigation)
+      if (onSuccess) {
+        console.log('📍 Executing login success callback for direct navigation');
+        onSuccess();
+      }
       
     } catch (error) {
       console.error('❌ Login error:', error);
