@@ -9,68 +9,33 @@ import { Rocket, SignIn, Eye, EyeSlash } from '@phosphor-icons/react';
 import { useAuth, LoginCredentials } from '@/lib/auth';
 
 export function LoginPage() {
-  const { login, user, isAuthenticated, logout } = useAuth();
+  const { login, isLoading } = useAuth();
   const [credentials, setCredentials] = useState<LoginCredentials>({ username: '', password: '' });
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [isLocalLoginLoading, setIsLocalLoginLoading] = useState(false);
-
-  // Debug: show current auth state
-  console.log('LoginPage render - auth state:', { isAuthenticated, user: user?.characterName });
 
   const handleCredentialLogin = async (e?: React.FormEvent) => {
     e?.preventDefault();
     setError(null);
     
-    console.log('🔑 LoginPage - attempting login with:', credentials.username);
+    console.log('🔑 Login attempt for:', credentials.username);
 
     if (!credentials.username?.trim() || !credentials.password?.trim()) {
       setError('Please enter both username and password');
       return;
     }
 
-    console.log('🚀 LoginPage - starting login process...');
-    setIsLocalLoginLoading(true);
     try {
-      console.log('📞 LoginPage - calling auth.login...');
       await login(credentials);
-      console.log('✅ LoginPage - login successful, auth state should change now');
-      
-      // Give some time for state propagation
-      setTimeout(() => {
-        console.log('⏰ LoginPage - checking post-login state:', { isAuthenticated, user: user?.characterName });
-      }, 200);
-      
+      console.log('✅ Login successful');
     } catch (err) {
-      console.error('❌ LoginPage - login error:', err);
+      console.error('❌ Login error:', err);
       setError(err instanceof Error ? err.message : 'Login failed');
-    } finally {
-      setIsLocalLoginLoading(false);
     }
   };
 
   const handleESILogin = () => {
-    setError(null);
-    setError('ESI authentication is not available in this demo environment. ESI login requires a production deployment with proper OAuth callback handling. Use the username/password login for testing.');
-  };
-
-  // Direct login test function
-  const testDirectLogin = async () => {
-    console.log('Testing direct login...');
-    setError(null);
-    setIsLocalLoginLoading(true);
-    
-    try {
-      console.log('Direct login - calling auth.login...');
-      await login({ username: 'admin', password: '12345' });
-      console.log('Direct login successful');
-      
-    } catch (err) {
-      console.error('Direct login failed:', err);
-      setError(err instanceof Error ? err.message : 'Login failed');
-    } finally {
-      setIsLocalLoginLoading(false);
-    }
+    setError('ESI authentication is not available in this demo environment. Use the admin login below.');
   };
 
   const handleInputChange = (field: keyof LoginCredentials) => (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -123,12 +88,12 @@ export function LoginPage() {
             {/* ESI Login Button */}
             <Button
               onClick={handleESILogin}
-              disabled={isLocalLoginLoading}
+              disabled={isLoading}
               className="w-full bg-accent hover:bg-accent/90 active:bg-accent/80 text-accent-foreground transition-all duration-200 hover:shadow-lg hover:shadow-accent/20 active:scale-[0.98]"
               size="lg"
             >
               <SignIn size={18} className="mr-2" />
-              {isLocalLoginLoading ? 'Connecting...' : 'Login with EVE Online'}
+              Login with EVE Online
             </Button>
 
             <div className="relative">
@@ -151,7 +116,7 @@ export function LoginPage() {
                   value={credentials.username}
                   onChange={handleInputChange('username')}
                   onKeyDown={handleKeyDown}
-                  disabled={isLocalLoginLoading}
+                  disabled={isLoading}
                   className="bg-input border-border"
                   autoComplete="username"
                 />
@@ -167,7 +132,7 @@ export function LoginPage() {
                     value={credentials.password}
                     onChange={handleInputChange('password')}
                     onKeyDown={handleKeyDown}
-                    disabled={isLocalLoginLoading}
+                    disabled={isLoading}
                     className="bg-input border-border pr-10"
                     autoComplete="current-password"
                   />
@@ -190,155 +155,20 @@ export function LoginPage() {
 
               <Button
                 type="submit"
-                disabled={isLocalLoginLoading}
-                className="w-full bg-primary hover:bg-primary/90 active:bg-primary/80 text-primary-foreground border-primary/20 transition-all duration-200 hover:shadow-lg hover:shadow-primary/20 active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:shadow-none disabled:active:scale-100"
+                disabled={isLoading}
+                className="w-full bg-primary hover:bg-primary/90 active:bg-primary/80 text-primary-foreground border-primary/20 transition-all duration-200 hover:shadow-lg hover:shadow-primary/20 active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed"
                 variant="default"
-                onClick={(e) => {
-                  console.log('🖱️ Sign In button clicked, loading state:', isLocalLoginLoading);
-                  handleCredentialLogin(e);
-                }}
               >
-                {isLocalLoginLoading ? 'Signing in...' : 'Sign In'}
+                {isLoading ? 'Signing in...' : 'Sign In'}
               </Button>
             </form>
 
             {/* Development Info */}
             <div className="pt-4 border-t border-border">
-              <div className="space-y-2">
-                <p className="text-xs text-muted-foreground text-center">
-                  For testing: Username: <code className="bg-muted px-1 rounded">admin</code>, 
-                  Password: <code className="bg-muted px-1 rounded">12345</code>
-                </p>
-                
-                {/* Debug button for testing */}
-                <div className="flex flex-col gap-2 items-center">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={async (e) => {
-                      e.preventDefault();
-                      e.stopPropagation();
-                      console.log('Debug login button clicked - bypassing all form logic');
-                      setCredentials({ username: 'admin', password: '12345' });
-                      setError(null);
-                      setIsLocalLoginLoading(true);
-                      
-                      try {
-                        // Directly call login without any form handling
-                        console.log('Direct auth call...');
-                        await login({ username: 'admin', password: '12345' });
-                        console.log('Auth call completed successfully');
-                      } catch (err) {
-                        console.error('Direct auth failed:', err);
-                        setError(err instanceof Error ? err.message : 'Login failed');
-                      } finally {
-                        setIsLocalLoginLoading(false);
-                      }
-                    }}
-                    className="text-xs"
-                    disabled={isLocalLoginLoading}
-                  >
-                    {isLocalLoginLoading ? 'Logging in...' : 'Debug: Auto Login'}
-                  </Button>
-                  
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={testDirectLogin}
-                    className="text-xs"
-                    disabled={isLocalLoginLoading}
-                  >
-                    {isLocalLoginLoading ? 'Testing...' : 'Direct Login Test'}
-                  </Button>
-                  
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={async () => {
-                      console.log('=== AUTH STATE CHECK ===');
-                      console.log('useAuth state:', { isAuthenticated, user: user?.characterName, hasUser: !!user });
-                      
-                      try {
-                        const kvUser = await spark.kv.get('auth-user');
-                        console.log('KV auth-user:', kvUser?.characterName || 'null');
-                        
-                        const kvKeys = await spark.kv.keys();
-                        console.log('All KV keys:', kvKeys);
-                      } catch (error) {
-                        console.error('Error checking auth state:', error);
-                      }
-                    }}
-                    className="text-xs bg-yellow-500/20 hover:bg-yellow-500/30"
-                  >
-                    Check Auth State
-                  </Button>
-                  
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={async () => {
-                      console.log('=== KV DIRECT TEST ===');
-                      try {
-                        // Test direct KV operations
-                        await spark.kv.set('test-key', { name: 'Test User', isAdmin: true });
-                        const retrieved = await spark.kv.get('test-key');
-                        console.log('KV test - set and retrieved:', retrieved);
-                        
-                        // Test auth user KV
-                        const authUser = await spark.kv.get('auth-user');
-                        console.log('Current auth-user in KV:', authUser);
-                        
-                        if (!authUser) {
-                          console.log('Setting test auth user directly...');
-                          const testUser = {
-                            characterId: 999999999,
-                            characterName: 'Direct Test Admin',
-                            corporationId: 1000000000,
-                            corporationName: 'Test Corp',
-                            accessToken: 'test-token',
-                            refreshToken: 'test-refresh',
-                            tokenExpiry: Date.now() + 86400000,
-                            scopes: [],
-                            isDirector: true,
-                            isCeo: true,
-                            isAdmin: true
-                          };
-                          
-                          await spark.kv.set('auth-user', testUser);
-                          console.log('Test auth user set directly');
-                          
-                          // Force re-check
-                          setTimeout(async () => {
-                            const newAuthUser = await spark.kv.get('auth-user');
-                            console.log('Auth user after direct set:', newAuthUser);
-                          }, 100);
-                        }
-                        
-                      } catch (error) {
-                        console.error('KV test failed:', error);
-                      }
-                    }}
-                    className="text-xs bg-blue-500/20 hover:bg-blue-500/30"
-                    disabled={isLocalLoginLoading}
-                  >
-                    KV Direct Test
-                  </Button>
-                  
-                  {user && (
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => {
-                        console.log('Logout button clicked');
-                        logout();
-                      }}
-                      className="text-xs"
-                    >
-                      Force Logout
-                    </Button>
-                  )}
-                </div>
-              </div>
+              <p className="text-xs text-muted-foreground text-center">
+                For testing: Username: <code className="bg-muted px-1 rounded">admin</code>, 
+                Password: <code className="bg-muted px-1 rounded">12345</code>
+              </p>
             </div>
           </CardContent>
         </Card>

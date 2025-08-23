@@ -33,6 +33,7 @@ import { LMeveDataProvider } from '@/lib/LMeveDataContext';
 import { useAuth, ESIAuthState } from '@/lib/auth';
 import { LoginPage } from '@/components/LoginPage';
 import { ESICallback } from '@/components/ESICallback';
+import { TestLogin } from '@/test-login';
 
 // Tab Components (will be implemented)
 import { Dashboard } from '@/components/tabs/Dashboard';
@@ -48,37 +49,20 @@ import { Settings } from '@/components/tabs/Settings';
 
 function App() {
   const [activeTab, setActiveTab] = useKV<TabType>('active-tab', 'dashboard');
-  
-  // Debug activeTab changes
-  useEffect(() => {
-    console.log('🏷️ ACTIVE TAB CHANGED TO:', activeTab);
-  }, [activeTab]);
   const [activeSettingsTab, setActiveSettingsTab] = useKV<string>('active-settings-tab', 'general');
   const [settingsExpanded, setSettingsExpanded] = useKV<boolean>('settings-expanded', false);
   const { user, isAuthenticated, logout, refreshUserToken, isTokenExpired, adminConfig, updateAdminConfig } = useAuth();
   const [isESICallback, setIsESICallback] = useState(false);
 
-  // Debug user state changes
-  useEffect(() => {
-    console.log('🔄 App - auth state change detected:', { 
+  // Simple, clear auth state logging
+  React.useEffect(() => {
+    console.log('🏠 App render state:', { 
       hasUser: !!user,
       characterName: user?.characterName, 
       isAuthenticated, 
-      isAdmin: user?.isAdmin,
-      isDirector: user?.isDirector,
-      isCeo: user?.isCeo,
-      shouldShowApp: isAuthenticated && !!user,
-      currentActiveTab: activeTab,
-      timestamp: Date.now()
+      shouldShowApp: isAuthenticated && !!user
     });
-    
-    // If user just logged in, ensure we're on dashboard
-    if (isAuthenticated && user && activeTab !== 'dashboard') {
-      console.log('🏠 User authenticated, resetting to dashboard from:', activeTab);
-      setActiveTab('dashboard');
-      setSettingsExpanded(false);
-    }
-  }, [user, isAuthenticated, activeTab, setActiveTab, setSettingsExpanded]);
+  }, [user, isAuthenticated]);
 
   // Check if this is an ESI callback
   useEffect(() => {
@@ -86,7 +70,6 @@ function App() {
     const code = urlParams.get('code');
     const state = urlParams.get('state');
     
-    // Only consider it an ESI callback if we have both code AND state AND stored ESI state
     if (code && state) {
       const storedStateData = sessionStorage.getItem('esi-auth-state');
       if (storedStateData) {
@@ -104,10 +87,8 @@ function App() {
 
   // Handle successful authentication
   const handleLoginSuccess = () => {
-    console.log('App.handleLoginSuccess called - clearing ESI callback state and resetting to dashboard');
+    console.log('🎉 Login success - clearing ESI callback state');
     setIsESICallback(false);
-    
-    // Reset to dashboard on successful login
     setActiveTab('dashboard');
     setSettingsExpanded(false);
     
@@ -135,36 +116,13 @@ function App() {
     );
   }
 
-  // Show login page if not authenticated or no user data
-  // Simple, clear logic: if we have a user AND are authenticated, show the app
-  const shouldShowApp = Boolean(user && isAuthenticated);
-  const shouldShowLogin = !shouldShowApp && !isESICallback;
-  
-  console.log('🎯 App render decision:', { 
-    hasUser: !!user,
-    isAuthenticated, 
-    shouldShowApp,
-    shouldShowLogin,
-    isESICallback,
-    userType: typeof user,
-    userCharacterName: user?.characterName,
-    userIsAdmin: user?.isAdmin,
-    timestamp: Date.now()
-  });
-  
-  // Simple check: if we don't have a user AND are authenticated, show app
-  // If we don't have both, show login page (unless it's an ESI callback)
-  if (shouldShowLogin) {
-    console.log('🔐 Showing login page - missing auth or user data');
-    return <LoginPage />;
+  // Simple authentication check - use test component for debugging
+  if (!isAuthenticated || !user) {
+    console.log('🔐 No auth or user - showing test login');
+    return <TestLogin />;
   }
 
-  if (!shouldShowApp) {
-    console.log('⚠️ Auth state unclear, showing login for safety');
-    return <LoginPage />;
-  }
-
-  console.log('🏠 Showing main app for user:', user?.characterName, 'with admin permissions:', user?.isAdmin);
+  console.log('🏠 Authenticated user:', user.characterName, '- showing main app');
 
   const tabs = [
     { id: 'dashboard', label: 'Dashboard', icon: House, component: Dashboard },
@@ -190,57 +148,28 @@ function App() {
   ];
 
   const handleTabChange = (value: string) => {
-    console.log('🔄 === TAB CHANGE REQUEST ===');
-    console.log('📍 Requested tab:', value);
-    console.log('📍 Current tab:', activeTab);
-    console.log('👤 User state:', {
-      hasUser: !!user,
-      characterName: user?.characterName,
-      isAdmin: user?.isAdmin,
-      isDirector: user?.isDirector,
-      isCeo: user?.isCeo,
-      isAuthenticated
-    });
-    console.log('========================');
+    console.log('🔄 Tab change request:', value);
     
-    // Check user permissions for navigation
     if (!user) {
-      console.log('❌ TAB CHANGE BLOCKED: No user');
+      console.log('❌ No user - blocking navigation');
       return;
     }
 
     if (value === 'settings') {
-      console.log('🔧 Settings tab logic');
       setSettingsExpanded(!settingsExpanded);
       if (!settingsExpanded) {
-        console.log('📂 Expanding settings, setting active tab to settings');
         setActiveTab('settings' as TabType);
       } else {
-        console.log('📁 Collapsing settings, returning to dashboard');
         setActiveTab('dashboard');
       }
     } else {
-      console.log('✅ Setting active tab to:', value);
       setActiveTab(value as TabType);
       setSettingsExpanded(false);
     }
-    
-    console.log('🏁 Tab change completed. New tab should be:', value === 'settings' && settingsExpanded ? 'dashboard' : value);
   };
 
   const handleSettingsTabChange = (value: string) => {
-    console.log('App.handleSettingsTabChange called with:', value, 'user permissions:', {
-      isAdmin: user?.isAdmin,
-      isDirector: user?.isDirector,
-      isCeo: user?.isCeo,
-      hasUser: !!user
-    });
-    
-    if (!user) {
-      console.log('No user - preventing settings navigation');
-      return;
-    }
-    
+    if (!user) return;
     setActiveSettingsTab(value);
   };
 
@@ -323,14 +252,7 @@ function App() {
                         : "hover:bg-muted text-muted-foreground hover:text-foreground"
                     } ${!user ? "opacity-50 cursor-not-allowed" : ""}`}
                     disabled={!user}
-                    onClick={() => {
-                      console.log('🖱️ Navigation button clicked:', tab.id, 'User available:', !!user, 'User name:', user?.characterName);
-                      if (user) {
-                        handleTabChange(tab.id);
-                      } else {
-                        console.log('🚫 Blocked - no user');
-                      }
-                    }}
+                    onClick={() => handleTabChange(tab.id)}
                   >
                     <IconComponent size={18} />
                     <span className="text-sm font-medium">{tab.label}</span>
@@ -360,14 +282,7 @@ function App() {
                       : "hover:bg-muted text-muted-foreground hover:text-foreground"
                   } ${!user ? "opacity-50 cursor-not-allowed" : ""}`}
                   disabled={!user}
-                  onClick={() => {
-                    console.log('🖱️ Settings button clicked, User available:', !!user, 'User name:', user?.characterName);
-                    if (user) {
-                      handleTabChange('settings');
-                    } else {
-                      console.log('🚫 Blocked - no user');
-                    }
-                  }}
+                  onClick={() => handleTabChange('settings')}
                 >
                   <Gear size={18} />
                   <span className="text-sm font-medium">Settings</span>
@@ -394,10 +309,7 @@ function App() {
                               ? "bg-secondary text-secondary-foreground" 
                               : "hover:bg-muted/50 text-muted-foreground hover:text-foreground"
                           }`}
-                          onClick={() => {
-                            console.log('Settings sub-tab clicked:', settingsTab.id);
-                            handleSettingsTabChange(settingsTab.id);
-                          }}
+                          onClick={() => handleSettingsTabChange(settingsTab.id)}
                         >
                           <IconComponent size={14} />
                           <span>{settingsTab.label}</span>

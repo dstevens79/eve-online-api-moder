@@ -326,68 +326,29 @@ export function useAuth() {
 
   // Debug: log exact user state with more detail
   React.useEffect(() => {
-    console.log('🔄 === AUTH HOOK STATE CHANGE ===');
-    console.log('🆔 Raw user value:', user);
-    console.log('📊 User details:', { 
+    console.log('🔄 AUTH HOOK STATE:', { 
       hasUser: !!user, 
       characterName: user?.characterName,
       isAdmin: user?.isAdmin,
-      isDirector: user?.isDirector,
-      isCeo: user?.isCeo,
-      userKeyExists: user !== null,
-      userValueType: typeof user,
-      userUndefined: user === undefined,
-      userNull: user === null,
+      isAuthenticated: Boolean(user),
+      timestamp: Date.now()
     });
-    console.log('🔐 Auth state:', { isAuthenticated: Boolean(user) });
-    console.log('=====================================');
-    
-    if (user) {
-      console.log('✅ User is set and available:', user.characterName);
-    } else {
-      console.log('❌ No user available, should show login page');
-    }
   }, [user]);
 
   const login = async (credentials: LoginCredentials): Promise<void> => {
     setIsLoading(true);
+    console.log('🚀 Starting login for:', credentials.username);
+    
     try {
-      console.log('🚀 AUTH: Starting login process for:', credentials.username);
       const authUser = await authService.loginWithCredentials(credentials, adminConfig);
-      console.log('✅ AUTH: Service returned user:', authUser.characterName, 'isAdmin:', authUser.isAdmin);
+      console.log('✅ Auth service returned user:', authUser.characterName);
       
-      // Use functional update to avoid stale closure issues
-      console.log('📝 AUTH: Setting user in KV store using functional update...');
-      setUser(() => {
-        console.log('💾 AUTH: KV setter function called, setting user:', authUser.characterName);
-        return authUser;
-      });
-      
-      console.log('✅ AUTH: User set successfully');
-      
-      // Multiple verification attempts to ensure state propagation
-      const verifyAuth = async (attempt: number) => {
-        try {
-          const storedUser = await spark.kv.get('auth-user');
-          console.log(`🔍 AUTH: Verification attempt ${attempt}:`);
-          console.log(`  - Stored user: ${storedUser?.characterName || 'null'}`);
-          console.log(`  - Is admin: ${storedUser?.isAdmin || false}`);
-          console.log(`  - Character ID: ${storedUser?.characterId || 'null'}`);
-          console.log(`  - Auth result: ${Boolean(storedUser)}`);
-          
-          if (!storedUser && attempt < 3) {
-            console.log(`⚠️ AUTH: User not found in KV store, retrying in ${attempt * 100}ms...`);
-            setTimeout(() => verifyAuth(attempt + 1), attempt * 100);
-          }
-        } catch (e) {
-          console.error(`❌ AUTH: Error in verification attempt ${attempt}:`, e);
-        }
-      };
-      
-      verifyAuth(1);
+      // Simple, direct update
+      setUser(authUser);
+      console.log('✅ User set in state');
       
     } catch (error) {
-      console.error('❌ AUTH: Login error:', error);
+      console.error('❌ Login error:', error);
       throw error;
     } finally {
       setIsLoading(false);
@@ -427,7 +388,7 @@ export function useAuth() {
   };
 
   const logout = (): void => {
-    console.log('useAuth.logout called');
+    console.log('🚪 Logging out user');
     setUser(null);
   };
 
