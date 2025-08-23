@@ -176,10 +176,14 @@ export function LoginPage() {
             {/* Development Info */}
             <div className="pt-4 border-t border-border">
               <p className="text-xs text-muted-foreground text-center mb-2">
-                <strong>Demo Mode:</strong> EVE Online SSO requires valid client credentials.
+                <strong>ESI Login:</strong> Requires corporation ESI data configuration. 
+                Users must belong to a corporation with registered ESI access.
+              </p>
+              <p className="text-xs text-muted-foreground text-center mb-2">
+                <strong>Demo Mode:</strong> For testing use credentials below.
               </p>
               <p className="text-xs text-muted-foreground text-center">
-                For testing: Username: <code className="bg-muted px-1 rounded">admin</code>, 
+                Username: <code className="bg-muted px-1 rounded">admin</code>, 
                 Password: <code className="bg-muted px-1 rounded">12345</code>
               </p>
             </div>

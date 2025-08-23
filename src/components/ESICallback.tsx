@@ -147,7 +147,12 @@ export function ESICallback({ onLoginSuccess, onLoginError }: ESICallbackProps) 
                 
                 <div className="text-center">
                   <p className="text-xs text-muted-foreground">
-                    Make sure you have the required corporation roles and try again.
+                    Common issues:
+                    • Corporation not registered with ESI access
+                    • Invalid ESI client configuration 
+                    • Missing required scopes or roles
+                    
+                    Contact your corporation leadership for ESI access setup.
                   </p>
                 </div>
               </div>

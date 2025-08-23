@@ -1474,7 +1474,13 @@ export function Settings({ activeTab, onTabChange }: SettingsProps) {
                       </div>
                       <p className="text-sm text-muted-foreground">
                         Corporation leaders must authorize ESI access to sync EVE Online data.
+                        Once authorized, corporation members can login using EVE Online SSO.
                       </p>
+                      <div className="text-xs text-muted-foreground bg-background/50 p-2 rounded border">
+                        <strong>Note:</strong> Individual pilots can only login via ESI if their corporation 
+                        has completed this authorization process. Manual user accounts can be created 
+                        independently in the Security settings.
+                      </div>
                       <div className="flex gap-2">
                         <Button
                           onClick={handleESIOAuth}

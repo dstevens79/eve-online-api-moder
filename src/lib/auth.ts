@@ -125,6 +125,12 @@ class AuthService {
       this.getCorporationInfo(characterData.corporation_id, access_token)
     ]);
 
+    // Check if corporation has registered ESI access
+    const hasCorpESIAccess = await this.checkCorporationESIAccess(characterData.corporation_id);
+    if (!hasCorpESIAccess) {
+      throw new Error(`Corporation "${corporationInfo.name}" is not registered with LMeve ESI access. Contact your corporation leadership to register ESI access in the EVE Online settings.`);
+    }
+
     return {
       characterId: characterData.CharacterID,
       characterName: characterData.CharacterName,
@@ -220,6 +226,28 @@ class AuthService {
       accessToken: data.access_token,
       expiresIn: data.expires_in
     };
+  }
+
+  /**
+   * Check if corporation has ESI access registered in LMeve
+   * This would normally check against the database of registered corporations
+   */
+  private async checkCorporationESIAccess(corporationId: number): Promise<boolean> {
+    // TODO: Replace with actual database lookup
+    // For now, return false to demonstrate the validation
+    // In a real implementation, this would check if the corporation has:
+    // 1. Registered their corporation ESI tokens
+    // 2. Has valid refresh tokens stored
+    // 3. Corporation leadership has authorized LMeve access
+    
+    console.log(`Checking ESI access for corporation ID: ${corporationId}`);
+    
+    // Simulate checking registered corporations
+    // This should be replaced with actual database query:
+    // const corpData = await database.query('SELECT * FROM corporation_esi WHERE corporation_id = ?', [corporationId]);
+    // return corpData.length > 0 && corpData[0].refresh_token && corpData[0].active;
+    
+    return false; // No corporations registered yet
   }
 
   /**
