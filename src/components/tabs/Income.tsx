@@ -1,18 +1,15 @@
 import React, { useState, useMemo } from 'react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Select, SelectContent, SelectItem, Se
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Input } from '@/components/ui/input';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { 
+  TrendUp,
   TrendDown,
   Factory,
-  Package
-  Filter,
-  Eye,
-  ArrowDown,
-  Gear,
-} from '
-import { I
-
+  Package,
   Filter,
   Download,
   Eye,
@@ -122,481 +119,475 @@ export function Income() {
     // Filter by period
     const now = new Date();
     let cutoffDate: Date;
-    filtered = filtered.filte
-    // Filter by
-      filtered = filtered.filter(record => record.pilotId.toString() ==
-
-    if (selectedJ
+    
+    switch (selectedPeriod) {
+      case '7d':
+        cutoffDate = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+        break;
+      case '30d':
+        cutoffDate = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+        break;
+      case '90d':
+        cutoffDate = new Date(now.getTime() - 90 * 24 * 60 * 60 * 1000);
+        break;
+      default:
+        cutoffDate = new Date(0);
     }
-    // Filter 
-      filtered = 
-        record.productTypeName.toLowerCase().includes(searchTerm.toLower
+
+    filtered = filtered.filter(record => new Date(record.completedDate) >= cutoffDate);
+
+    // Filter by pilot
+    if (selectedPilot !== 'all') {
+      filtered = filtered.filter(record => record.pilotId.toString() === selectedPilot);
     }
-    return fil
 
-  con
+    // Filter by job type
+    if (selectedJobType !== 'all') {
+      filtered = filtered.filter(record => record.jobType === selectedJobType);
+    }
 
+    // Filter by search term
+    if (searchTerm) {
+      filtered = filtered.filter(record =>
+        record.productTypeName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        record.pilotName.toLowerCase().includes(searchTerm.toLowerCase())
+      );
+    }
+
+    return filtered;
+  }, [records, selectedPeriod, selectedPilot, selectedJobType, searchTerm]);
+
+  // Calculate analytics
+  const analytics: IncomeAnalytics = useMemo(() => {
+    const totalProfit = filteredRecords.reduce((sum, record) => sum + record.profit, 0);
+    const totalRevenue = filteredRecords.reduce((sum, record) => sum + record.marketValue, 0);
+    const totalCost = filteredRecords.reduce((sum, record) => sum + record.totalCost, 0);
     const averageProfitMargin = totalCost > 0 ? totalProfit / totalCost : 0;
 
-    filteredRecords.fo
-      existing.profit += record.pr
+    // Calculate top pilots
+    const pilotStats = new Map<number, { pilotName: string; jobs: number; profit: number }>();
+    
+    filteredRecords.forEach(record => {
+      const existing = pilotStats.get(record.pilotId) || { pilotName: record.pilotName, jobs: 0, profit: 0 };
+      existing.jobs += 1;
+      existing.profit += record.profit;
       pilotStats.set(record.pilotId, existing);
+    });
 
-
-        pilotName: stats.
+    const topPilots = Array.from(pilotStats.entries())
+      .map(([pilotId, stats]) => ({
+        pilotId,
+        pilotName: stats.pilotName,
         jobsCompleted: stats.jobs,
+        totalProfit: stats.profit,
+        averageProfit: stats.jobs > 0 ? stats.profit / stats.jobs : 0
       }))
-     
-
-    filteredRecords.forEach(
-      existing.profit
-      productStats.set(record.productTypeId
-
-      .map(([typeId, stats]) => ({
-        
-     
-
+      .sort((a, b) => b.totalProfit - a.totalProfit)
       .slice(0, 5);
+
+    // Calculate top products
+    const productStats = new Map<number, { typeName: string; units: number; profit: number }>();
+    
+    filteredRecords.forEach(record => {
+      const existing = productStats.get(record.productTypeId) || { typeName: record.productTypeName, units: 0, profit: 0 };
+      existing.units += record.productQuantity;
+      existing.profit += record.profit;
+      productStats.set(record.productTypeId, existing);
+    });
+
+    const topProducts = Array.from(productStats.entries())
+      .map(([typeId, stats]) => ({
+        typeId,
+        typeName: stats.typeName,
+        unitsProduced: stats.units,
+        totalProfit: stats.profit,
+        averageProfit: stats.units > 0 ? stats.profit / stats.units : 0
+      }))
+      .sort((a, b) => b.totalProfit - a.totalProfit)
+      .slice(0, 5);
+
+    // Calculate monthly trends (mock data for now)
+    const monthlyTrends = [
+      { month: 'Jan', revenue: totalRevenue * 0.8, profit: totalProfit * 0.7, jobs: Math.floor(filteredRecords.length * 0.8) },
+      { month: 'Feb', revenue: totalRevenue * 0.9, profit: totalProfit * 0.85, jobs: Math.floor(filteredRecords.length * 0.9) },
+      { month: 'Mar', revenue: totalRevenue, profit: totalProfit, jobs: filteredRecords.length }
+    ];
+
     return {
-
-      jobsCompleted: fil
+      totalProfit,
+      totalRevenue,
+      averageProfitMargin,
+      jobsCompleted: filteredRecords.length,
+      topPilots,
       topProducts,
+      monthlyTrends
     };
+  }, [filteredRecords]);
 
-    if (amount >= 1e12) return `${(amount / 1e12).toFixed(1)}T`;
-    if (amount >= 1e6) return `${(amount / 1e6).toFixed(1)}M`;
+  // Helper functions
+  const formatISK = (amount: number): string => {
+    if (amount >= 1e12) return `${(amount / 1e12).toFixed(1)}T ISK`;
+    if (amount >= 1e9) return `${(amount / 1e9).toFixed(1)}B ISK`;
+    if (amount >= 1e6) return `${(amount / 1e6).toFixed(1)}M ISK`;
+    if (amount >= 1e3) return `${(amount / 1e3).toFixed(1)}K ISK`;
+    return `${amount.toFixed(0)} ISK`;
+  };
 
-
+  const formatPercentage = (value: number): string => {
     return `${(value * 100).toFixed(1)}%`;
+  };
 
+  const getJobTypeColor = (type: string): string => {
     switch (type) {
-      case 'research': return 'bg-purpl
-      case 'invention': r
+      case 'manufacturing': return 'bg-blue-500/20 text-blue-400 border-blue-500/30';
+      case 'research': return 'bg-purple-500/20 text-purple-400 border-purple-500/30';
+      case 'invention': return 'bg-green-500/20 text-green-400 border-green-500/30';
+      default: return 'bg-gray-500/20 text-gray-400 border-gray-500/30';
     }
+  };
 
+  // Get unique pilots for filter
+  const uniquePilots = useMemo(() => {
+    const pilots = new Map<number, string>();
+    records.forEach(record => {
+      pilots.set(record.pilotId, record.pilotName);
+    });
+    return Array.from(pilots.entries()).map(([id, name]) => ({ id, name }));
+  }, [records]);
 
-
+  return (
     <div className="space-y-6">
-        <h2 clas
+      <div>
+        <h2 className="text-3xl font-bold tracking-tight">
           Income Analytics
-        <p className="text-muted-f
+        </h2>
+        <p className="text-muted-foreground">
+          Track corporation income from manufacturing, research, and trading activities.
         </p>
+      </div>
 
-      <Ca
-          <CardTitle className="flex items-center ga
+      {/* Filters */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Filter className="h-4 w-4" />
             Filters
-
-          <div className="gri
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+            <div>
               <label className="text-sm font-medium">Time Period</label>
+              <Select value={selectedPeriod} onValueChange={setSelectedPeriod}>
                 <SelectTrigger>
-                </SelectTrigger>
-                  <SelectItem value="7d
-                  <SelectItem value="90d">Last 
-                </SelectContent>
-       
-
-              <Select value={selectedPilot} onValueChange=
                   <SelectValue />
-               
-                  {uniquePilo
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="7d">Last 7 days</SelectItem>
+                  <SelectItem value="30d">Last 30 days</SelectItem>
+                  <SelectItem value="90d">Last 90 days</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div>
+              <label className="text-sm font-medium">Pilot</label>
+              <Select value={selectedPilot} onValueChange={setSelectedPilot}>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Pilots</SelectItem>
+                  {uniquePilots.map((pilot) => (
+                    <SelectItem key={pilot.id} value={pilot.id.toString()}>
                       {pilot.name}
+                    </SelectItem>
                   ))}
+                </SelectContent>
               </Select>
+            </div>
 
-              <label className="text-sm font-medium"
-                <Se
-
-            
-                  <
-                  
+            <div>
+              <label className="text-sm font-medium">Job Type</label>
+              <Select value={selectedJobType} onValueChange={setSelectedJobType}>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Types</SelectItem>
+                  <SelectItem value="manufacturing">Manufacturing</SelectItem>
+                  <SelectItem value="research">Research</SelectItem>
+                  <SelectItem value="invention">Invention</SelectItem>
+                </SelectContent>
               </Select>
+            </div>
 
-              <l
-                pl
+            <div>
+              <label className="text-sm font-medium">Search</label>
+              <Input
+                placeholder="Search products, pilots..."
+                value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-      
+              />
+            </div>
+          </div>
         </CardContent>
+      </Card>
 
-      <div className="grid grid-cols-1 md:grid-co
-          <CardHeader className="flex flex-row items-center just
-            <TrendUp className="h-4 w-4 text-muted-foreground"
-          <CardContent>
-            <p className="text-xs text-muted-foreground">
-            </p>
-    
-
-            <CardTitle className="text-sm font-mediu
+      {/* Analytics Overview */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Total Profit</CardTitle>
+            <TrendUp className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
-    
-
+          <CardContent>
+            <div className="text-2xl font-bold">{formatISK(analytics.totalProfit)}</div>
+            <p className="text-xs text-muted-foreground">
+              Across {analytics.jobsCompleted} completed jobs
+            </p>
           </CardContent>
+        </Card>
 
-          <CardHeader className="flex flex-row items-center justify-between space-y-0
-            <Factory className="h-4 w-4 text-muted-foreground" />
-          <CardContent>
-            <p className="text-xs text-muted-foreground">
-            </p>
-     
-    
-
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Total Revenue</CardTitle>
+            <TrendUp className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
-            <div className="text-2xl font-bold">{ana
-              Contributing to corporation income
+          <CardContent>
+            <div className="text-2xl font-bold">{formatISK(analytics.totalRevenue)}</div>
+            <p className="text-xs text-muted-foreground">
+              Market value of all production
+            </p>
+          </CardContent>
+        </Card>
 
-      </di
-      <Tabs defaultValue="overv
-          <
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Active Jobs</CardTitle>
+            <Factory className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{analytics.jobsCompleted}</div>
+            <p className="text-xs text-muted-foreground">
+              Completed in selected period
+            </p>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Profit Margin</CardTitle>
+            <Package className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{formatPercentage(analytics.averageProfitMargin)}</div>
+            <p className="text-xs text-muted-foreground">
+              Average across all activities
+            </p>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Detailed Analytics */}
+      <Tabs defaultValue="overview" className="space-y-4">
+        <TabsList>
+          <TabsTrigger value="overview">Overview</TabsTrigger>
+          <TabsTrigger value="pilots">Top Pilots</TabsTrigger>
           <TabsTrigger value="products">Top Products</TabsTrigger>
+          <TabsTrigger value="details">Job Details</TabsTrigger>
         </TabsList>
-        <TabsContent value
-            <
-                <CardTitle>Top Pilots by Prof
-              <CardContent>
-            
-            
 
-                     
-            
-                    
-                      </div>
-                        <p class
-                   
-                      
-                  ))}
-              </CardC
-
+        <TabsContent value="overview" className="space-y-6">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <Card>
               <CardHeader>
+                <CardTitle>Top Pilots by Profit</CardTitle>
               </CardHeader>
+              <CardContent>
                 <div className="space-y-4">
-                    <div key={p
-                        <div clas
-                        </div>
-                          <p cl
-                            {product.unitsProduced.toLocaleString
-                        </div>
+                  {analytics.topPilots.map((pilot) => (
+                    <div key={pilot.pilotId} className="flex items-center justify-between">
+                      <div>
+                        <h4 className="font-medium">{pilot.pilotName}</h4>
+                        <p className="text-sm text-muted-foreground">
+                          {pilot.jobsCompleted} jobs completed
+                        </p>
+                      </div>
                       <div className="text-right">
-                        <p className="text-xs text-muted-foregr
+                        <p className="font-medium">{formatISK(pilot.totalProfit)}</p>
+                        <p className="text-xs text-muted-foreground">
+                          {formatISK(pilot.averageProfit)} avg/job
                         </p>
-                    </d
-                </
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
 
+            <Card>
+              <CardHeader>
+                <CardTitle>Top Products by Profit</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-4">
+                  {analytics.topProducts.map((product) => (
+                    <div key={product.typeId} className="flex items-center justify-between">
+                      <div>
+                        <h4 className="font-medium">{product.typeName}</h4>
+                        <p className="text-sm text-muted-foreground">
+                          {product.unitsProduced.toLocaleString()} units produced
+                        </p>
+                      </div>
+                      <div className="text-right">
+                        <p className="font-medium">{formatISK(product.totalProfit)}</p>
+                        <p className="text-xs text-muted-foreground">
+                          {formatISK(product.averageProfit)} avg/unit
+                        </p>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
+          </div>
         </TabsContent>
+
         <TabsContent value="pilots" className="space-y-6">
+          <Card>
             <CardHeader>
+              <CardTitle>Pilot Performance Details</CardTitle>
             </CardHeader>
-              <div className="spa
-                  <div key={pilo
-                      <h4 class
+            <CardContent>
+              <div className="space-y-6">
+                {analytics.topPilots.map((pilot) => (
+                  <div key={pilot.pilotId} className="p-4 border rounded-lg">
+                    <div className="flex items-center justify-between mb-2">
+                      <h4 className="font-medium">{pilot.pilotName}</h4>
+                      <Badge variant="secondary">
                         {formatISK(pilot.totalProfit)} profit
+                      </Badge>
                     </div>
+                    <div className="grid grid-cols-2 gap-4 text-sm">
                       <div>
-                        <p classNa
+                        <p className="text-muted-foreground">Jobs Completed</p>
+                        <p className="font-medium">{pilot.jobsCompleted}</p>
+                      </div>
                       <div>
-                     
-                      <div>
-                       
-                  
-
+                        <p className="text-muted-foreground">Avg. Profit per Job</p>
+                        <p className="font-medium">{formatISK(pilot.averageProfit)}</p>
+                      </div>
+                    </div>
+                  </div>
                 ))}
+              </div>
             </CardContent>
+          </Card>
         </TabsContent>
-        <TabsContent value="pro
+
+        <TabsContent value="products" className="space-y-6">
+          <Card>
             <CardHeader>
+              <CardTitle>Product Performance Details</CardTitle>
             </CardHeader>
-              <div className="s
-                  <div key={product.typeId} className="p-4 borde
+            <CardContent>
+              <div className="space-y-4">
+                {analytics.topProducts.map((product) => (
+                  <div key={product.typeId} className="p-4 border rounded-lg">
+                    <div className="flex items-center justify-between mb-2">
                       <h4 className="font-medium">{product.typeName}</h4>
+                      <Badge variant="secondary">
                         {formatISK(product.totalProfit)} profit
+                      </Badge>
                     </div>
+                    <div className="grid grid-cols-2 gap-4 text-sm">
                       <div>
-                        <p class
-                      <
-                  
-
-                        <p className="f
-                        </p>
-                    
+                        <p className="text-muted-foreground">Units Produced</p>
+                        <p className="font-medium">{product.unitsProduced.toLocaleString()}</p>
+                      </div>
+                      <div>
+                        <p className="text-muted-foreground">Avg. Profit per Unit</p>
+                        <p className="font-medium">{formatISK(product.averageProfit)}</p>
+                      </div>
+                    </div>
+                  </div>
                 ))}
+              </div>
             </CardContent>
+          </Card>
         </TabsContent>
-        <TabsCon
-            <CardH
-              <B
-                Export
-            <
 
+        <TabsContent value="details" className="space-y-6">
+          <Card>
+            <CardHeader>
+              <div className="flex items-center justify-between">
+                <CardTitle>Job Details</CardTitle>
+                <Button variant="outline" size="sm">
+                  <Download className="h-4 w-4 mr-2" />
+                  Export
+                </Button>
+              </div>
+            </CardHeader>
+            <CardContent>
+              <div className="rounded-md border">
+                <table className="w-full data-table">
                   <thead>
+                    <tr className="border-b">
                       <th className="text-left p-3">Date</th>
-              
+                      <th className="text-left p-3">Pilot</th>
+                      <th className="text-left p-3">Product</th>
+                      <th className="text-left p-3">Type</th>
                       <th className="text-right p-3">Quantity</th>
+                      <th className="text-right p-3">Cost</th>
                       <th className="text-right p-3">Revenue</th>
+                      <th className="text-right p-3">Profit</th>
                       <th className="text-right p-3">Margin</th>
-                    </t
-                  <tbod
+                      <th className="text-center p-3">Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {filteredRecords.map((record) => (
                       <tr key={record.id}>
-                          {new Date(record.completedDate)
-                        <td className="p-3">{record.pilotName}<
-                
-                        
-               
-
-              
+                        <td className="p-3">
+                          {new Date(record.completedDate).toLocaleDateString()}
                         </td>
+                        <td className="p-3">{record.pilotName}</td>
+                        <td className="p-3">{record.productTypeName}</td>
+                        <td className="p-3">
+                          <Badge className={getJobTypeColor(record.jobType)}>
+                            {record.jobType}
+                          </Badge>
+                        </td>
+                        <td className="p-3 text-right font-mono">
+                          {record.productQuantity.toLocaleString()}
+                        </td>
+                        <td className="p-3 text-right font-mono text-red-400">
+                          {formatISK(record.totalCost)}
+                        </td>
+                        <td className="p-3 text-right font-mono text-green-400">
                           {formatISK(record.marketValue)}
-                        <td className="p-3 text-right font-mono text
-                       
-                       
-                        <td className="p-3 text-center">
-                            <Eye size={16} />
                         </td>
-                
+                        <td className="p-3 text-right font-mono text-accent">
+                          {formatISK(record.profit)}
+                        </td>
+                        <td className="p-3 text-right font-mono">
+                          {formatPercentage(record.profitMargin)}
+                        </td>
+                        <td className="p-3 text-center">
+                          <Button variant="ghost" size="sm">
+                            <Eye size={16} />
+                          </Button>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
                 </table>
-            </C
-
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+      </Tabs>
     </div>
+  );
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
