@@ -116,6 +116,7 @@ export function LoginPage({ onLoginSuccess }: LoginPageProps) {
                   onChange={handleInputChange('username')}
                   disabled={isLoading || isLocalLoginLoading}
                   className="bg-input border-border"
+                  autoComplete="username"
                 />
               </div>
 
@@ -130,6 +131,7 @@ export function LoginPage({ onLoginSuccess }: LoginPageProps) {
                     onChange={handleInputChange('password')}
                     disabled={isLoading || isLocalLoginLoading}
                     className="bg-input border-border pr-10"
+                    autoComplete="current-password"
                   />
                   <Button
                     type="button"
@@ -137,6 +139,7 @@ export function LoginPage({ onLoginSuccess }: LoginPageProps) {
                     size="sm"
                     className="absolute right-0 top-0 h-full px-3 hover:bg-transparent"
                     onClick={() => setShowPassword(!showPassword)}
+                    tabIndex={-1}
                   >
                     {showPassword ? (
                       <EyeSlash size={16} className="text-muted-foreground" />
@@ -149,8 +152,8 @@ export function LoginPage({ onLoginSuccess }: LoginPageProps) {
 
               <Button
                 type="submit"
-                disabled={isLoading || isLocalLoginLoading}
-                className="w-full bg-primary hover:bg-primary/90 active:bg-primary/80 text-primary-foreground border-primary/20 transition-all duration-200 hover:shadow-lg hover:shadow-primary/20 active:scale-[0.98]"
+                disabled={isLoading || isLocalLoginLoading || !credentials.username || !credentials.password}
+                className="w-full bg-primary hover:bg-primary/90 active:bg-primary/80 text-primary-foreground border-primary/20 transition-all duration-200 hover:shadow-lg hover:shadow-primary/20 active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:shadow-none disabled:active:scale-100"
                 variant="default"
               >
                 {isLocalLoginLoading ? 'Signing in...' : 'Sign In'}
