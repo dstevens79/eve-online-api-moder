@@ -206,49 +206,7 @@ export function Settings() {
     }
   }, [eveOnlineSync.enabled, eveOnlineSync.corporationId, eveOnlineSync.characterId]);
 
-  // Generate OAuth authorization URL
-  const generateAuthUrl = () => {
-    const state = Math.random().toString(36).substring(2, 15);
-    const scopes = esiConfig.scopes.join(' ');
-    
-    const authUrl = `https://login.eveonline.com/v2/oauth/authorize/?` +
-      `response_type=code&` +
-      `redirect_uri=${encodeURIComponent(esiConfig.callbackUrl)}&` +
-      `client_id=${esiConfig.clientId}&` +
-      `scope=${encodeURIComponent(scopes)}&` +
-      `state=${state}`;
-    
-    return authUrl;
-  };
-
-  const handleESIOAuth = () => {
-    if (!esiConfig.clientId) {
-      toast.error('Please configure your ESI Client ID first');
-      return;
-    }
-    
-    const authUrl = generateAuthUrl();
-    window.open(authUrl, '_blank', 'width=600,height=700');
-    toast.info('Complete authorization in the opened window');
-  };
-
-  const handleCopyAuthUrl = () => {
-    const authUrl = generateAuthUrl();
-    navigator.clipboard.writeText(authUrl);
-    toast.success('Authorization URL copied to clipboard');
-  };
-
-  const handleRevokeESI = () => {
-    setOAuthState({
-      isAuthenticated: false
-    });
-    toast.success('ESI authorization revoked');
-  };
-
-  const handleSaveESIConfig = () => {
-    setESIConfig(esiConfig);
-    toast.success('ESI configuration saved');
-  };
+  const handleSyncData = async () => {
     if (syncStatus.isRunning) return;
 
     setSyncStatus({
