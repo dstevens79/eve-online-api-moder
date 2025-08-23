@@ -71,11 +71,31 @@ export function Manufacturing() {
   const [blueprintDetailsOpen, setBlueprintDetailsOpen] = useState(false);
   const [planDialogOpen, setPlanDialogOpen] = useState(false);
 
-  // EVE Online integration
+  // Ensure safe access to settings
+  const eveOnlineSync = settings?.eveOnlineSync || {
+    enabled: false,
+    autoSync: false,
+    syncInterval: 30,
+    corporationId: 498125261,
+    characterId: 91316135
+  };
+
+  // EVE Online integration - ensure settings is properly initialized
   const { data: eveData, refreshData, refreshIndustryJobs } = useEVEData(
-    settings?.eveOnlineSync?.corporationId,
-    settings?.eveOnlineSync?.characterId
+    eveOnlineSync.corporationId,
+    eveOnlineSync.characterId
   );
+
+  // Ensure eveData is properly initialized
+  const safeEveData = eveData || {
+    industryJobs: [],
+    blueprints: [],
+    assets: [],
+    marketPrices: [],
+    lastUpdate: null,
+    isLoading: false,
+    error: null
+  };
 
   // Initialize with sample data if empty
   useEffect(() => {
@@ -308,22 +328,22 @@ export function Manufacturing() {
           <h3 className="text-lg font-semibold">Manufacturing Jobs</h3>
           <p className="text-sm text-muted-foreground">
             Monitor ongoing production activities
-            {settings?.eveOnlineSync?.enabled && eveData.industryJobs.length > 0 && (
+            {eveOnlineSync.enabled && safeEveData.industryJobs.length > 0 && (
               <span className="ml-2 text-green-400">
-                • {eveData.industryJobs.length} EVE jobs detected
+                • {safeEveData.industryJobs.length} EVE jobs detected
               </span>
             )}
           </p>
         </div>
         <div className="flex gap-2">
-          {settings?.eveOnlineSync?.enabled && (
+          {eveOnlineSync.enabled && (
             <Button 
               variant="outline" 
               size="sm"
               onClick={refreshIndustryJobs}
-              disabled={eveData.isLoading}
+              disabled={safeEveData.isLoading}
             >
-              {eveData.isLoading ? (
+              {safeEveData.isLoading ? (
                 <Refresh size={16} className="mr-2 animate-spin" />
               ) : (
                 <Globe size={16} className="mr-2" />
@@ -339,18 +359,18 @@ export function Manufacturing() {
       </div>
 
       {/* EVE Online Jobs Section */}
-      {settings?.eveOnlineSync?.enabled && eveData.industryJobs.length > 0 && (
+      {eveOnlineSync.enabled && safeEveData.industryJobs.length > 0 && (
         <div className="space-y-4">
           <div className="flex items-center gap-2">
             <Globe size={18} className="text-green-400" />
             <h4 className="font-medium text-green-400">Live EVE Online Jobs</h4>
             <Badge variant="outline" className="text-green-400 border-green-500/50">
-              {eveData.industryJobs.length} active
+              {safeEveData.industryJobs.length} active
             </Badge>
           </div>
           
           <div className="grid gap-3">
-            {eveData.industryJobs.slice(0, 3).map((job) => (
+            {safeEveData.industryJobs.slice(0, 3).map((job) => (
               <Card key={job.job_id} className="bg-card border-green-500/20">
                 <CardContent className="p-4">
                   <div className="flex items-center justify-between">
@@ -686,9 +706,9 @@ export function Manufacturing() {
                 <p className="text-2xl font-bold text-green-400">
                   {activeJobs.filter(j => j.status === 'active').length}
                 </p>
-                {eveData.industryJobs.length > 0 && (
+                {safeEveData.industryJobs.length > 0 && (
                   <p className="text-xs text-muted-foreground">
-                    EVE: {eveData.industryJobs.filter(j => j.status === 'active').length}
+                    EVE: {safeEveData.industryJobs.filter(j => j.status === 'active').length}
                   </p>
                 )}
               </div>
@@ -703,9 +723,9 @@ export function Manufacturing() {
               <div>
                 <p className="text-sm text-muted-foreground">Blueprints</p>
                 <p className="text-2xl font-bold text-blue-400">{blueprints.length}</p>
-                {eveData.blueprints.length > 0 && (
+                {safeEveData.blueprints.length > 0 && (
                   <p className="text-xs text-muted-foreground">
-                    EVE: {eveData.blueprints.length}
+                    EVE: {safeEveData.blueprints.length}
                   </p>
                 )}
               </div>
@@ -745,12 +765,12 @@ export function Manufacturing() {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm text-muted-foreground">EVE Data</p>
-                {settings?.eveOnlineSync?.enabled ? (
+                {eveOnlineSync.enabled ? (
                   <div>
                     <p className="text-sm font-bold text-green-400">Connected</p>
-                    {eveData.lastUpdate && (
+                    {safeEveData.lastUpdate && (
                       <p className="text-xs text-muted-foreground">
-                        {new Date(eveData.lastUpdate).toLocaleTimeString()}
+                        {new Date(safeEveData.lastUpdate).toLocaleTimeString()}
                       </p>
                     )}
                   </div>
@@ -759,16 +779,16 @@ export function Manufacturing() {
                 )}
               </div>
               <div className="flex flex-col items-center gap-1">
-                <Globe size={20} className={settings?.eveOnlineSync?.enabled ? 'text-green-400' : 'text-muted-foreground'} />
-                {settings?.eveOnlineSync?.enabled && (
+                <Globe size={20} className={eveOnlineSync.enabled ? 'text-green-400' : 'text-muted-foreground'} />
+                {eveOnlineSync.enabled && (
                   <Button
                     size="sm"
                     variant="ghost"
                     className="h-auto p-1"
                     onClick={refreshIndustryJobs}
-                    disabled={eveData.isLoading}
+                    disabled={safeEveData.isLoading}
                   >
-                    <Refresh size={12} className={eveData.isLoading ? 'animate-spin' : ''} />
+                    <Refresh size={12} className={safeEveData.isLoading ? 'animate-spin' : ''} />
                   </Button>
                 )}
               </div>

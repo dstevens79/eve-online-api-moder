@@ -86,21 +86,30 @@ export function Settings() {
   const [corpInfo, setCorporationInfo] = useState<CorporationInfo | null>(null);
   const [characterInfo, setCharacterInfo] = useState<CharacterInfo | null>(null);
 
+  // Ensure safe access to settings
+  const eveOnlineSync = settings?.eveOnlineSync || {
+    enabled: false,
+    autoSync: false,
+    syncInterval: 30,
+    characterId: 91316135,
+    corporationId: 498125261
+  };
+
   // Load corporation and character info on mount
   useEffect(() => {
     const loadEVEData = async () => {
-      if (settings.eveOnlineSync.corporationId) {
+      if (eveOnlineSync.corporationId) {
         try {
-          const corp = await eveApi.getCorporation(settings.eveOnlineSync.corporationId);
+          const corp = await eveApi.getCorporation(eveOnlineSync.corporationId);
           setCorporationInfo(corp);
         } catch (error) {
           console.error('Failed to load corporation info:', error);
         }
       }
 
-      if (settings.eveOnlineSync.characterId) {
+      if (eveOnlineSync.characterId) {
         try {
-          const char = await eveApi.getCharacter(settings.eveOnlineSync.characterId);
+          const char = await eveApi.getCharacter(eveOnlineSync.characterId);
           setCharacterInfo(char);
         } catch (error) {
           console.error('Failed to load character info:', error);
@@ -108,10 +117,10 @@ export function Settings() {
       }
     };
 
-    if (settings.eveOnlineSync.enabled) {
+    if (eveOnlineSync.enabled) {
       loadEVEData();
     }
-  }, [settings.eveOnlineSync.enabled, settings.eveOnlineSync.corporationId, settings.eveOnlineSync.characterId]);
+  }, [eveOnlineSync.enabled, eveOnlineSync.corporationId, eveOnlineSync.characterId]);
 
   const handleSyncData = async () => {
     if (syncStatus.isRunning) return;
@@ -145,9 +154,9 @@ export function Settings() {
         await new Promise(resolve => setTimeout(resolve, 1500));
 
         // Simulate some actual API calls
-        if (i === 1 && settings.eveOnlineSync.corporationId) {
+        if (i === 1 && eveOnlineSync.corporationId) {
           try {
-            const corp = await eveApi.getCorporation(settings.eveOnlineSync.corporationId);
+            const corp = await eveApi.getCorporation(eveOnlineSync.corporationId);
             setCorporationInfo(corp);
             
             // Update settings with fetched data
@@ -370,12 +379,12 @@ export function Settings() {
                   </p>
                 </div>
                 <Switch
-                  checked={settings.eveOnlineSync.enabled}
+                  checked={eveOnlineSync.enabled}
                   onCheckedChange={handleToggleEVESync}
                 />
               </div>
 
-              {settings.eveOnlineSync.enabled && (
+              {eveOnlineSync.enabled && (
                 <>
                   <div className="border-t border-border pt-6 space-y-4">
                     <h4 className="font-medium">Corporation Information</h4>
@@ -423,7 +432,7 @@ export function Settings() {
                         <Input
                           id="corpId"
                           type="number"
-                          value={settings.eveOnlineSync.corporationId || ''}
+                          value={eveOnlineSync.corporationId || ''}
                           onChange={(e) => setSettings(s => ({
                             ...s,
                             eveOnlineSync: {
@@ -439,7 +448,7 @@ export function Settings() {
                         <Input
                           id="charId"
                           type="number"
-                          value={settings.eveOnlineSync.characterId || ''}
+                          value={eveOnlineSync.characterId || ''}
                           onChange={(e) => setSettings(s => ({
                             ...s,
                             eveOnlineSync: {
@@ -456,16 +465,16 @@ export function Settings() {
                       <div className="space-y-0.5">
                         <Label>Auto-sync Data</Label>
                         <p className="text-sm text-muted-foreground">
-                          Automatically sync data every {settings.eveOnlineSync.syncInterval} minutes
+                          Automatically sync data every {eveOnlineSync.syncInterval} minutes
                         </p>
                       </div>
                       <Switch
-                        checked={settings.eveOnlineSync.autoSync}
+                        checked={eveOnlineSync.autoSync}
                         onCheckedChange={handleToggleAutoSync}
                       />
                     </div>
 
-                    {settings.eveOnlineSync.autoSync && (
+                    {eveOnlineSync.autoSync && (
                       <div className="space-y-2">
                         <Label htmlFor="syncInterval">Sync Interval (minutes)</Label>
                         <Input
@@ -473,7 +482,7 @@ export function Settings() {
                           type="number"
                           min="5"
                           max="1440"
-                          value={settings.eveOnlineSync.syncInterval}
+                          value={eveOnlineSync.syncInterval}
                           onChange={(e) => setSettings(s => ({
                             ...s,
                             eveOnlineSync: {
@@ -490,8 +499,8 @@ export function Settings() {
                         <div>
                           <p className="text-sm font-medium">Last Sync</p>
                           <p className="text-xs text-muted-foreground">
-                            {settings.eveOnlineSync.lastSync 
-                              ? new Date(settings.eveOnlineSync.lastSync).toLocaleString()
+                            {eveOnlineSync.lastSync 
+                              ? new Date(eveOnlineSync.lastSync).toLocaleString()
                               : 'Never'
                             }
                           </p>

@@ -26,7 +26,15 @@ interface APIStatus {
 }
 
 export function EVEApiStatus() {
-  const [settings] = useKV('corp-settings', { eveOnlineSync: { enabled: false } });
+  const [settings] = useKV('corp-settings', { 
+    eveOnlineSync: { 
+      enabled: false,
+      corporationId: 498125261,
+      characterId: 91316135,
+      autoSync: false,
+      syncInterval: 30
+    } 
+  });
   const [apiStatus, setApiStatus] = useState<APIStatus>({
     connected: false,
     lastPing: 0,
@@ -34,13 +42,22 @@ export function EVEApiStatus() {
     errors: 0
   });
 
+  // Ensure safe access to settings
+  const eveOnlineSync = settings?.eveOnlineSync || {
+    enabled: false,
+    corporationId: 498125261,
+    characterId: 91316135,
+    autoSync: false,
+    syncInterval: 30
+  };
+
   const { data: eveData, refreshData } = useEVEData(
-    settings.eveOnlineSync?.corporationId
+    eveOnlineSync.corporationId
   );
 
   // Check API connectivity periodically
   useEffect(() => {
-    if (!settings.eveOnlineSync?.enabled) return;
+    if (!eveOnlineSync.enabled) return;
 
     const checkAPI = async () => {
       const startTime = Date.now();
@@ -72,9 +89,9 @@ export function EVEApiStatus() {
     // Check every 30 seconds
     const interval = setInterval(checkAPI, 30000);
     return () => clearInterval(interval);
-  }, [settings.eveOnlineSync?.enabled]);
+  }, [eveOnlineSync.enabled]);
 
-  if (!settings.eveOnlineSync?.enabled) {
+  if (!eveOnlineSync.enabled) {
     return (
       <Card className="bg-card border-border">
         <CardContent className="p-4">
