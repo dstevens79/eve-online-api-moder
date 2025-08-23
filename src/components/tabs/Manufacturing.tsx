@@ -734,4 +734,3 @@ export function Manufacturing() {
     </div>
   );
 }
-
