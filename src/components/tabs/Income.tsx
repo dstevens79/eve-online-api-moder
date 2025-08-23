@@ -3,6 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { 
@@ -18,17 +19,29 @@ import {
   Eye,
   ArrowUp,
   ArrowDown,
-  Clock
+  Clock,
+  Gear,
+  Save
 } from '@phosphor-icons/react';
 import { useKV } from '@github/spark/hooks';
 import { IncomeRecord, IncomeAnalytics } from '@/lib/types';
+import { toast } from 'sonner';
 
 export function Income() {
   const [incomeRecords] = useKV<IncomeRecord[]>('income-records', []);
+  const [pilotPayRates, setPilotPayRates] = useKV('pilot-pay-rates', {
+    manufacturing: 50000000, // 50M ISK per hour
+    research: 25000000,      // 25M ISK per hour
+    copying: 15000000,       // 15M ISK per hour
+    invention: 75000000,     // 75M ISK per hour
+    reaction: 40000000,      // 40M ISK per hour
+    mining: 30000000         // 30M ISK per hour
+  });
   const [selectedPeriod, setSelectedPeriod] = useState('30d');
   const [selectedPilot, setSelectedPilot] = useState('all');
   const [selectedJobType, setSelectedJobType] = useState('all');
   const [searchTerm, setSearchTerm] = useState('');
+  const [tempPayRates, setTempPayRates] = useState(pilotPayRates);
 
   // Mock data - in a real app this would come from ESI API and industry calculations
   const mockIncomeRecords: IncomeRecord[] = [
@@ -240,6 +253,23 @@ export function Income() {
     .map(id => records.find(r => r.pilotId === id)!)
     .map(r => ({ id: r.pilotId, name: r.pilotName }));
 
+  const handleSavePayRates = () => {
+    setPilotPayRates(tempPayRates);
+    toast.success('Pilot pay rates updated successfully');
+  };
+
+  const handleResetPayRates = () => {
+    setTempPayRates(pilotPayRates);
+  };
+
+  const formatISKInput = (amount: number): string => {
+    return (amount / 1000000).toString(); // Convert to millions for input
+  };
+
+  const parseISKInput = (value: string): number => {
+    return parseFloat(value || '0') * 1000000; // Convert from millions
+  };
+
   return (
     <div className="space-y-6">
       <div>
@@ -383,6 +413,7 @@ export function Income() {
           <TabsTrigger value="pilots">Top Pilots</TabsTrigger>
           <TabsTrigger value="products">Top Products</TabsTrigger>
           <TabsTrigger value="details">Job Details</TabsTrigger>
+          <TabsTrigger value="settings">Settings</TabsTrigger>
         </TabsList>
 
         <TabsContent value="overview" className="space-y-6">
@@ -590,6 +621,175 @@ export function Income() {
                     ))}
                   </tbody>
                 </table>
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="settings" className="space-y-6">
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Gear size={20} />
+                Pilot Pay Rate Settings
+              </CardTitle>
+              <p className="text-sm text-muted-foreground">
+                Configure hourly pay rates for different types of industry work
+              </p>
+            </CardHeader>
+            <CardContent className="space-y-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                <div className="space-y-2">
+                  <Label htmlFor="manufacturing-rate">Manufacturing</Label>
+                  <div className="flex items-center gap-2">
+                    <Input
+                      id="manufacturing-rate"
+                      type="number"
+                      step="0.1"
+                      min="0"
+                      value={formatISKInput(tempPayRates.manufacturing)}
+                      onChange={(e) => setTempPayRates(current => ({
+                        ...current,
+                        manufacturing: parseISKInput(e.target.value)
+                      }))}
+                      className="w-24"
+                    />
+                    <span className="text-sm text-muted-foreground">M ISK/hour</span>
+                  </div>
+                  <p className="text-xs text-muted-foreground">
+                    {formatISK(tempPayRates.manufacturing)} ISK per hour
+                  </p>
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="research-rate">Research</Label>
+                  <div className="flex items-center gap-2">
+                    <Input
+                      id="research-rate"
+                      type="number"
+                      step="0.1"
+                      min="0"
+                      value={formatISKInput(tempPayRates.research)}
+                      onChange={(e) => setTempPayRates(current => ({
+                        ...current,
+                        research: parseISKInput(e.target.value)
+                      }))}
+                      className="w-24"
+                    />
+                    <span className="text-sm text-muted-foreground">M ISK/hour</span>
+                  </div>
+                  <p className="text-xs text-muted-foreground">
+                    {formatISK(tempPayRates.research)} ISK per hour
+                  </p>
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="copying-rate">Copying</Label>
+                  <div className="flex items-center gap-2">
+                    <Input
+                      id="copying-rate"
+                      type="number"
+                      step="0.1"
+                      min="0"
+                      value={formatISKInput(tempPayRates.copying)}
+                      onChange={(e) => setTempPayRates(current => ({
+                        ...current,
+                        copying: parseISKInput(e.target.value)
+                      }))}
+                      className="w-24"
+                    />
+                    <span className="text-sm text-muted-foreground">M ISK/hour</span>
+                  </div>
+                  <p className="text-xs text-muted-foreground">
+                    {formatISK(tempPayRates.copying)} ISK per hour
+                  </p>
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="invention-rate">Invention</Label>
+                  <div className="flex items-center gap-2">
+                    <Input
+                      id="invention-rate"
+                      type="number"
+                      step="0.1"
+                      min="0"
+                      value={formatISKInput(tempPayRates.invention)}
+                      onChange={(e) => setTempPayRates(current => ({
+                        ...current,
+                        invention: parseISKInput(e.target.value)
+                      }))}
+                      className="w-24"
+                    />
+                    <span className="text-sm text-muted-foreground">M ISK/hour</span>
+                  </div>
+                  <p className="text-xs text-muted-foreground">
+                    {formatISK(tempPayRates.invention)} ISK per hour
+                  </p>
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="reaction-rate">Reaction</Label>
+                  <div className="flex items-center gap-2">
+                    <Input
+                      id="reaction-rate"
+                      type="number"
+                      step="0.1"
+                      min="0"
+                      value={formatISKInput(tempPayRates.reaction)}
+                      onChange={(e) => setTempPayRates(current => ({
+                        ...current,
+                        reaction: parseISKInput(e.target.value)
+                      }))}
+                      className="w-24"
+                    />
+                    <span className="text-sm text-muted-foreground">M ISK/hour</span>
+                  </div>
+                  <p className="text-xs text-muted-foreground">
+                    {formatISK(tempPayRates.reaction)} ISK per hour
+                  </p>
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="mining-rate">Mining</Label>
+                  <div className="flex items-center gap-2">
+                    <Input
+                      id="mining-rate"
+                      type="number"
+                      step="0.1"
+                      min="0"
+                      value={formatISKInput(tempPayRates.mining)}
+                      onChange={(e) => setTempPayRates(current => ({
+                        ...current,
+                        mining: parseISKInput(e.target.value)
+                      }))}
+                      className="w-24"
+                    />
+                    <span className="text-sm text-muted-foreground">M ISK/hour</span>
+                  </div>
+                  <p className="text-xs text-muted-foreground">
+                    {formatISK(tempPayRates.mining)} ISK per hour
+                  </p>
+                </div>
+              </div>
+
+              <div className="flex gap-3 pt-4 border-t border-border">
+                <Button onClick={handleSavePayRates} className="flex items-center gap-2">
+                  <Save size={16} />
+                  Save Changes
+                </Button>
+                <Button variant="outline" onClick={handleResetPayRates}>
+                  Reset
+                </Button>
+              </div>
+
+              <div className="bg-muted/20 p-4 rounded-lg">
+                <h4 className="font-medium mb-2">Usage Instructions</h4>
+                <ul className="text-sm text-muted-foreground space-y-1">
+                  <li>• Pay rates are used to calculate pilot compensation for completed industry jobs</li>
+                  <li>• Rates are applied based on job type and actual time spent on the job</li>
+                  <li>• Higher skilled work (invention, manufacturing) typically commands higher rates</li>
+                  <li>• These rates help standardize pilot payments across your corporation</li>
+                </ul>
               </div>
             </CardContent>
           </Card>

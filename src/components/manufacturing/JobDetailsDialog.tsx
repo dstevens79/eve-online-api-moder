@@ -107,7 +107,7 @@ export function JobDetailsDialog({ job, open, onOpenChange, onJobUpdate }: JobDe
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto bg-card">
+      <DialogContent className="max-w-5xl max-h-[90vh] overflow-y-auto bg-card">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Package size={20} />
