@@ -326,16 +326,21 @@ export function useAuth() {
 
   // Debug: log exact user state with more detail
   React.useEffect(() => {
-    console.log('useAuth - user state changed. Details:', { 
+    console.log('=== AUTH STATE CHANGE ===');
+    console.log('Raw user value:', user);
+    console.log('User details:', { 
       hasUser: !!user, 
       characterName: user?.characterName,
       isAdmin: user?.isAdmin,
+      isDirector: user?.isDirector,
+      isCeo: user?.isCeo,
       userKeyExists: user !== null,
       userValueType: typeof user,
       userUndefined: user === undefined,
       userNull: user === null,
-      rawUserValue: user,
     });
+    console.log('Auth state:', { isAuthenticated: Boolean(user) });
+    console.log('========================');
     
     if (user) {
       console.log('✅ User is set and available:', user.characterName);
@@ -347,27 +352,28 @@ export function useAuth() {
   const login = async (credentials: LoginCredentials): Promise<void> => {
     setIsLoading(true);
     try {
+      console.log('AUTH: Starting login process for:', credentials.username);
       const authUser = await authService.loginWithCredentials(credentials, adminConfig);
-      console.log('Auth successful, setting user:', authUser.characterName);
+      console.log('AUTH: Service returned user:', authUser.characterName, 'isAdmin:', authUser.isAdmin);
       
-      // Set user directly without functional update for immediacy
+      // Set user directly
+      console.log('AUTH: Setting user in KV store...');
       setUser(authUser);
       
-      console.log('User set successfully');
+      console.log('AUTH: User set successfully, verifying...');
       
-      // Verify the user was actually set
+      // Immediate verification
       setTimeout(async () => {
-        console.log('Post-login verification - checking if user was actually stored...');
         try {
           const storedUser = await spark.kv.get('auth-user');
-          console.log('Stored user check:', storedUser);
+          console.log('AUTH: Post-login verification - stored user:', storedUser?.characterName, 'isAdmin:', storedUser?.isAdmin);
         } catch (e) {
-          console.error('Error checking stored user:', e);
+          console.error('AUTH: Error checking stored user:', e);
         }
-      }, 100);
+      }, 50);
       
     } catch (error) {
-      console.error('Auth error:', error);
+      console.error('AUTH: Login error:', error);
       throw error;
     } finally {
       setIsLoading(false);

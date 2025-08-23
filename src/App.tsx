@@ -48,6 +48,11 @@ import { Settings } from '@/components/tabs/Settings';
 
 function App() {
   const [activeTab, setActiveTab] = useKV<TabType>('active-tab', 'dashboard');
+  
+  // Debug activeTab changes
+  useEffect(() => {
+    console.log('🏷️ ACTIVE TAB CHANGED TO:', activeTab);
+  }, [activeTab]);
   const [activeSettingsTab, setActiveSettingsTab] = useKV<string>('active-settings-tab', 'general');
   const [settingsExpanded, setSettingsExpanded] = useKV<boolean>('settings-expanded', false);
   const { user, isAuthenticated, logout, refreshUserToken, isTokenExpired, adminConfig, updateAdminConfig } = useAuth();
@@ -60,6 +65,8 @@ function App() {
       characterName: user?.characterName, 
       isAuthenticated, 
       isAdmin: user?.isAdmin,
+      isDirector: user?.isDirector,
+      isCeo: user?.isCeo,
       shouldShowApp: isAuthenticated && !!user,
       currentActiveTab: activeTab,
       timestamp: Date.now()
@@ -182,21 +189,57 @@ function App() {
   ];
 
   const handleTabChange = (value: string) => {
+    console.log('=== TAB CHANGE REQUEST ===');
+    console.log('Requested tab:', value);
+    console.log('Current tab:', activeTab);
+    console.log('User state:', {
+      hasUser: !!user,
+      characterName: user?.characterName,
+      isAdmin: user?.isAdmin,
+      isDirector: user?.isDirector,
+      isCeo: user?.isCeo,
+      isAuthenticated
+    });
+    console.log('========================');
+    
+    // Check user permissions for navigation
+    if (!user) {
+      console.log('❌ TAB CHANGE BLOCKED: No user');
+      return;
+    }
+
     if (value === 'settings') {
+      console.log('🔧 Settings tab logic');
       setSettingsExpanded(!settingsExpanded);
       if (!settingsExpanded) {
+        console.log('Expanding settings, setting active tab to settings');
         setActiveTab('settings' as TabType);
       } else {
-        // If collapsing settings, go back to dashboard
+        console.log('Collapsing settings, returning to dashboard');
         setActiveTab('dashboard');
       }
     } else {
+      console.log('✅ Setting active tab to:', value);
       setActiveTab(value as TabType);
       setSettingsExpanded(false);
     }
+    
+    console.log('Tab change completed. New tab should be:', value === 'settings' && settingsExpanded ? 'dashboard' : value);
   };
 
   const handleSettingsTabChange = (value: string) => {
+    console.log('App.handleSettingsTabChange called with:', value, 'user permissions:', {
+      isAdmin: user?.isAdmin,
+      isDirector: user?.isDirector,
+      isCeo: user?.isCeo,
+      hasUser: !!user
+    });
+    
+    if (!user) {
+      console.log('No user - preventing settings navigation');
+      return;
+    }
+    
     setActiveSettingsTab(value);
   };
 
@@ -205,6 +248,21 @@ function App() {
       <LMeveDataProvider>
         <div className="min-h-screen bg-background text-foreground">
         <Toaster />
+        
+        {/* Debug overlay */}
+        {process.env.NODE_ENV === 'development' && (
+          <div className="fixed top-4 right-4 z-50 bg-card border border-border rounded p-3 text-xs font-mono max-w-sm">
+            <div className="text-accent font-bold mb-2">DEBUG AUTH STATE</div>
+            <div>User: {user?.characterName || 'null'}</div>
+            <div>Authenticated: {isAuthenticated ? 'true' : 'false'}</div>
+            <div>IsAdmin: {user?.isAdmin ? 'true' : 'false'}</div>
+            <div>IsDirector: {user?.isDirector ? 'true' : 'false'}</div>
+            <div>IsCEO: {user?.isCeo ? 'true' : 'false'}</div>
+            <div>Active Tab: {activeTab}</div>
+            <div>Settings Expanded: {settingsExpanded ? 'true' : 'false'}</div>
+            <div>Should Show App: {shouldShowApp ? 'true' : 'false'}</div>
+          </div>
+        )}
         
         {/* Header */}
         <header className="border-b border-border bg-card">
@@ -253,6 +311,7 @@ function App() {
               {tabs.map((tab) => {
                 const IconComponent = tab.icon;
                 const isActive = activeTab === tab.id;
+                console.log(`Rendering tab button: ${tab.id}, isActive: ${isActive}, hasUser: ${!!user}`);
                 return (
                   <Button
                     key={tab.id}
@@ -261,8 +320,16 @@ function App() {
                       isActive 
                         ? "bg-accent text-accent-foreground shadow-sm" 
                         : "hover:bg-muted text-muted-foreground hover:text-foreground"
-                    }`}
-                    onClick={() => handleTabChange(tab.id)}
+                    } ${!user ? "opacity-50 cursor-not-allowed" : ""}`}
+                    disabled={!user}
+                    onClick={() => {
+                      console.log('Navigation button clicked:', tab.id, 'User available:', !!user);
+                      if (user) {
+                        handleTabChange(tab.id);
+                      } else {
+                        console.log('Blocked - no user');
+                      }
+                    }}
                   >
                     <IconComponent size={18} />
                     <span className="text-sm font-medium">{tab.label}</span>
@@ -290,8 +357,16 @@ function App() {
                     activeTab === 'settings'
                       ? "bg-accent text-accent-foreground shadow-sm" 
                       : "hover:bg-muted text-muted-foreground hover:text-foreground"
-                  }`}
-                  onClick={() => handleTabChange('settings')}
+                  } ${!user ? "opacity-50 cursor-not-allowed" : ""}`}
+                  disabled={!user}
+                  onClick={() => {
+                    console.log('Settings button clicked, User available:', !!user);
+                    if (user) {
+                      handleTabChange('settings');
+                    } else {
+                      console.log('Blocked - no user');
+                    }
+                  }}
                 >
                   <Gear size={18} />
                   <span className="text-sm font-medium">Settings</span>
@@ -318,7 +393,10 @@ function App() {
                               ? "bg-secondary text-secondary-foreground" 
                               : "hover:bg-muted/50 text-muted-foreground hover:text-foreground"
                           }`}
-                          onClick={() => handleSettingsTabChange(settingsTab.id)}
+                          onClick={() => {
+                            console.log('Settings sub-tab clicked:', settingsTab.id);
+                            handleSettingsTabChange(settingsTab.id);
+                          }}
                         >
                           <IconComponent size={14} />
                           <span>{settingsTab.label}</span>
