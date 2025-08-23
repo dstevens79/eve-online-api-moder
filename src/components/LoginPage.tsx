@@ -13,20 +13,35 @@ interface LoginPageProps {
 }
 
 export function LoginPage({ onLoginSuccess }: LoginPageProps) {
-  const { login, loginWithESI, isLoading } = useAuth();
+  const { login, loginWithESI, isLoading: authIsLoading } = useAuth();
   const [credentials, setCredentials] = useState<LoginCredentials>({ username: '', password: '' });
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [isLocalLoginLoading, setIsLocalLoginLoading] = useState(false);
 
+  console.log('LoginPage render - loading states:', { authIsLoading, isLocalLoginLoading });
+
   const handleCredentialLogin = async (e?: React.FormEvent) => {
+    console.log('handleCredentialLogin called, e:', e?.type);
     e?.preventDefault();
     setError(null);
+    
+    // Force the loading state to be visible immediately
     setIsLocalLoginLoading(true);
+    
+    // Small delay to ensure UI updates
+    await new Promise(resolve => setTimeout(resolve, 10));
 
-    console.log('LoginPage.handleCredentialLogin called with:', credentials);
+    console.log('LoginPage.handleCredentialLogin called with:', {
+      username: credentials.username,
+      passwordLength: credentials.password?.length,
+      usernameLength: credentials.username?.length,
+      trimmedUsername: credentials.username?.trim(),
+      trimmedPasswordLength: credentials.password?.trim()?.length
+    });
 
     if (!credentials.username?.trim() || !credentials.password?.trim()) {
+      console.log('Validation failed - missing credentials');
       setError('Please enter both username and password');
       setIsLocalLoginLoading(false);
       return;
@@ -41,6 +56,7 @@ export function LoginPage({ onLoginSuccess }: LoginPageProps) {
       console.error('LoginPage: Login error:', err);
       setError(err instanceof Error ? err.message : 'Login failed');
     } finally {
+      console.log('LoginPage: Setting isLocalLoginLoading to false');
       setIsLocalLoginLoading(false);
     }
   };
@@ -101,12 +117,12 @@ export function LoginPage({ onLoginSuccess }: LoginPageProps) {
             {/* ESI Login Button */}
             <Button
               onClick={handleESILogin}
-              disabled={isLoading}
+              disabled={authIsLoading}
               className="w-full bg-accent hover:bg-accent/90 active:bg-accent/80 text-accent-foreground transition-all duration-200 hover:shadow-lg hover:shadow-accent/20 active:scale-[0.98]"
               size="lg"
             >
               <SignIn size={18} className="mr-2" />
-              {isLoading ? 'Connecting...' : 'Login with EVE Online'}
+              {authIsLoading ? 'Connecting...' : 'Login with EVE Online'}
             </Button>
 
             <div className="relative">
@@ -145,7 +161,7 @@ export function LoginPage({ onLoginSuccess }: LoginPageProps) {
                     value={credentials.password}
                     onChange={handleInputChange('password')}
                     onKeyDown={handleKeyDown}
-                    disabled={isLoading || isLocalLoginLoading}
+                    disabled={authIsLoading || isLocalLoginLoading}
                     className="bg-input border-border pr-10"
                     autoComplete="current-password"
                   />
@@ -168,7 +184,7 @@ export function LoginPage({ onLoginSuccess }: LoginPageProps) {
 
               <Button
                 type="submit"
-                disabled={isLoading || isLocalLoginLoading}
+                disabled={authIsLoading || isLocalLoginLoading}
                 className="w-full bg-primary hover:bg-primary/90 active:bg-primary/80 text-primary-foreground border-primary/20 transition-all duration-200 hover:shadow-lg hover:shadow-primary/20 active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:shadow-none disabled:active:scale-100"
                 variant="default"
               >
@@ -189,17 +205,25 @@ export function LoginPage({ onLoginSuccess }: LoginPageProps) {
                   <Button
                     variant="outline"
                     size="sm"
-                    onClick={() => {
+                    onClick={async () => {
                       console.log('Debug login button clicked');
                       setCredentials({ username: 'admin', password: '12345' });
-                      // Use setTimeout to ensure state is updated before login attempt
-                      setTimeout(() => {
-                        handleCredentialLogin();
-                      }, 100);
+                      setError(null);
+                      setIsLocalLoginLoading(true);
+                      try {
+                        await login({ username: 'admin', password: '12345' });
+                        onLoginSuccess?.();
+                      } catch (err) {
+                        console.error('Debug login error:', err);
+                        setError(err instanceof Error ? err.message : 'Login failed');
+                      } finally {
+                        setIsLocalLoginLoading(false);
+                      }
                     }}
                     className="text-xs"
+                    disabled={authIsLoading || isLocalLoginLoading}
                   >
-                    Debug: Auto Login
+                    {isLocalLoginLoading ? 'Logging in...' : 'Debug: Auto Login'}
                   </Button>
                 </div>
               </div>

@@ -74,12 +74,16 @@ function App() {
   // Handle successful authentication
   const handleLoginSuccess = () => {
     console.log('App.handleLoginSuccess called');
-    console.log('Current auth state:', { isAuthenticated, user: user?.characterName });
+    console.log('Current auth state after login:', { isAuthenticated, user: user?.characterName });
     setIsESICallback(false);
     // Clear URL parameters after successful auth
     if (window.location.search) {
       window.history.replaceState({}, document.title, window.location.pathname);
     }
+    // Force a re-render to ensure the UI updates
+    setTimeout(() => {
+      console.log('Post-timeout auth check:', { isAuthenticated, user: user?.characterName });
+    }, 100);
   };
 
   const handleLoginError = () => {
@@ -102,6 +106,29 @@ function App() {
 
   // Show login page if not authenticated
   console.log('App render - auth check:', { isAuthenticated, user: user?.characterName, isESICallback });
+  
+  // Give a small delay to ensure auth state is properly updated
+  const [authChecked, setAuthChecked] = useState(false);
+  
+  useEffect(() => {
+    // Small delay to ensure auth state is settled
+    const timer = setTimeout(() => {
+      setAuthChecked(true);
+    }, 50);
+    return () => clearTimeout(timer);
+  }, [user, isAuthenticated]);
+  
+  if (!authChecked) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <div className="text-center">
+          <Rocket size={32} className="text-accent mx-auto mb-4" />
+          <p className="text-muted-foreground">Loading...</p>
+        </div>
+      </div>
+    );
+  }
+  
   if (!isAuthenticated) {
     return <LoginPage onLoginSuccess={handleLoginSuccess} />;
   }

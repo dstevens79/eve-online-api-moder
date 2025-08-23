@@ -200,25 +200,6 @@ class AuthService {
       };
     }
 
-    // Fallback test user for development
-    if (username === 'admin' && password === 'password') {
-      console.log('Test user login successful');
-      return {
-        characterId: 123456789,
-        characterName: 'Test Character',
-        corporationId: 987654321,
-        corporationName: 'Test Corporation',
-        allianceId: 111222333,
-        allianceName: 'Test Alliance Please Ignore',
-        accessToken: 'mock-access-token',
-        refreshToken: 'mock-refresh-token',
-        tokenExpiry: Date.now() + (24 * 60 * 60 * 1000), // 24 hours
-        scopes: this.ESI_SCOPES,
-        isDirector: true,
-        isCeo: true
-      };
-    }
-
     console.log('Login failed - invalid credentials. Checked:', {
       inputUsername: username,
       inputPassword: password,
@@ -361,21 +342,36 @@ export function useAuth() {
 
   console.log('useAuth hook - current user:', user);
   console.log('useAuth hook - isAuthenticated:', !!user);
+  console.log('useAuth hook - adminConfig:', { username: adminConfig?.username, hasPassword: !!adminConfig?.password });
 
   const login = async (credentials: LoginCredentials): Promise<void> => {
     console.log('useAuth.login called with credentials:', { username: credentials.username, password: '***' });
+    console.log('Input validation:', {
+      hasUsername: !!credentials.username,
+      hasPassword: !!credentials.password,
+      usernameLength: credentials.username?.length,
+      passwordLength: credentials.password?.length
+    });
+    
     setIsLoading(true);
     try {
       console.log('Calling authService.loginWithCredentials...');
+      console.log('Current adminConfig:', { username: adminConfig?.username, hasPassword: !!adminConfig?.password });
       const authUser = await authService.loginWithCredentials(credentials, adminConfig);
-      console.log('Auth successful, setting user:', authUser);
-      setUser(authUser); // Direct setting should work better
-      console.log('User set successfully');
+      console.log('Auth successful, setting user:', { characterName: authUser.characterName, isAdmin: authUser.isAdmin });
+      
+      // Use functional update to ensure it gets set properly
+      setUser(() => {
+        console.log('setUser function called with:', { characterName: authUser.characterName });
+        return authUser;
+      });
+      console.log('User set successfully with functional update');
     } catch (error) {
       console.error('Auth error in useAuth:', error);
       throw error; // Re-throw to let the login component handle it
     } finally {
       setIsLoading(false);
+      console.log('useAuth.login finally block - isLoading set to false');
     }
   };
 
