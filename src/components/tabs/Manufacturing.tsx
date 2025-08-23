@@ -9,8 +9,10 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Progress } from '@/components/ui/progress';
+import { LoginPrompt } from '@/components/LoginPrompt';
 import { useKV } from '@github/spark/hooks';
 import { useEVEData } from '@/hooks/useEVEData';
+import { useAuth } from '@/lib/auth';
 import { 
   Factory, 
   Plus, 
@@ -37,7 +39,12 @@ import { BlueprintDetailsDialog } from '@/components/manufacturing/BlueprintDeta
 import { ProductionPlanDialog } from '@/components/manufacturing/ProductionPlanDialog';
 import { toast } from 'sonner';
 
-export function Manufacturing() {
+interface ManufacturingProps {
+  onLoginClick?: () => void;
+}
+
+export function Manufacturing({ onLoginClick }: ManufacturingProps) {
+  const { user } = useAuth();
   const [activeJobs, setActiveJobs] = useKV<ManufacturingJob[]>('manufacturing-jobs', []);
   const [blueprints, setBlueprints] = useKV<Blueprint[]>('blueprints-library', []);
   const [productionPlans, setProductionPlans] = useKV<ProductionPlan[]>('production-plans', []);
@@ -241,6 +248,17 @@ export function Manufacturing() {
     setProductionPlans(current => [...(current || []), plan]);
     toast.success(`Production plan "${plan.name}" created successfully`);
   };
+
+  // Show login prompt if not authenticated
+  if (!user && onLoginClick) {
+    return (
+      <LoginPrompt 
+        onLoginClick={onLoginClick}
+        title="Manufacturing Operations"
+        description="Sign in to manage your corporation's manufacturing jobs and blueprints"
+      />
+    );
+  }
 
   return (
     <div className="space-y-6">

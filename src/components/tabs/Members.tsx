@@ -5,6 +5,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { LoginPrompt } from '@/components/LoginPrompt';
 import { 
   Users, 
   MagnifyingGlass, 
@@ -19,7 +20,11 @@ import { Member } from '@/lib/types';
 import { useLMeveData } from '@/lib/LMeveDataContext';
 import { useAuth } from '@/lib/auth';
 
-export function Members() {
+interface MembersProps {
+  onLoginClick?: () => void;
+}
+
+export function Members({ onLoginClick }: MembersProps) {
   const { user } = useAuth();
   const { members, loading, refreshMembers } = useLMeveData();
   const [searchTerm, setSearchTerm] = useState('');
@@ -72,6 +77,17 @@ export function Members() {
     if (roles.some(role => role.includes('Manager') || role.includes('Foreman'))) return 'secondary';
     return 'outline';
   };
+
+  // Show login prompt if not authenticated
+  if (!user && onLoginClick) {
+    return (
+      <LoginPrompt 
+        onLoginClick={onLoginClick}
+        title="Corporation Members"
+        description="Sign in to view and manage your corporation's member roster"
+      />
+    );
+  }
 
   return (
     <div className="space-y-6">

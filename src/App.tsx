@@ -24,15 +24,16 @@ import {
   Clock,
   Bell,
   Shield,
-  Archive
+  Archive,
+  SignIn
 } from '@phosphor-icons/react';
 import { useKV } from '@github/spark/hooks';
 import { TabType } from '@/lib/types';
 import { DatabaseProvider } from '@/lib/DatabaseContext';
 import { LMeveDataProvider } from '@/lib/LMeveDataContext';
 import { useAuth, ESIAuthState } from '@/lib/auth';
-import { LoginPage } from '@/components/LoginPage';
 import { ESICallback } from '@/components/ESICallback';
+import { LoginModal } from '@/components/LoginModal';
 
 // Tab Components (will be implemented)
 import { Dashboard } from '@/components/tabs/Dashboard';
@@ -165,41 +166,8 @@ function App() {
     );
   }
 
-  // Show login page if not authenticated (user presence means authenticated)
-  if (!user) {
-    console.log('🔐 No user - showing login page.', {
-      hasUser: !!user,
-      userCharacterName: user?.characterName,
-      shouldShowLogin: !user,
-      timestamp: Date.now()
-    });
-    
-    // Provide immediate navigation function to LoginPage
-    const handleDirectNavigation = () => {
-      console.log('📍 IMMEDIATE NAVIGATION - Force render update');
-      
-      // Force immediate state updates
-      setActiveTab('dashboard');
-      setSettingsExpanded(false);
-      
-      // Trigger immediate re-render
-      setForceRender(prev => {
-        const newValue = prev + 1;
-        console.log('📍 Force render update:', newValue);
-        return newValue;
-      });
-      
-      // Double-check: force another update after a tiny delay
-      setTimeout(() => {
-        console.log('📍 Secondary navigation check - ensuring we\'re on dashboard');
-        setActiveTab('dashboard');
-      }, 50);
-    };
-    
-    return <LoginPage onLoginSuccess={handleDirectNavigation} />;
-  }
-
-  console.log('🏠 Authenticated user:', user.characterName, '- showing main app');
+  // App is always visible - authentication handled via modal
+  // No dedicated login page blocking access
 
   const tabs = [
     { id: 'dashboard', label: 'Dashboard', icon: House, component: Dashboard },
@@ -228,11 +196,7 @@ function App() {
   const handleTabChange = (value: string) => {
     console.log('🔄 Tab change request:', value);
     
-    if (!user) {
-      console.log('❌ No user - blocking navigation');
-      return;
-    }
-
+    // Always allow navigation, but content will show login prompt if needed
     if (value === 'settings') {
       setSettingsExpanded(!settingsExpanded);
       if (!settingsExpanded) {
@@ -247,7 +211,6 @@ function App() {
   };
 
   const handleSettingsTabChange = (value: string) => {
-    if (!user) return;
     setActiveSettingsTab(value);
   };
 
@@ -263,11 +226,17 @@ function App() {
             <div className="text-accent font-bold mb-2">DEBUG AUTH STATE</div>
             <div>User: {user?.characterName || 'null'}</div>
             <div>Has User Object: {user ? 'true' : 'false'}</div>
-            <div>Should Show App: {user ? 'true' : 'false'}</div>
+            <div>Show Login Modal: {showLoginModal ? 'true' : 'false'}</div>
             <div>Active Tab: {activeTab}</div>
-            <div>Auth Trigger: {authTrigger}</div>
           </div>
         )}
+        
+        {/* Login Modal */}
+        <LoginModal 
+          open={showLoginModal} 
+          onOpenChange={setShowLoginModal}
+          onLoginSuccess={handleLoginSuccess}
+        />
         
         {/* Header */}
         <header className="border-b border-border bg-card">
@@ -281,27 +250,44 @@ function App() {
                     <p className="text-sm text-muted-foreground">Corporation Management</p>
                   </div>
                 </div>
-                <Badge variant="secondary" className="text-xs bg-accent/20 text-accent border-accent/30">
-                  {user?.allianceName || user?.corporationName || 'Unknown Corporation'}
-                </Badge>
+                {user && (
+                  <Badge variant="secondary" className="text-xs bg-accent/20 text-accent border-accent/30">
+                    {user.allianceName || user.corporationName || 'Unknown Corporation'}
+                  </Badge>
+                )}
               </div>
               
               <div className="flex items-center gap-3">
-                <div className="text-right">
-                  <p className="text-sm font-medium">{user?.characterName || 'Unknown User'}</p>
-                  <p className="text-xs text-muted-foreground">
-                    {user?.isAdmin ? 'Local Admin' : user?.isCeo ? 'CEO' : user?.isDirector ? 'Director' : 'Member'}
-                  </p>
-                </div>
-                <Button 
-                  variant="outline" 
-                  size="sm"
-                  className="border-border hover:bg-muted"
-                  onClick={logout}
-                >
-                  <SignOut size={16} className="mr-2" />
-                  Logout
-                </Button>
+                {user ? (
+                  // Authenticated user section
+                  <>
+                    <div className="text-right">
+                      <p className="text-sm font-medium">{user.characterName}</p>
+                      <p className="text-xs text-muted-foreground">
+                        {user.isAdmin ? 'Local Admin' : user.isCeo ? 'CEO' : user.isDirector ? 'Director' : 'Member'}
+                      </p>
+                    </div>
+                    <Button 
+                      variant="outline" 
+                      size="sm"
+                      className="border-border hover:bg-muted"
+                      onClick={logout}
+                    >
+                      <SignOut size={16} className="mr-2" />
+                      Logout
+                    </Button>
+                  </>
+                ) : (
+                  // Unauthenticated user section  
+                  <Button 
+                    onClick={() => setShowLoginModal(true)}
+                    className="bg-accent hover:bg-accent/90 text-accent-foreground"
+                    size="sm"
+                  >
+                    <SignIn size={16} className="mr-2" />
+                    Sign In
+                  </Button>
+                )}
               </div>
             </div>
           </div>
@@ -325,8 +311,7 @@ function App() {
                       isActive 
                         ? "bg-accent text-accent-foreground shadow-sm" 
                         : "hover:bg-muted text-muted-foreground hover:text-foreground"
-                    } ${!user ? "opacity-50 cursor-not-allowed" : ""}`}
-                    disabled={!user}
+                    }`}
                     onClick={() => handleTabChange(tab.id)}
                   >
                     <IconComponent size={18} />
@@ -355,8 +340,7 @@ function App() {
                     activeTab === 'settings'
                       ? "bg-accent text-accent-foreground shadow-sm" 
                       : "hover:bg-muted text-muted-foreground hover:text-foreground"
-                  } ${!user ? "opacity-50 cursor-not-allowed" : ""}`}
-                  disabled={!user}
+                  }`}
                   onClick={() => handleTabChange('settings')}
                 >
                   <Gear size={18} />
@@ -409,7 +393,7 @@ function App() {
                       const Component = tab.component;
                       return (
                         <TabsContent key={tab.id} value={tab.id} className="mt-0">
-                          <Component />
+                          <Component onLoginClick={() => setShowLoginModal(true)} />
                         </TabsContent>
                       );
                     })}

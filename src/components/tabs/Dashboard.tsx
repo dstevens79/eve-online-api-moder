@@ -3,6 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { EVEApiStatus } from '@/components/EVEApiStatus';
+import { LoginPrompt } from '@/components/LoginPrompt';
 import { useLMeveData } from '@/lib/LMeveDataContext';
 import { useAuth } from '@/lib/auth';
 import { 
@@ -19,7 +20,11 @@ import {
   Download
 } from '@phosphor-icons/react';
 
-export function Dashboard() {
+interface DashboardProps {
+  onLoginClick?: () => void;
+}
+
+export function Dashboard({ onLoginClick }: DashboardProps) {
   const { user } = useAuth();
   const { 
     dashboardStats, 
@@ -67,6 +72,17 @@ export function Dashboard() {
       default: return <Clock size={16} className="text-gray-400" />;
     }
   };
+
+  // Show login prompt if not authenticated
+  if (!user && onLoginClick) {
+    return (
+      <LoginPrompt 
+        onLoginClick={onLoginClick}
+        title="Welcome to LMeve"
+        description="Sign in to access your corporation's dashboard, view assets, and manage operations"
+      />
+    );
+  }
 
   return (
     <div className="space-y-6">

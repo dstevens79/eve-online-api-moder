@@ -1,8 +1,23 @@
 import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { LoginPrompt } from '@/components/LoginPrompt';
 import { HardHat } from '@phosphor-icons/react';
+import { useAuth } from '@/lib/auth';
+import { TabComponentProps } from '@/lib/types';
 
-export function Mining() {
+export function Mining({ onLoginClick }: TabComponentProps) {
+  const { user } = useAuth();
+
+  // Show login prompt if not authenticated
+  if (!user && onLoginClick) {
+    return (
+      <LoginPrompt 
+        onLoginClick={onLoginClick}
+        title="Mining Operations"
+        description="Sign in to view and manage your corporation's mining activities"
+      />
+    );
+  }
   return (
     <div className="space-y-6">
       <div>

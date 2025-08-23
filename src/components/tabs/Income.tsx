@@ -5,6 +5,9 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { LoginPrompt } from '@/components/LoginPrompt';
+import { useAuth } from '@/lib/auth';
+import { TabComponentProps, IncomeRecord, IncomeAnalytics } from '@/lib/types';
 import { 
   TrendUp,
   TrendDown,
@@ -23,7 +26,8 @@ import { useKV } from '@github/spark/hooks';
 import { IncomeRecord, IncomeAnalytics } from '@/lib/types';
 import { toast } from 'sonner';
 
-export function Income() {
+export function Income({ onLoginClick }: TabComponentProps) {
+  const { user } = useAuth();
   const [incomeRecords] = useKV<IncomeRecord[]>('income-records', []);
   const [selectedPeriod, setSelectedPeriod] = useState('30d');
   const [selectedPilot, setSelectedPilot] = useState('all');
@@ -254,6 +258,17 @@ export function Income() {
     });
     return Array.from(pilots.entries()).map(([id, name]) => ({ id, name }));
   }, [records]);
+
+  // Show login prompt if not authenticated
+  if (!user && onLoginClick) {
+    return (
+      <LoginPrompt 
+        onLoginClick={onLoginClick}
+        title="Income Analytics"
+        description="Sign in to view and manage pilot compensation and income tracking"
+      />
+    );
+  }
 
   return (
     <div className="space-y-6">

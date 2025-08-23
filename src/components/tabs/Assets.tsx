@@ -1,8 +1,23 @@
 import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { LoginPrompt } from '@/components/LoginPrompt';
 import { Package } from '@phosphor-icons/react';
+import { useAuth } from '@/lib/auth';
+import { TabComponentProps } from '@/lib/types';
 
-export function Assets() {
+export function Assets({ onLoginClick }: TabComponentProps) {
+  const { user } = useAuth();
+
+  // Show login prompt if not authenticated
+  if (!user && onLoginClick) {
+    return (
+      <LoginPrompt 
+        onLoginClick={onLoginClick}
+        title="Corporation Assets"
+        description="Sign in to view and manage your corporation's assets"
+      />
+    );
+  }
   return (
     <div className="space-y-6">
       <div>
