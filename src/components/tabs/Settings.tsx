@@ -49,6 +49,7 @@ import { toast } from 'sonner';
 import { eveApi, type CharacterInfo, type CorporationInfo } from '@/lib/eveApi';
 import { DatabaseManager, DatabaseConfig, DatabaseStatus, defaultDatabaseConfig, TableInfo } from '@/lib/database';
 import { useSDEManager, type SDEDatabaseStats } from '@/lib/sdeService';
+import { AdminLoginTest } from '@/components/AdminLoginTest';
 
 interface SyncStatus {
   isRunning: boolean;
@@ -1954,6 +1955,20 @@ export function Settings({ activeTab, onTabChange }: SettingsProps) {
                   <Switch defaultChecked />
                 </div>
               </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="test" className="space-y-6">
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-3">
+                <UserCheck size={20} />
+                Admin Login Function Test
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <AdminLoginTest />
             </CardContent>
           </Card>
         </TabsContent>

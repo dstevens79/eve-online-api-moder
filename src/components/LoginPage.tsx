@@ -13,24 +13,31 @@ export function LoginPage() {
   const [credentials, setCredentials] = useState<LoginCredentials>({ username: '', password: '' });
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [debugInfo, setDebugInfo] = useState<string>('');
 
   const handleCredentialLogin = async (e?: React.FormEvent) => {
     e?.preventDefault();
     setError(null);
+    setDebugInfo('Starting login process...');
     
     console.log('🔑 Login attempt for:', credentials.username);
 
     if (!credentials.username?.trim() || !credentials.password?.trim()) {
       setError('Please enter both username and password');
+      setDebugInfo('Error: Missing credentials');
       return;
     }
 
     try {
+      setDebugInfo('Calling auth service...');
       await login(credentials);
+      setDebugInfo('✅ Login successful - should redirect to dashboard');
       console.log('✅ Login successful');
     } catch (err) {
       console.error('❌ Login error:', err);
-      setError(err instanceof Error ? err.message : 'Login failed');
+      const errorMessage = err instanceof Error ? err.message : 'Login failed';
+      setError(errorMessage);
+      setDebugInfo(`❌ Login failed: ${errorMessage}`);
     }
   };
 
@@ -175,6 +182,13 @@ export function LoginPage() {
 
             {/* Development Info */}
             <div className="pt-4 border-t border-border">
+              {debugInfo && (
+                <div className="mb-4 p-3 bg-muted rounded-lg">
+                  <p className="text-xs text-muted-foreground">
+                    <strong>Debug:</strong> {debugInfo}
+                  </p>
+                </div>
+              )}
               <p className="text-xs text-muted-foreground text-center mb-2">
                 <strong>ESI Login:</strong> Requires corporation ESI data configuration. 
                 Users must belong to a corporation with registered ESI access.

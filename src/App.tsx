@@ -144,6 +144,7 @@ function App() {
     { id: 'sync', label: 'Data Sync', icon: Clock },
     { id: 'notifications', label: 'Notifications', icon: Bell },
     { id: 'security', label: 'Security', icon: Shield },
+    { id: 'test', label: 'Test Login', icon: Users },
   ];
 
   const handleTabChange = (value: string) => {
