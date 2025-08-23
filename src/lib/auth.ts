@@ -353,37 +353,34 @@ export function useAuth() {
   const [user, setUser] = useKV<AuthUser | null>('auth-user', null);
   const [adminConfig, setAdminConfig] = useKV<{ username: string; password: string }>('admin-config', { username: 'admin', password: '12345' });
   const [isLoading, setIsLoading] = React.useState(false);
-  const [authState, setAuthState] = React.useState<{ isAuthenticated: boolean; user: AuthUser | null }>({
-    isAuthenticated: false,
-    user: null
-  });
 
-  // Sync auth state with user changes
+  // Simplify: derive authentication state directly from user presence
+  const isAuthenticated = Boolean(user);
+
+  // Debug logging
   React.useEffect(() => {
-    const isAuth = Boolean(user);
-    setAuthState({ isAuthenticated: isAuth, user });
-    console.log('🔄 AUTH STATE SYNC:', { 
+    console.log('🔄 AUTH HOOK STATE:', { 
       hasUser: !!user, 
       characterName: user?.characterName,
       isAdmin: user?.isAdmin,
-      isAuthenticated: isAuth,
+      isAuthenticated,
       timestamp: Date.now()
     });
-  }, [user]);
+  }, [user, isAuthenticated]);
 
   const login = async (credentials: LoginCredentials): Promise<void> => {
     setIsLoading(true);
     console.log('🚀 Starting login for:', credentials.username);
-    console.log('🔧 Current user state before login:', user);
-    console.log('🔧 Current admin config:', adminConfig);
     
     try {
       const authUser = await authService.loginWithCredentials(credentials, adminConfig);
       console.log('✅ Auth service returned user:', authUser.characterName);
       
-      // Use functional update to ensure consistency
-      setUser(() => authUser);
-      console.log('✅ User set in state via functional update');
+      // Set user using functional update for consistency
+      setUser(() => {
+        console.log('🔄 Setting user in state:', authUser.characterName);
+        return authUser;
+      });
       
     } catch (error) {
       console.error('❌ Login error:', error);
@@ -452,9 +449,9 @@ export function useAuth() {
   };
 
   return {
-    user: authState.user,
+    user,
     isLoading,
-    isAuthenticated: authState.isAuthenticated,
+    isAuthenticated,
     adminConfig,
     updateAdminConfig,
     login,

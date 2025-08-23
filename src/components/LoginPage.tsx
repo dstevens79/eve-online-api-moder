@@ -9,11 +9,21 @@ import { Rocket, SignIn, Eye, EyeSlash } from '@phosphor-icons/react';
 import { useAuth, LoginCredentials } from '@/lib/auth';
 
 export function LoginPage() {
-  const { login, loginWithESI, isLoading } = useAuth();
+  const { login, loginWithESI, isLoading, user, isAuthenticated } = useAuth();
   const [credentials, setCredentials] = useState<LoginCredentials>({ username: '', password: '' });
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [debugInfo, setDebugInfo] = useState<string>('');
+
+  // Debug effect to track auth state changes
+  React.useEffect(() => {
+    console.log('🔍 LoginPage auth state changed:', {
+      hasUser: !!user,
+      characterName: user?.characterName,
+      isAuthenticated,
+      timestamp: Date.now()
+    });
+  }, [user, isAuthenticated]);
 
   const handleCredentialLogin = async (e?: React.FormEvent) => {
     e?.preventDefault();
@@ -182,6 +192,15 @@ export function LoginPage() {
 
             {/* Development Info */}
             <div className="pt-4 border-t border-border">
+              {/* Debug panel - shows current auth state */}
+              <div className="mb-4 p-3 bg-muted rounded-lg">
+                <div className="text-xs text-muted-foreground space-y-1">
+                  <div><strong>Auth State:</strong> {isAuthenticated ? 'Authenticated' : 'Not Authenticated'}</div>
+                  <div><strong>User:</strong> {user?.characterName || 'None'}</div>
+                  <div><strong>Should Redirect:</strong> {(isAuthenticated && !!user) ? 'YES' : 'NO'}</div>
+                </div>
+              </div>
+              
               {debugInfo && (
                 <div className="mb-4 p-3 bg-muted rounded-lg">
                   <p className="text-xs text-muted-foreground">

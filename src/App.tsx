@@ -59,7 +59,8 @@ function App() {
       hasUser: !!user,
       characterName: user?.characterName, 
       isAuthenticated, 
-      shouldShowApp: isAuthenticated && !!user
+      shouldShowApp: isAuthenticated && !!user,
+      timestamp: Date.now()
     });
   }, [user, isAuthenticated]);
 
@@ -117,7 +118,12 @@ function App() {
 
   // Show login page if not authenticated
   if (!isAuthenticated || !user) {
-    console.log('🔐 No auth or user - showing login page. Auth:', isAuthenticated, 'User:', !!user);
+    console.log('🔐 No auth or user - showing login page.', {
+      isAuthenticated,
+      hasUser: !!user,
+      userCharacterName: user?.characterName,
+      timestamp: Date.now()
+    });
     return <LoginPage />;
   }
 
