@@ -143,18 +143,7 @@ class AuthService {
    * Traditional username/password login (for development/testing and admin access)
    */
   async loginWithCredentials(credentials: LoginCredentials, adminConfig?: { username: string; password: string }): Promise<AuthUser> {
-    console.log('AuthService.loginWithCredentials called with:', { 
-      username: credentials.username, 
-      password: '***',
-      usernameType: typeof credentials.username,
-      passwordType: typeof credentials.password,
-      usernameLength: credentials.username?.length,
-      passwordLength: credentials.password?.length
-    });
-    console.log('Admin config:', { 
-      username: adminConfig?.username, 
-      password: adminConfig?.password ? '***' : 'undefined'
-    });
+    console.log('AuthService - login attempt for:', credentials.username);
     
     // Trim whitespace from inputs
     const username = credentials.username?.trim() || '';
@@ -162,7 +151,7 @@ class AuthService {
     
     // Check for admin login if configured
     if (adminConfig && username === adminConfig.username && password === adminConfig.password) {
-      console.log('Admin login successful with configured credentials');
+      console.log('AuthService - admin login successful (configured)');
       return {
         characterId: 999999999,
         characterName: 'Local Administrator',
@@ -182,7 +171,7 @@ class AuthService {
 
     // Default admin credentials (admin/12345)
     if (username === 'admin' && password === '12345') {
-      console.log('Default admin login successful');
+      console.log('AuthService - admin login successful (default)');
       return {
         characterId: 999999999,
         characterName: 'Local Administrator',
@@ -200,12 +189,7 @@ class AuthService {
       };
     }
 
-    console.log('Login failed - invalid credentials. Checked:', {
-      inputUsername: username,
-      inputPassword: password,
-      expectedAdmin: 'admin',
-      expectedPassword: '12345'
-    });
+    console.log('AuthService - login failed for:', username);
     throw new Error('Invalid credentials');
   }
 
@@ -340,39 +324,42 @@ export function useAuth() {
   const [adminConfig, setAdminConfig] = useKV<{ username: string; password: string }>('admin-config', { username: 'admin', password: '12345' });
   const [isLoading, setIsLoading] = React.useState(false);
 
-  console.log('useAuth hook render - current user:', user);
-  console.log('useAuth hook render - isAuthenticated:', !!user);
-  console.log('useAuth hook render - adminConfig:', { username: adminConfig?.username, hasPassword: !!adminConfig?.password });
+  // Debug: log exact user state
+  React.useEffect(() => {
+    console.log('useAuth - user state changed. Details:', { 
+      hasUser: !!user, 
+      characterName: user?.characterName,
+      isAdmin: user?.isAdmin,
+      userKeyExists: user !== null,
+      userValueType: typeof user
+    });
+  }, [user]);
+
+  // Force component re-render when auth state should change
+  const [, forceUpdate] = React.useReducer(x => x + 1, 0);
 
   const login = async (credentials: LoginCredentials): Promise<void> => {
-    console.log('useAuth.login called with credentials:', { username: credentials.username, password: '***' });
-    console.log('Input validation:', {
-      hasUsername: !!credentials.username,
-      hasPassword: !!credentials.password,
-      usernameLength: credentials.username?.length,
-      passwordLength: credentials.password?.length
-    });
+    console.log('useAuth.login called with:', credentials.username);
     
     setIsLoading(true);
     try {
-      console.log('Calling authService.loginWithCredentials...');
-      console.log('Current adminConfig:', { username: adminConfig?.username, hasPassword: !!adminConfig?.password });
       const authUser = await authService.loginWithCredentials(credentials, adminConfig);
-      console.log('Auth successful, setting user:', { characterName: authUser.characterName, isAdmin: authUser.isAdmin });
+      console.log('Auth successful, setting user:', authUser.characterName);
       
-      // Use functional update to ensure we get the latest value
-      setUser(() => {
-        console.log('Setting user state to:', authUser);
-        return authUser;
-      });
+      setUser(authUser);
+      
+      // Add a small delay to ensure state propagation
+      await new Promise(resolve => setTimeout(resolve, 100));
+      
+      // Force a re-render
+      forceUpdate();
       
       console.log('User set successfully');
     } catch (error) {
-      console.error('Auth error in useAuth:', error);
-      throw error; // Re-throw to let the login component handle it
+      console.error('Auth error:', error);
+      throw error;
     } finally {
       setIsLoading(false);
-      console.log('useAuth.login finally block - isLoading set to false');
     }
   };
 
@@ -424,7 +411,7 @@ export function useAuth() {
   return {
     user,
     isLoading,
-    isAuthenticated: !!user,
+    isAuthenticated: user !== null && user !== undefined,
     adminConfig,
     updateAdminConfig,
     login,

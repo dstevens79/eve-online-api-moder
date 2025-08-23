@@ -51,14 +51,23 @@ function App() {
   const [activeSettingsTab, setActiveSettingsTab] = useKV<string>('active-settings-tab', 'general');
   const [settingsExpanded, setSettingsExpanded] = useKV<boolean>('settings-expanded', false);
   const { user, isAuthenticated, logout, refreshUserToken, isTokenExpired, adminConfig, updateAdminConfig } = useAuth();
+  const [authCheckCounter, setAuthCheckCounter] = useState(0);
   const [isESICallback, setIsESICallback] = useState(false);
+  
+  // Force re-check of auth state
+  const refreshAuthState = () => {
+    console.log('Forcing auth state refresh');
+    setAuthCheckCounter(prev => prev + 1);
+  };
 
   // Debug user state changes
   useEffect(() => {
-    console.log('App useEffect - user state changed:', { 
-      user: user?.characterName, 
+    console.log('App - auth state change detected:', { 
+      hasUser: !!user,
+      characterName: user?.characterName, 
       isAuthenticated, 
-      isAdmin: user?.isAdmin 
+      isAdmin: user?.isAdmin,
+      shouldShowApp: isAuthenticated && !!user
     });
   }, [user, isAuthenticated]);
 
@@ -114,15 +123,20 @@ function App() {
   }
 
   // Show login page if not authenticated
-  console.log('App render - auth check:', { isAuthenticated, user: user?.characterName, isESICallback });
-  console.log('App render - full user object:', user);
+  const shouldShowLoginPage = !isAuthenticated || !user;
+  console.log('App render check:', { 
+    isAuthenticated, 
+    hasUser: !!user, 
+    shouldShowLoginPage,
+    isESICallback
+  });
   
-  if (!isAuthenticated) {
-    console.log('Not authenticated, showing login page');
-    return <LoginPage />;
+  if (shouldShowLoginPage) {
+    console.log('Showing login page');
+    return <LoginPage onAuthSuccess={refreshAuthState} />;
   }
 
-  console.log('Authenticated, showing main app');
+  console.log('Showing main app for user:', user?.characterName);
 
   const tabs = [
     { id: 'dashboard', label: 'Dashboard', icon: House, component: Dashboard },

@@ -8,44 +8,44 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Rocket, SignIn, Eye, EyeSlash } from '@phosphor-icons/react';
 import { useAuth, LoginCredentials } from '@/lib/auth';
 
-export function LoginPage() {
-  const { login, loginWithESI, isLoading: authIsLoading } = useAuth();
+interface LoginPageProps {
+  onAuthSuccess?: () => void;
+}
+
+export function LoginPage({ onAuthSuccess }: LoginPageProps) {
+  const { login, user, isAuthenticated, logout } = useAuth();
   const [credentials, setCredentials] = useState<LoginCredentials>({ username: '', password: '' });
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [isLocalLoginLoading, setIsLocalLoginLoading] = useState(false);
 
-  console.log('LoginPage render - loading states:', { authIsLoading, isLocalLoginLoading });
+  // Debug: show current auth state
+  console.log('LoginPage render - auth state:', { isAuthenticated, user: user?.characterName });
 
   const handleCredentialLogin = async (e?: React.FormEvent) => {
-    console.log('handleCredentialLogin called, e:', e?.type);
     e?.preventDefault();
     setError(null);
     
-    console.log('LoginPage.handleCredentialLogin called with:', {
-      username: credentials.username,
-      passwordLength: credentials.password?.length,
-      usernameLength: credentials.username?.length,
-      trimmedUsername: credentials.username?.trim(),
-      trimmedPasswordLength: credentials.password?.trim()?.length
-    });
+    console.log('LoginPage - attempting login with:', credentials.username);
 
     if (!credentials.username?.trim() || !credentials.password?.trim()) {
-      console.log('Validation failed - missing credentials');
       setError('Please enter both username and password');
       return;
     }
 
     setIsLocalLoginLoading(true);
     try {
-      console.log('LoginPage: Calling auth.login...');
       await login(credentials);
-      console.log('LoginPage: Login successful');
+      console.log('LoginPage - login successful');
+      
+      // Trigger auth state refresh in parent
+      setTimeout(() => {
+        onAuthSuccess?.();
+      }, 100);
     } catch (err) {
-      console.error('LoginPage: Login error:', err);
+      console.error('LoginPage - login error:', err);
       setError(err instanceof Error ? err.message : 'Login failed');
     } finally {
-      console.log('LoginPage: Setting isLocalLoginLoading to false');
       setIsLocalLoginLoading(false);
     }
   };
@@ -55,10 +55,35 @@ export function LoginPage() {
     setError('ESI authentication is not available in this demo environment. ESI login requires a production deployment with proper OAuth callback handling. Use the username/password login for testing.');
   };
 
+  // Direct login test function
+  const testDirectLogin = async () => {
+    console.log('Testing direct login...');
+    setError(null);
+    setIsLocalLoginLoading(true);
+    
+    try {
+      await login({ username: 'admin', password: '12345' });
+      console.log('Direct login successful');
+      
+      // Add extra logging to debug state
+      console.log('After login - user state:', user);
+      console.log('After login - isAuthenticated:', isAuthenticated);
+      
+      // Trigger auth state refresh in parent
+      setTimeout(() => {
+        onAuthSuccess?.();
+      }, 100);
+    } catch (err) {
+      console.error('Direct login failed:', err);
+      setError(err instanceof Error ? err.message : 'Login failed');
+    } finally {
+      setIsLocalLoginLoading(false);
+    }
+  };
+
   const handleInputChange = (field: keyof LoginCredentials) => (e: React.ChangeEvent<HTMLInputElement>) => {
     const value = e.target.value;
     setCredentials(prev => ({ ...prev, [field]: value }));
-    console.log(`Input changed - ${field}:`, value);
   };
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
@@ -106,12 +131,12 @@ export function LoginPage() {
             {/* ESI Login Button */}
             <Button
               onClick={handleESILogin}
-              disabled={authIsLoading}
+              disabled={isLocalLoginLoading}
               className="w-full bg-accent hover:bg-accent/90 active:bg-accent/80 text-accent-foreground transition-all duration-200 hover:shadow-lg hover:shadow-accent/20 active:scale-[0.98]"
               size="lg"
             >
               <SignIn size={18} className="mr-2" />
-              {authIsLoading ? 'Connecting...' : 'Login with EVE Online'}
+              {isLocalLoginLoading ? 'Connecting...' : 'Login with EVE Online'}
             </Button>
 
             <div className="relative">
@@ -134,7 +159,7 @@ export function LoginPage() {
                   value={credentials.username}
                   onChange={handleInputChange('username')}
                   onKeyDown={handleKeyDown}
-                  disabled={authIsLoading || isLocalLoginLoading}
+                  disabled={isLocalLoginLoading}
                   className="bg-input border-border"
                   autoComplete="username"
                 />
@@ -150,7 +175,7 @@ export function LoginPage() {
                     value={credentials.password}
                     onChange={handleInputChange('password')}
                     onKeyDown={handleKeyDown}
-                    disabled={authIsLoading || isLocalLoginLoading}
+                    disabled={isLocalLoginLoading}
                     className="bg-input border-border pr-10"
                     autoComplete="current-password"
                   />
@@ -173,7 +198,7 @@ export function LoginPage() {
 
               <Button
                 type="submit"
-                disabled={authIsLoading || isLocalLoginLoading}
+                disabled={isLocalLoginLoading}
                 className="w-full bg-primary hover:bg-primary/90 active:bg-primary/80 text-primary-foreground border-primary/20 transition-all duration-200 hover:shadow-lg hover:shadow-primary/20 active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:shadow-none disabled:active:scale-100"
                 variant="default"
               >
@@ -190,29 +215,49 @@ export function LoginPage() {
                 </p>
                 
                 {/* Debug button for testing */}
-                <div className="flex justify-center">
+                <div className="flex flex-col gap-2 items-center">
                   <Button
                     variant="outline"
                     size="sm"
-                    onClick={async () => {
-                      console.log('Debug login button clicked');
+                    onClick={() => {
+                      console.log('Debug login button clicked - setting credentials');
                       setCredentials({ username: 'admin', password: '12345' });
                       setError(null);
-                      setIsLocalLoginLoading(true);
-                      try {
-                        await login({ username: 'admin', password: '12345' });
-                      } catch (err) {
-                        console.error('Debug login error:', err);
-                        setError(err instanceof Error ? err.message : 'Login failed');
-                      } finally {
-                        setIsLocalLoginLoading(false);
-                      }
+                      // Auto-submit the form after setting credentials
+                      setTimeout(async () => {
+                        console.log('Auto-submitting debug login');
+                        await handleCredentialLogin();
+                      }, 100);
                     }}
                     className="text-xs"
-                    disabled={authIsLoading || isLocalLoginLoading}
+                    disabled={isLocalLoginLoading}
                   >
                     {isLocalLoginLoading ? 'Logging in...' : 'Debug: Auto Login'}
                   </Button>
+                  
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={testDirectLogin}
+                    className="text-xs"
+                    disabled={isLocalLoginLoading}
+                  >
+                    Direct Login Test
+                  </Button>
+                  
+                  {user && (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => {
+                        console.log('Logout button clicked');
+                        logout();
+                      }}
+                      className="text-xs"
+                    >
+                      Force Logout
+                    </Button>
+                  )}
                 </div>
               </div>
             </div>
