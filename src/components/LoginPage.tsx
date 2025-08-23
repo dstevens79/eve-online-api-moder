@@ -22,6 +22,14 @@ export function LoginPage({ onAuthSuccess }: LoginPageProps) {
   // Debug: show current auth state
   console.log('LoginPage render - auth state:', { isAuthenticated, user: user?.characterName });
 
+  // Watch for authentication state changes and trigger callback
+  React.useEffect(() => {
+    if (isAuthenticated && user) {
+      console.log('LoginPage detected authentication success, calling onAuthSuccess');
+      onAuthSuccess?.();
+    }
+  }, [isAuthenticated, user, onAuthSuccess]);
+
   const handleCredentialLogin = async (e?: React.FormEvent) => {
     e?.preventDefault();
     setError(null);
@@ -37,11 +45,7 @@ export function LoginPage({ onAuthSuccess }: LoginPageProps) {
     try {
       await login(credentials);
       console.log('LoginPage - login successful');
-      
-      // Trigger auth state refresh in parent
-      setTimeout(() => {
-        onAuthSuccess?.();
-      }, 100);
+      // The useEffect above will handle the navigation
     } catch (err) {
       console.error('LoginPage - login error:', err);
       setError(err instanceof Error ? err.message : 'Login failed');
@@ -64,15 +68,7 @@ export function LoginPage({ onAuthSuccess }: LoginPageProps) {
     try {
       await login({ username: 'admin', password: '12345' });
       console.log('Direct login successful');
-      
-      // Add extra logging to debug state
-      console.log('After login - user state:', user);
-      console.log('After login - isAuthenticated:', isAuthenticated);
-      
-      // Trigger auth state refresh in parent
-      setTimeout(() => {
-        onAuthSuccess?.();
-      }, 100);
+      // The useEffect above will handle the navigation
     } catch (err) {
       console.error('Direct login failed:', err);
       setError(err instanceof Error ? err.message : 'Login failed');

@@ -346,15 +346,18 @@ export function useAuth() {
       const authUser = await authService.loginWithCredentials(credentials, adminConfig);
       console.log('Auth successful, setting user:', authUser.characterName);
       
-      setUser(authUser);
+      // Use functional update to ensure proper state setting
+      setUser(() => {
+        console.log('Setting user in functional update:', authUser.characterName);
+        return authUser;
+      });
       
-      // Add a small delay to ensure state propagation
-      await new Promise(resolve => setTimeout(resolve, 100));
+      // Small delay to ensure KV store propagation
+      await new Promise(resolve => setTimeout(resolve, 150));
       
-      // Force a re-render
+      console.log('User set successfully, forcing update');
       forceUpdate();
       
-      console.log('User set successfully');
     } catch (error) {
       console.error('Auth error:', error);
       throw error;
@@ -411,7 +414,7 @@ export function useAuth() {
   return {
     user,
     isLoading,
-    isAuthenticated: user !== null && user !== undefined,
+    isAuthenticated: Boolean(user),
     adminConfig,
     updateAdminConfig,
     login,

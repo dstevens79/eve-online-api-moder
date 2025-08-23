@@ -58,6 +58,11 @@ function App() {
   const refreshAuthState = () => {
     console.log('Forcing auth state refresh');
     setAuthCheckCounter(prev => prev + 1);
+    
+    // Force a check of the current user state after a small delay
+    setTimeout(() => {
+      console.log('Post-refresh auth check:', { isAuthenticated, user: user?.characterName });
+    }, 200);
   };
 
   // Debug user state changes
@@ -123,15 +128,18 @@ function App() {
   }
 
   // Show login page if not authenticated
-  const shouldShowLoginPage = !isAuthenticated || !user;
+  const shouldShowLoginPage = !user || !isAuthenticated;
+  
   console.log('App render check:', { 
     isAuthenticated, 
     hasUser: !!user, 
     shouldShowLoginPage,
-    isESICallback
+    isESICallback,
+    userType: typeof user,
+    userCharacterName: user?.characterName
   });
   
-  if (shouldShowLoginPage) {
+  if (shouldShowLoginPage && !isESICallback) {
     console.log('Showing login page');
     return <LoginPage onAuthSuccess={refreshAuthState} />;
   }
