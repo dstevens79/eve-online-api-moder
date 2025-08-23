@@ -230,6 +230,7 @@ export type TabType =
   | 'logistics' 
   | 'killmails' 
   | 'market' 
+  | 'income'
   | 'settings';
 
 export interface CorpSettings {
@@ -252,4 +253,66 @@ export interface CorpSettings {
     characterId?: number;
     corporationId?: number;
   };
+  dataSyncTimers: {
+    members: number; // minutes
+    assets: number;
+    manufacturing: number;
+    mining: number;
+    market: number;
+    killmails: number;
+    income: number;
+  };
+}
+
+export interface IncomeRecord {
+  id: string;
+  pilotId: number;
+  pilotName: string;
+  jobId: string;
+  jobType: 'manufacturing' | 'research' | 'copying' | 'invention';
+  productTypeId: number;
+  productTypeName: string;
+  completedDate: string;
+  runs: number;
+  productQuantity: number;
+  materialCost: number;
+  laborCost: number;
+  facilityCost: number;
+  totalCost: number;
+  marketValue: number;
+  profit: number;
+  profitMargin: number;
+  efficiency: {
+    material: number;
+    time: number;
+  };
+  location: string;
+  locationId: number;
+}
+
+export interface IncomeAnalytics {
+  totalRevenue: number;
+  totalProfit: number;
+  averageProfitMargin: number;
+  jobsCompleted: number;
+  topPilots: Array<{
+    pilotId: number;
+    pilotName: string;
+    totalProfit: number;
+    jobsCompleted: number;
+    averageProfit: number;
+  }>;
+  topProducts: Array<{
+    typeId: number;
+    typeName: string;
+    totalProfit: number;
+    unitsProduced: number;
+    averageProfit: number;
+  }>;
+  monthlyTrends: Array<{
+    month: string;
+    revenue: number;
+    profit: number;
+    jobs: number;
+  }>;
 }

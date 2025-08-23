@@ -27,7 +27,13 @@ import {
   LinkSimple,
   Eye,
   EyeSlash,
-  Copy
+  Copy,
+  Package,
+  Factory,
+  HardHat,
+  TrendUp,
+  Crosshair,
+  DollarSign
 } from '@phosphor-icons/react';
 import { useKV } from '@github/spark/hooks';
 import { CorpSettings } from '@/lib/types';
@@ -82,6 +88,15 @@ export function Settings() {
       lastSync: new Date().toISOString(),
       characterId: 91316135,
       corporationId: 498125261
+    },
+    dataSyncTimers: {
+      members: 60,
+      assets: 30,
+      manufacturing: 15,
+      mining: 45,
+      market: 10,
+      killmails: 120,
+      income: 30
     }
   });
 
@@ -341,7 +356,7 @@ export function Settings() {
       </div>
 
       <Tabs defaultValue="general" className="space-y-6">
-        <TabsList className="grid w-full grid-cols-5">
+        <TabsList className="grid w-full grid-cols-6">
           <TabsTrigger value="general" className="flex items-center gap-2">
             <Globe size={16} />
             General
@@ -353,6 +368,10 @@ export function Settings() {
           <TabsTrigger value="esi" className="flex items-center gap-2">
             <Key size={16} />
             ESI Config
+          </TabsTrigger>
+          <TabsTrigger value="sync" className="flex items-center gap-2">
+            <Clock size={16} />
+            Data Sync
           </TabsTrigger>
           <TabsTrigger value="notifications" className="flex items-center gap-2">
             <Bell size={16} />
@@ -825,6 +844,294 @@ export function Settings() {
 
               <div className="border-t border-border pt-6">
                 <Button onClick={handleSaveESIConfig}>Save ESI Configuration</Button>
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="sync" className="space-y-6">
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Clock size={20} />
+                Data Synchronization Timers
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-6">
+              <div className="p-3 bg-muted/50 rounded-lg text-sm text-muted-foreground">
+                <p className="font-medium mb-2">Polling Configuration:</p>
+                <p>
+                  Configure how frequently each data type is synchronized with the EVE Online ESI API. 
+                  Lower values provide more real-time data but increase API usage. Higher values reduce 
+                  server load but data may be less current.
+                </p>
+              </div>
+
+              <div className="space-y-4">
+                <h4 className="font-medium">Sync Intervals (minutes)</h4>
+                
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div className="space-y-4">
+                    <div className="flex items-center justify-between p-4 border border-border rounded-lg">
+                      <div className="space-y-1">
+                        <div className="flex items-center gap-2">
+                          <Users size={16} className="text-blue-400" />
+                          <Label className="font-medium">Members</Label>
+                        </div>
+                        <p className="text-sm text-muted-foreground">
+                          Corporation member list and roles
+                        </p>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <Input
+                          type="number"
+                          min="5"
+                          max="1440"
+                          value={settings.dataSyncTimers?.members || 60}
+                          onChange={(e) => setSettings(s => ({
+                            ...s,
+                            dataSyncTimers: {
+                              ...s.dataSyncTimers,
+                              members: parseInt(e.target.value) || 60
+                            }
+                          }))}
+                          className="w-20 text-center"
+                        />
+                        <span className="text-sm text-muted-foreground">min</span>
+                      </div>
+                    </div>
+
+                    <div className="flex items-center justify-between p-4 border border-border rounded-lg">
+                      <div className="space-y-1">
+                        <div className="flex items-center gap-2">
+                          <Package size={16} className="text-green-400" />
+                          <Label className="font-medium">Assets</Label>
+                        </div>
+                        <p className="text-sm text-muted-foreground">
+                          Corporation assets and locations
+                        </p>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <Input
+                          type="number"
+                          min="5"
+                          max="1440"
+                          value={settings.dataSyncTimers?.assets || 30}
+                          onChange={(e) => setSettings(s => ({
+                            ...s,
+                            dataSyncTimers: {
+                              ...s.dataSyncTimers,
+                              assets: parseInt(e.target.value) || 30
+                            }
+                          }))}
+                          className="w-20 text-center"
+                        />
+                        <span className="text-sm text-muted-foreground">min</span>
+                      </div>
+                    </div>
+
+                    <div className="flex items-center justify-between p-4 border border-border rounded-lg">
+                      <div className="space-y-1">
+                        <div className="flex items-center gap-2">
+                          <Factory size={16} className="text-purple-400" />
+                          <Label className="font-medium">Manufacturing</Label>
+                        </div>
+                        <p className="text-sm text-muted-foreground">
+                          Industry jobs and blueprints
+                        </p>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <Input
+                          type="number"
+                          min="5"
+                          max="1440"
+                          value={settings.dataSyncTimers?.manufacturing || 15}
+                          onChange={(e) => setSettings(s => ({
+                            ...s,
+                            dataSyncTimers: {
+                              ...s.dataSyncTimers,
+                              manufacturing: parseInt(e.target.value) || 15
+                            }
+                          }))}
+                          className="w-20 text-center"
+                        />
+                        <span className="text-sm text-muted-foreground">min</span>
+                      </div>
+                    </div>
+
+                    <div className="flex items-center justify-between p-4 border border-border rounded-lg">
+                      <div className="space-y-1">
+                        <div className="flex items-center gap-2">
+                          <HardHat size={16} className="text-yellow-400" />
+                          <Label className="font-medium">Mining</Label>
+                        </div>
+                        <p className="text-sm text-muted-foreground">
+                          Mining operations and yields
+                        </p>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <Input
+                          type="number"
+                          min="5"
+                          max="1440"
+                          value={settings.dataSyncTimers?.mining || 45}
+                          onChange={(e) => setSettings(s => ({
+                            ...s,
+                            dataSyncTimers: {
+                              ...s.dataSyncTimers,
+                              mining: parseInt(e.target.value) || 45
+                            }
+                          }))}
+                          className="w-20 text-center"
+                        />
+                        <span className="text-sm text-muted-foreground">min</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="space-y-4">
+                    <div className="flex items-center justify-between p-4 border border-border rounded-lg">
+                      <div className="space-y-1">
+                        <div className="flex items-center gap-2">
+                          <TrendUp size={16} className="text-orange-400" />
+                          <Label className="font-medium">Market</Label>
+                        </div>
+                        <p className="text-sm text-muted-foreground">
+                          Market orders and prices
+                        </p>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <Input
+                          type="number"
+                          min="5"
+                          max="1440"
+                          value={settings.dataSyncTimers?.market || 10}
+                          onChange={(e) => setSettings(s => ({
+                            ...s,
+                            dataSyncTimers: {
+                              ...s.dataSyncTimers,
+                              market: parseInt(e.target.value) || 10
+                            }
+                          }))}
+                          className="w-20 text-center"
+                        />
+                        <span className="text-sm text-muted-foreground">min</span>
+                      </div>
+                    </div>
+
+                    <div className="flex items-center justify-between p-4 border border-border rounded-lg">
+                      <div className="space-y-1">
+                        <div className="flex items-center gap-2">
+                          <Crosshair size={16} className="text-red-400" />
+                          <Label className="font-medium">Killmails</Label>
+                        </div>
+                        <p className="text-sm text-muted-foreground">
+                          Corporation kills and losses
+                        </p>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <Input
+                          type="number"
+                          min="5"
+                          max="1440"
+                          value={settings.dataSyncTimers?.killmails || 120}
+                          onChange={(e) => setSettings(s => ({
+                            ...s,
+                            dataSyncTimers: {
+                              ...s.dataSyncTimers,
+                              killmails: parseInt(e.target.value) || 120
+                            }
+                          }))}
+                          className="w-20 text-center"
+                        />
+                        <span className="text-sm text-muted-foreground">min</span>
+                      </div>
+                    </div>
+
+                    <div className="flex items-center justify-between p-4 border border-border rounded-lg">
+                      <div className="space-y-1">
+                        <div className="flex items-center gap-2">
+                          <DollarSign size={16} className="text-green-400" />
+                          <Label className="font-medium">Income</Label>
+                        </div>
+                        <p className="text-sm text-muted-foreground">
+                          Pilot income calculations
+                        </p>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <Input
+                          type="number"
+                          min="5"
+                          max="1440"
+                          value={settings.dataSyncTimers?.income || 30}
+                          onChange={(e) => setSettings(s => ({
+                            ...s,
+                            dataSyncTimers: {
+                              ...s.dataSyncTimers,
+                              income: parseInt(e.target.value) || 30
+                            }
+                          }))}
+                          className="w-20 text-center"
+                        />
+                        <span className="text-sm text-muted-foreground">min</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div className="border-t border-border pt-6 space-y-4">
+                <h4 className="font-medium">Recommended Settings</h4>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+                  <div className="p-3 bg-blue-500/10 border border-blue-500/20 rounded-lg">
+                    <p className="font-medium text-blue-400 mb-2">High Frequency (5-15 min)</p>
+                    <p className="text-muted-foreground">
+                      Market data, manufacturing jobs - rapidly changing data
+                    </p>
+                  </div>
+                  <div className="p-3 bg-green-500/10 border border-green-500/20 rounded-lg">
+                    <p className="font-medium text-green-400 mb-2">Medium Frequency (30-60 min)</p>
+                    <p className="text-muted-foreground">
+                      Assets, income tracking - moderately changing data
+                    </p>
+                  </div>
+                  <div className="p-3 bg-yellow-500/10 border border-yellow-500/20 rounded-lg">
+                    <p className="font-medium text-yellow-400 mb-2">Low Frequency (60+ min)</p>
+                    <p className="text-muted-foreground">
+                      Members, killmails - slowly changing data
+                    </p>
+                  </div>
+                  <div className="p-3 bg-orange-500/10 border border-orange-500/20 rounded-lg">
+                    <p className="font-medium text-orange-400 mb-2">API Rate Limits</p>
+                    <p className="text-muted-foreground">
+                      EVE ESI allows 300 requests per minute per application
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              <div className="border-t border-border pt-6 flex gap-3">
+                <Button onClick={handleSaveSettings}>Save Sync Settings</Button>
+                <Button 
+                  variant="outline"
+                  onClick={() => {
+                    setSettings(s => ({
+                      ...s,
+                      dataSyncTimers: {
+                        members: 60,
+                        assets: 30,
+                        manufacturing: 15,
+                        mining: 45,
+                        market: 10,
+                        killmails: 120,
+                        income: 30
+                      }
+                    }));
+                    toast.success('Reset to recommended defaults');
+                  }}
+                >
+                  Reset to Defaults
+                </Button>
               </div>
             </CardContent>
           </Card>

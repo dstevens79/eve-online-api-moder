@@ -14,7 +14,8 @@ import {
   TrendUp, 
   Gear,
   SignOut,
-  Rocket
+  Rocket,
+  CurrencyDollar
 } from '@phosphor-icons/react';
 import { useKV } from '@github/spark/hooks';
 import { TabType } from '@/lib/types';
@@ -28,6 +29,7 @@ import { Mining } from '@/components/tabs/Mining';
 import { Logistics } from '@/components/tabs/Logistics';
 import { Killmails } from '@/components/tabs/Killmails';
 import { Market } from '@/components/tabs/Market';
+import { Income } from '@/components/tabs/Income';
 import { Settings } from '@/components/tabs/Settings';
 
 function App() {
@@ -42,6 +44,7 @@ function App() {
     { id: 'logistics', label: 'Logistics', icon: Truck, component: Logistics },
     { id: 'killmails', label: 'Killmails', icon: Crosshair, component: Killmails },
     { id: 'market', label: 'Market', icon: TrendUp, component: Market },
+    { id: 'income', label: 'Income', icon: CurrencyDollar, component: Income },
     { id: 'settings', label: 'Settings', icon: Gear, component: Settings },
   ];
 
