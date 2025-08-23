@@ -26,12 +26,6 @@ export function LoginPage({ onLoginSuccess }: LoginPageProps) {
     e?.preventDefault();
     setError(null);
     
-    // Force the loading state to be visible immediately
-    setIsLocalLoginLoading(true);
-    
-    // Small delay to ensure UI updates
-    await new Promise(resolve => setTimeout(resolve, 10));
-
     console.log('LoginPage.handleCredentialLogin called with:', {
       username: credentials.username,
       passwordLength: credentials.password?.length,
@@ -43,10 +37,10 @@ export function LoginPage({ onLoginSuccess }: LoginPageProps) {
     if (!credentials.username?.trim() || !credentials.password?.trim()) {
       console.log('Validation failed - missing credentials');
       setError('Please enter both username and password');
-      setIsLocalLoginLoading(false);
       return;
     }
 
+    setIsLocalLoginLoading(true);
     try {
       console.log('LoginPage: Calling auth.login...');
       await login(credentials);

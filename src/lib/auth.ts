@@ -360,12 +360,13 @@ export function useAuth() {
       const authUser = await authService.loginWithCredentials(credentials, adminConfig);
       console.log('Auth successful, setting user:', { characterName: authUser.characterName, isAdmin: authUser.isAdmin });
       
-      // Use functional update to ensure it gets set properly
-      setUser(() => {
-        console.log('setUser function called with:', { characterName: authUser.characterName });
-        return authUser;
-      });
-      console.log('User set successfully with functional update');
+      // Set user with a direct assignment to avoid any timing issues
+      setUser(authUser);
+      console.log('User set successfully');
+      
+      // Force a small delay to ensure state propagation
+      await new Promise(resolve => setTimeout(resolve, 100));
+      console.log('Post-login delay complete');
     } catch (error) {
       console.error('Auth error in useAuth:', error);
       throw error; // Re-throw to let the login component handle it
