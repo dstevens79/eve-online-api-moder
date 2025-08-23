@@ -190,7 +190,7 @@ function App() {
             <div>IsCEO: {user?.isCeo ? 'true' : 'false'}</div>
             <div>Active Tab: {activeTab}</div>
             <div>Settings Expanded: {settingsExpanded ? 'true' : 'false'}</div>
-            <div>Should Show App: {shouldShowApp ? 'true' : 'false'}</div>
+            <div>Should Show App: {(isAuthenticated && !!user) ? 'true' : 'false'}</div>
           </div>
         )}
         
