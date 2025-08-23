@@ -325,14 +325,20 @@ export function useAuth() {
   const [user, setUser] = useKV<AuthUser | null>('auth-user', null);
   const [adminConfig, setAdminConfig] = useKV<{ username: string; password: string }>('admin-config', { username: 'admin', password: '12345' });
   const [isLoading, setIsLoading] = React.useState(false);
+  const [authState, setAuthState] = React.useState<{ isAuthenticated: boolean; user: AuthUser | null }>({
+    isAuthenticated: false,
+    user: null
+  });
 
-  // Debug: log exact user state with more detail
+  // Sync auth state with user changes
   React.useEffect(() => {
-    console.log('🔄 AUTH HOOK STATE:', { 
+    const isAuth = Boolean(user);
+    setAuthState({ isAuthenticated: isAuth, user });
+    console.log('🔄 AUTH STATE SYNC:', { 
       hasUser: !!user, 
       characterName: user?.characterName,
       isAdmin: user?.isAdmin,
-      isAuthenticated: Boolean(user),
+      isAuthenticated: isAuth,
       timestamp: Date.now()
     });
   }, [user]);
@@ -340,14 +346,16 @@ export function useAuth() {
   const login = async (credentials: LoginCredentials): Promise<void> => {
     setIsLoading(true);
     console.log('🚀 Starting login for:', credentials.username);
+    console.log('🔧 Current user state before login:', user);
+    console.log('🔧 Current admin config:', adminConfig);
     
     try {
       const authUser = await authService.loginWithCredentials(credentials, adminConfig);
       console.log('✅ Auth service returned user:', authUser.characterName);
       
-      // Simple, direct update
-      setUser(authUser);
-      console.log('✅ User set in state');
+      // Use functional update to ensure consistency
+      setUser(() => authUser);
+      console.log('✅ User set in state via functional update');
       
     } catch (error) {
       console.error('❌ Login error:', error);
@@ -377,7 +385,7 @@ export function useAuth() {
       
       const storedState = JSON.parse(storedStateData) as ESIAuthState;
       const authUser = await authService.handleESICallback(code, state, storedState);
-      setUser(authUser);
+      setUser(() => authUser);
       
       // Clean up stored state
       sessionStorage.removeItem('esi-auth-state');
@@ -391,7 +399,7 @@ export function useAuth() {
 
   const logout = (): void => {
     console.log('🚪 Logging out user');
-    setUser(null);
+    setUser(() => null);
   };
 
   const refreshUserToken = async (): Promise<void> => {
@@ -416,9 +424,9 @@ export function useAuth() {
   };
 
   return {
-    user,
+    user: authState.user,
     isLoading,
-    isAuthenticated: Boolean(user),
+    isAuthenticated: authState.isAuthenticated,
     adminConfig,
     updateAdminConfig,
     login,

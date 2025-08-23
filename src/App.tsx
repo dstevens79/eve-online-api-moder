@@ -117,7 +117,7 @@ function App() {
 
   // Show login page if not authenticated
   if (!isAuthenticated || !user) {
-    console.log('🔐 No auth or user - showing login page');
+    console.log('🔐 No auth or user - showing login page. Auth:', isAuthenticated, 'User:', !!user);
     return <LoginPage />;
   }
 

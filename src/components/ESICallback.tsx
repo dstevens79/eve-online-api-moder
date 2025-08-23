@@ -37,19 +37,8 @@ export function ESICallback({ onLoginSuccess, onLoginError }: ESICallbackProps) 
       }
 
       try {
-        // Retrieve stored state
-        const storedStateData = sessionStorage.getItem('esi-auth-state');
-        if (!storedStateData) {
-          throw new Error('No stored authentication state found');
-        }
-
-        const storedState: ESIAuthState = JSON.parse(storedStateData);
-        
         // Handle the callback
-        await handleESICallback(code, state, storedState);
-        
-        // Clean up stored state
-        sessionStorage.removeItem('esi-auth-state');
+        await handleESICallback(code, state);
         
         setStatus('success');
         
