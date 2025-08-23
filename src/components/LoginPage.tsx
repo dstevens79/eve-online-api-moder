@@ -21,8 +21,14 @@ export function LoginPage() {
       hasUser: !!user,
       characterName: user?.characterName,
       isAuthenticated,
+      shouldRedirect: isAuthenticated && !!user,
       timestamp: Date.now()
     });
+    
+    // If user exists, this component should not be shown anymore
+    if (user) {
+      console.log('✅ User exists in LoginPage - App should handle redirect');
+    }
   }, [user, isAuthenticated]);
 
   const handleCredentialLogin = async (e?: React.FormEvent) => {
@@ -72,12 +78,17 @@ export function LoginPage() {
     console.log('🚀 Starting ESI authentication...');
     
     try {
+      // Mark that we're attempting ESI login
+      sessionStorage.setItem('esi-login-attempt', 'true');
+      
       const authUrl = loginWithESI();
       console.log('🔗 Redirecting to EVE SSO:', authUrl);
       window.location.href = authUrl;
     } catch (err) {
       console.error('❌ ESI login error:', err);
       setError(err instanceof Error ? err.message : 'Failed to start ESI authentication');
+      // Clean up attempt marker on error
+      sessionStorage.removeItem('esi-login-attempt');
     }
   };
 

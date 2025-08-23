@@ -58,8 +58,9 @@ export function ESICallback({ onLoginSuccess, onLoginError }: ESICallbackProps) 
   }, [handleESICallback, onLoginSuccess, onLoginError]);
 
   const handleRetry = () => {
-    // Clean up and redirect back to login
+    // Clean up all ESI-related session storage
     sessionStorage.removeItem('esi-auth-state');
+    sessionStorage.removeItem('esi-login-attempt');
     onLoginError?.();
   };
 

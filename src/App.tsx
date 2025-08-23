@@ -93,12 +93,28 @@ function App() {
     const urlParams = new URLSearchParams(window.location.search);
     const code = urlParams.get('code');
     const state = urlParams.get('state');
+    const esiLoginAttempt = sessionStorage.getItem('esi-login-attempt');
     
-    if (code && state) {
+    // Only process ESI callback if:
+    // 1. We have code and state parameters 
+    // 2. We have stored ESI auth state
+    // 3. There was an explicit ESI login attempt
+    if (code && state && esiLoginAttempt) {
       const storedStateData = sessionStorage.getItem('esi-auth-state');
       if (storedStateData) {
+        console.log('🔗 Detected valid ESI callback - showing ESI processor');
         setIsESICallback(true);
+      } else {
+        console.log('⚠️ ESI callback detected but no stored state - clearing URL');
+        // Clear invalid callback state
+        sessionStorage.removeItem('esi-login-attempt');
+        window.history.replaceState({}, document.title, window.location.pathname);
       }
+    } else if (code || state) {
+      // Clear any stray ESI parameters that aren't valid
+      console.log('⚠️ Clearing invalid ESI callback parameters');
+      window.history.replaceState({}, document.title, window.location.pathname);
+      sessionStorage.removeItem('esi-login-attempt');
     }
   }, []);
 
@@ -116,6 +132,10 @@ function App() {
     setActiveTab('dashboard');
     setSettingsExpanded(false);
     
+    // Clean up ESI-related session storage
+    sessionStorage.removeItem('esi-login-attempt');
+    sessionStorage.removeItem('esi-auth-state');
+    
     // Clear URL parameters after successful auth
     if (window.location.search) {
       window.history.replaceState({}, document.title, window.location.pathname);
@@ -124,6 +144,11 @@ function App() {
 
   const handleLoginError = () => {
     setIsESICallback(false);
+    
+    // Clean up ESI-related session storage
+    sessionStorage.removeItem('esi-login-attempt'); 
+    sessionStorage.removeItem('esi-auth-state');
+    
     // Clear URL parameters after failed auth
     if (window.location.search) {
       window.history.replaceState({}, document.title, window.location.pathname);

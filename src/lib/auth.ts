@@ -420,10 +420,14 @@ export function useAuth() {
       const authUser = await authService.handleESICallback(code, state, storedState);
       setUser(() => authUser);
       
-      // Clean up stored state
+      // Clean up all ESI-related session storage
       sessionStorage.removeItem('esi-auth-state');
+      sessionStorage.removeItem('esi-login-attempt');
     } catch (error) {
       console.error('ESI callback error:', error);
+      // Clean up on error too
+      sessionStorage.removeItem('esi-auth-state');
+      sessionStorage.removeItem('esi-login-attempt');
       throw error;
     } finally {
       setIsLoading(false);
