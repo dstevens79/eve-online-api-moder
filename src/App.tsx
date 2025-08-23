@@ -71,7 +71,7 @@ function App() {
       setActiveTab('dashboard');
       setSettingsExpanded(false);
     }
-  }, [user, isAuthenticated, activeTab]);
+  }, [user, isAuthenticated, activeTab, setActiveTab, setSettingsExpanded]);
 
   // Check if this is an ESI callback
   useEffect(() => {
@@ -129,13 +129,13 @@ function App() {
   }
 
   // Show login page if not authenticated or no user data
-  // Don't use a derived variable - check directly in the conditional
-  const shouldShowApp = isAuthenticated && !!user;
+  // Simple, clear logic: if we have a user AND are authenticated, show the app
+  const shouldShowApp = Boolean(user && isAuthenticated);
   const shouldShowLogin = !shouldShowApp && !isESICallback;
   
-  console.log('App render check:', { 
+  console.log('App render decision:', { 
+    hasUser: !!user,
     isAuthenticated, 
-    hasUser: !!user, 
     shouldShowApp,
     shouldShowLogin,
     isESICallback,
@@ -144,14 +144,19 @@ function App() {
     timestamp: Date.now()
   });
   
-  // Simple check: if we don't have a user AND we're authenticated, show app
+  // Simple check: if we don't have a user AND are authenticated, show app
   // If we don't have both, show login page (unless it's an ESI callback)
   if (shouldShowLogin) {
     console.log('Showing login page - missing auth or user data');
     return <LoginPage />;
   }
 
-  console.log('Showing main app for user:', user?.characterName);
+  if (!shouldShowApp) {
+    console.log('Auth state unclear, showing login for safety');
+    return <LoginPage />;
+  }
+
+  console.log('Showing main app for user:', user?.characterName, 'with admin permissions:', user?.isAdmin);
 
   const tabs = [
     { id: 'dashboard', label: 'Dashboard', icon: House, component: Dashboard },

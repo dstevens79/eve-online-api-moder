@@ -335,14 +335,17 @@ export function useAuth() {
       userUndefined: user === undefined,
       userNull: user === null,
       rawUserValue: user,
-
-  // Force component re-render when auth state should change
+    });
     
     if (user) {
       console.log('✅ User is set and available:', user.characterName);
     } else {
       console.log('❌ No user available, should show login page');
     }
+  }, [user]);
+
+  const login = async (credentials: LoginCredentials): Promise<void> => {
+    setIsLoading(true);
     try {
       const authUser = await authService.loginWithCredentials(credentials, adminConfig);
       console.log('Auth successful, setting user:', authUser.characterName);
@@ -351,6 +354,17 @@ export function useAuth() {
       setUser(authUser);
       
       console.log('User set successfully');
+      
+      // Verify the user was actually set
+      setTimeout(async () => {
+        console.log('Post-login verification - checking if user was actually stored...');
+        try {
+          const storedUser = await spark.kv.get('auth-user');
+          console.log('Stored user check:', storedUser);
+        } catch (e) {
+          console.error('Error checking stored user:', e);
+        }
+      }, 100);
       
     } catch (error) {
       console.error('Auth error:', error);
@@ -361,19 +375,32 @@ export function useAuth() {
   };
 
   const updateAdminConfig = (newConfig: { username: string; password: string }): void => {
-      // Verify the user was actually set
-      setTimeout(async () => {
-        console.log('Post-login verification - checking if user was actually stored...');
-        try {
-          const storedUser = await spark.kv.get('auth-user');
-          console.log('Stored user check:', storedUser);
-        } catch (e) {
-          console.error('Error checking stored user:', e);
-        }
+    setAdminConfig(newConfig);
+  };
+
+  const loginWithESI = (): string => {
+    const { url, state } = authService.generateESIAuthUrl();
+    sessionStorage.setItem('esi-auth-state', JSON.stringify(state));
+    return url;
+  };
+
+  const handleESICallback = async (code: string, state: string): Promise<void> => {
     setIsLoading(true);
-      }, 100);
+    try {
+      const storedStateData = sessionStorage.getItem('esi-auth-state');
+      if (!storedStateData) {
+        throw new Error('No stored ESI auth state found');
+      }
+      
+      const storedState = JSON.parse(storedStateData) as ESIAuthState;
       const authUser = await authService.handleESICallback(code, state, storedState);
       setUser(authUser);
+      
+      // Clean up stored state
+      sessionStorage.removeItem('esi-auth-state');
+    } catch (error) {
+      console.error('ESI callback error:', error);
+      throw error;
     } finally {
       setIsLoading(false);
     }
