@@ -378,14 +378,17 @@ export function useAuth() {
       const authUser = await authService.loginWithCredentials(credentials, adminConfig);
       console.log('✅ Auth service returned user:', authUser.characterName);
       
-      // Set user using functional update for consistency
-      setUser(() => {
-        console.log('🔄 Setting user in state:', authUser.characterName);
-        console.log('🔄 User state should now trigger App to show main interface');
-        // Trigger auth state change to force re-renders
-        setAuthTrigger(prev => prev + 1);
-        return authUser;
-      });
+      // Update auth trigger first to prepare for state change
+      setAuthTrigger(prev => prev + 1);
+      
+      // Set user with explicit logging
+      console.log('🔄 Setting user in state:', authUser.characterName);
+      setUser(authUser);
+      
+      // Force a small delay to ensure state propagation
+      await new Promise(resolve => setTimeout(resolve, 100));
+      
+      console.log('🔄 User state should now trigger App to show main interface');
       
     } catch (error) {
       console.error('❌ Login error:', error);

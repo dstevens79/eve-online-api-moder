@@ -56,11 +56,24 @@ function App() {
 
   // Force re-render when user changes to ensure UI updates
   React.useEffect(() => {
+    console.log('🔄 User state changed:', {
+      hasUser: !!user,
+      characterName: user?.characterName,
+      timestamp: Date.now()
+    });
+    
     if (user) {
-      console.log('🔄 User state changed, forcing re-render');
+      console.log('✅ User object exists - should show main app');
       setForceRender(prev => prev + 1);
+    } else {
+      console.log('❌ No user object - should show login');
     }
   }, [user]);
+
+  // Log auth trigger changes separately  
+  React.useEffect(() => {
+    console.log('🔄 Auth trigger changed:', authTrigger);
+  }, [authTrigger]);
 
   // Simple, clear auth state logging
   React.useEffect(() => {
@@ -73,12 +86,6 @@ function App() {
       authTrigger,
       timestamp: Date.now()
     });
-    
-    if (user) {
-      console.log('✅ User is authenticated, app should show main interface');
-    } else {
-      console.log('❌ No user, showing login page');
-    }
   }, [user, isAuthenticated, forceRender, authTrigger]);
 
   // Check if this is an ESI callback

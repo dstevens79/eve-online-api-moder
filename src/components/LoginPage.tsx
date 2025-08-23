@@ -41,8 +41,24 @@ export function LoginPage() {
     try {
       setDebugInfo('Calling auth service...');
       await login(credentials);
-      setDebugInfo('✅ Login successful - should redirect to dashboard');
+      
+      setDebugInfo('✅ Login successful - checking user state...');
       console.log('✅ Login successful');
+      
+      // Wait a moment for state to propagate and check
+      setTimeout(() => {
+        console.log('🔍 Post-login check - User state:', { 
+          hasUser: !!user, 
+          characterName: user?.characterName 
+        });
+        
+        if (user) {
+          setDebugInfo('✅ User state confirmed - login complete');
+        } else {
+          setDebugInfo('⚠️ Login succeeded but user state not updated yet');
+        }
+      }, 200);
+      
     } catch (err) {
       console.error('❌ Login error:', err);
       const errorMessage = err instanceof Error ? err.message : 'Login failed';

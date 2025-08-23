@@ -1,180 +1,141 @@
 import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
-import { Check, X } from '@phosphor-icons/react';
-
-// Import the actual auth service to test
-import { authService } from '@/lib/auth';
-
-interface TestResult {
-  testName: string;
-  success: boolean;
-  error?: string;
-  user?: any;
-}
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { useAuth } from '@/lib/auth';
 
 export function AdminLoginTest() {
-  const [testResults, setTestResults] = useState<TestResult[]>([]);
-  const [isRunning, setIsRunning] = useState(false);
+  const { user, isAuthenticated, login, logout, authTrigger, isLoading } = useAuth();
+  const [testCredentials, setTestCredentials] = useState({ username: 'admin', password: '12345' });
+  const [testResults, setTestResults] = useState<string[]>([]);
+  const [isRunningTest, setIsRunningTest] = useState(false);
 
-  const runTests = async () => {
-    setIsRunning(true);
+  const log = (message: string) => {
+    console.log(message);
+    setTestResults(prev => [...prev, `${new Date().toLocaleTimeString()}: ${message}`]);
+  };
+
+  const clearResults = () => {
     setTestResults([]);
-    const results: TestResult[] = [];
+  };
 
-    // Test 1: Valid admin credentials
+  const testDirectLogin = async () => {
+    setIsRunningTest(true);
+    clearResults();
+    
     try {
-      const user = await authService.loginWithCredentials({ username: 'admin', password: '12345' });
-      results.push({
-        testName: 'Valid admin credentials (admin/12345)',
-        success: true,
-        user: user
-      });
+      log('🧪 Starting direct login test with admin/12345');
+      log(`🔍 Before login: user=${user?.characterName || 'null'}, authenticated=${isAuthenticated}`);
+      
+      await login(testCredentials);
+      
+      log(`🔍 After login: user=${user?.characterName || 'null'}, authenticated=${isAuthenticated}`);
+      log('✅ Login completed successfully');
+      
+      // Wait and check again to see if state propagated
+      setTimeout(() => {
+        log(`🔍 1 second later: user=${user?.characterName || 'null'}, authenticated=${isAuthenticated}, trigger=${authTrigger}`);
+      }, 1000);
+      
     } catch (error) {
-      results.push({
-        testName: 'Valid admin credentials (admin/12345)',
-        success: false,
-        error: error instanceof Error ? error.message : 'Unknown error'
-      });
+      log(`❌ Login failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    } finally {
+      setIsRunningTest(false);
     }
+  };
 
-    // Test 2: Valid admin credentials with whitespace
-    try {
-      const user = await authService.loginWithCredentials({ username: '  admin  ', password: '  12345  ' });
-      results.push({
-        testName: 'Valid admin credentials with whitespace',
-        success: true,
-        user: user
-      });
-    } catch (error) {
-      results.push({
-        testName: 'Valid admin credentials with whitespace',
-        success: false,
-        error: error instanceof Error ? error.message : 'Unknown error'
-      });
-    }
-
-    // Test 3: Invalid credentials
-    try {
-      const user = await authService.loginWithCredentials({ username: 'admin', password: 'wrong' });
-      results.push({
-        testName: 'Invalid credentials (should fail)',
-        success: false, // This should fail
-        user: user
-      });
-    } catch (error) {
-      results.push({
-        testName: 'Invalid credentials (should fail)',
-        success: true, // Success means it correctly rejected invalid creds
-        error: error instanceof Error ? error.message : 'Unknown error'
-      });
-    }
-
-    // Test 4: Empty credentials
-    try {
-      const user = await authService.loginWithCredentials({ username: '', password: '' });
-      results.push({
-        testName: 'Empty credentials (should fail)',
-        success: false, // This should fail
-        user: user
-      });
-    } catch (error) {
-      results.push({
-        testName: 'Empty credentials (should fail)',
-        success: true, // Success means it correctly rejected empty creds
-        error: error instanceof Error ? error.message : 'Unknown error'
-      });
-    }
-
-    // Test 5: Custom admin config
-    try {
-      const customConfig = { username: 'customadmin', password: 'custompass' };
-      const user = await authService.loginWithCredentials({ username: 'customadmin', password: 'custompass' }, customConfig);
-      results.push({
-        testName: 'Custom admin config',
-        success: true,
-        user: user
-      });
-    } catch (error) {
-      results.push({
-        testName: 'Custom admin config',
-        success: false,
-        error: error instanceof Error ? error.message : 'Unknown error'
-      });
-    }
-
-    setTestResults(results);
-    setIsRunning(false);
+  const testLogout = () => {
+    log('🧪 Testing logout');
+    logout();
+    log('✅ Logout completed');
   };
 
   return (
-    <div className="max-w-4xl mx-auto p-6">
+    <div className="space-y-6">
       <Card>
         <CardHeader>
-          <CardTitle className="flex items-center gap-3">
-            Admin Login Functionality Test
+          <CardTitle>Admin Login Test</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          {/* Current State */}
+          <Alert>
+            <AlertDescription>
+              <div className="space-y-1">
+                <div><strong>User:</strong> {user?.characterName || 'None'}</div>
+                <div><strong>Authenticated:</strong> {isAuthenticated.toString()}</div>
+                <div><strong>Is Admin:</strong> {user?.isAdmin?.toString() || 'false'}</div>
+                <div><strong>Auth Trigger:</strong> {authTrigger}</div>
+                <div><strong>Loading:</strong> {isLoading.toString()}</div>
+              </div>
+            </AlertDescription>
+          </Alert>
+
+          {/* Test Credentials */}
+          <div className="grid grid-cols-2 gap-2">
+            <Input
+              placeholder="Username"
+              value={testCredentials.username}
+              onChange={(e) => setTestCredentials(prev => ({ ...prev, username: e.target.value }))}
+            />
+            <Input
+              type="password"
+              placeholder="Password"
+              value={testCredentials.password}
+              onChange={(e) => setTestCredentials(prev => ({ ...prev, password: e.target.value }))}
+            />
+          </div>
+
+          {/* Test Actions */}
+          <div className="flex gap-2">
             <Button 
-              onClick={runTests} 
-              disabled={isRunning}
-              variant="outline"
+              onClick={testDirectLogin} 
+              disabled={isRunningTest || isLoading}
+              className="flex-1"
+            >
+              {isRunningTest ? 'Testing...' : 'Test Login'}
+            </Button>
+            
+            {user && (
+              <Button 
+                onClick={testLogout}
+                variant="outline"
+                className="flex-1"
+              >
+                Test Logout
+              </Button>
+            )}
+            
+            <Button 
+              onClick={clearResults}
+              variant="ghost"
               size="sm"
             >
-              {isRunning ? 'Running Tests...' : 'Run Tests'}
+              Clear
             </Button>
-          </CardTitle>
-        </CardHeader>
-        
-        <CardContent>
-          {testResults.length === 0 && !isRunning && (
-            <p className="text-muted-foreground">Click "Run Tests" to verify admin login functionality</p>
-          )}
-          
-          {isRunning && (
-            <p className="text-muted-foreground">Running authentication tests...</p>
-          )}
-          
-          <div className="space-y-4">
-            {testResults.map((result, index) => (
-              <div key={index} className="border rounded-lg p-4">
-                <div className="flex items-center justify-between mb-2">
-                  <h4 className="font-medium">{result.testName}</h4>
-                  <Badge variant={result.success ? "default" : "destructive"}>
-                    {result.success ? (
-                      <><Check size={14} className="mr-1" /> PASS</>
-                    ) : (
-                      <><X size={14} className="mr-1" /> FAIL</>
-                    )}
-                  </Badge>
-                </div>
-                
-                {result.error && (
-                  <p className="text-sm text-muted-foreground mb-2">
-                    Error: {result.error}
-                  </p>
-                )}
-                
-                {result.user && (
-                  <div className="text-sm text-muted-foreground">
-                    <p>Character: {result.user.characterName}</p>
-                    <p>Corporation: {result.user.corporationName}</p>
-                    <p>Admin: {result.user.isAdmin ? 'Yes' : 'No'}</p>
-                    <p>Director: {result.user.isDirector ? 'Yes' : 'No'}</p>
-                    <p>CEO: {result.user.isCeo ? 'Yes' : 'No'}</p>
-                  </div>
-                )}
-              </div>
-            ))}
           </div>
-          
+
+          {/* Test Results */}
           {testResults.length > 0 && (
-            <div className="mt-6 p-4 bg-muted rounded-lg">
-              <h4 className="font-medium mb-2">Test Summary</h4>
-              <p className="text-sm">
-                Passed: {testResults.filter(r => r.success).length} / {testResults.length}
-              </p>
+            <div className="bg-muted p-3 rounded-lg max-h-40 overflow-y-auto">
+              <div className="text-sm font-mono space-y-1">
+                {testResults.map((result, index) => (
+                  <div key={index} className="text-xs">
+                    {result}
+                  </div>
+                ))}
+              </div>
             </div>
           )}
+
+          {/* Expected Behavior */}
+          <div className="text-xs text-muted-foreground space-y-1">
+            <p><strong>Expected Behavior:</strong></p>
+            <p>1. Click "Test Login" should authenticate with admin/12345</p>
+            <p>2. User state should update to "Local Administrator"</p>
+            <p>3. App should redirect to main dashboard</p>
+            <p>4. All navigation tabs should become accessible</p>
+          </div>
         </CardContent>
       </Card>
     </div>

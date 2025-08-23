@@ -50,6 +50,7 @@ import { eveApi, type CharacterInfo, type CorporationInfo } from '@/lib/eveApi';
 import { DatabaseManager, DatabaseConfig, DatabaseStatus, defaultDatabaseConfig, TableInfo } from '@/lib/database';
 import { useSDEManager, type SDEDatabaseStats } from '@/lib/sdeService';
 import { AdminLoginTest } from '@/components/AdminLoginTest';
+import { SimpleLoginTest } from '@/components/SimpleLoginTest';
 
 interface SyncStatus {
   isRunning: boolean;
@@ -1967,8 +1968,17 @@ export function Settings({ activeTab, onTabChange }: SettingsProps) {
                 Admin Login Function Test
               </CardTitle>
             </CardHeader>
-            <CardContent>
+            <CardContent className="space-y-4">
               <AdminLoginTest />
+            </CardContent>
+          </Card>
+          
+          <Card>
+            <CardHeader>
+              <CardTitle>Simple Auth Service Test</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <SimpleLoginTest />
             </CardContent>
           </Card>
         </TabsContent>
