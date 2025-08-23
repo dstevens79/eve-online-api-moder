@@ -61,9 +61,17 @@ function App() {
       isAuthenticated, 
       isAdmin: user?.isAdmin,
       shouldShowApp: isAuthenticated && !!user,
+      currentActiveTab: activeTab,
       timestamp: Date.now()
     });
-  }, [user, isAuthenticated]);
+    
+    // If user just logged in, ensure we're on dashboard
+    if (isAuthenticated && user && activeTab !== 'dashboard') {
+      console.log('User authenticated, resetting to dashboard from:', activeTab);
+      setActiveTab('dashboard');
+      setSettingsExpanded(false);
+    }
+  }, [user, isAuthenticated, activeTab]);
 
   // Check if this is an ESI callback
   useEffect(() => {
@@ -89,8 +97,13 @@ function App() {
 
   // Handle successful authentication
   const handleLoginSuccess = () => {
-    console.log('App.handleLoginSuccess called - clearing ESI callback state');
+    console.log('App.handleLoginSuccess called - clearing ESI callback state and resetting to dashboard');
     setIsESICallback(false);
+    
+    // Reset to dashboard on successful login
+    setActiveTab('dashboard');
+    setSettingsExpanded(false);
+    
     // Clear URL parameters after successful auth
     if (window.location.search) {
       window.history.replaceState({}, document.title, window.location.pathname);

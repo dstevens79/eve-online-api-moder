@@ -31,9 +31,10 @@ export function LoginPage() {
 
     setIsLocalLoginLoading(true);
     try {
+      console.log('LoginPage - calling auth.login...');
       await login(credentials);
-      console.log('LoginPage - login successful, user should be set in auth state');
-      // No callback needed - App.tsx will handle navigation based on auth state
+      console.log('LoginPage - login successful');
+      
     } catch (err) {
       console.error('LoginPage - login error:', err);
       setError(err instanceof Error ? err.message : 'Login failed');
@@ -54,9 +55,10 @@ export function LoginPage() {
     setIsLocalLoginLoading(true);
     
     try {
+      console.log('Direct login - calling auth.login...');
       await login({ username: 'admin', password: '12345' });
-      console.log('Direct login successful, auth state should be updated');
-      // No callback needed - App.tsx will handle navigation based on auth state
+      console.log('Direct login successful');
+      
     } catch (err) {
       console.error('Direct login failed:', err);
       setError(err instanceof Error ? err.message : 'Login failed');
@@ -185,6 +187,10 @@ export function LoginPage() {
                 disabled={isLocalLoginLoading}
                 className="w-full bg-primary hover:bg-primary/90 active:bg-primary/80 text-primary-foreground border-primary/20 transition-all duration-200 hover:shadow-lg hover:shadow-primary/20 active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:shadow-none disabled:active:scale-100"
                 variant="default"
+                onClick={(e) => {
+                  console.log('Sign In button clicked');
+                  handleCredentialLogin(e);
+                }}
               >
                 {isLocalLoginLoading ? 'Signing in...' : 'Sign In'}
               </Button>
@@ -203,15 +209,25 @@ export function LoginPage() {
                   <Button
                     variant="outline"
                     size="sm"
-                    onClick={() => {
-                      console.log('Debug login button clicked - setting credentials');
+                    onClick={async (e) => {
+                      e.preventDefault();
+                      e.stopPropagation();
+                      console.log('Debug login button clicked - bypassing all form logic');
                       setCredentials({ username: 'admin', password: '12345' });
                       setError(null);
-                      // Auto-submit the form after setting credentials
-                      setTimeout(async () => {
-                        console.log('Auto-submitting debug login');
-                        await handleCredentialLogin();
-                      }, 100);
+                      setIsLocalLoginLoading(true);
+                      
+                      try {
+                        // Directly call login without any form handling
+                        console.log('Direct auth call...');
+                        await login({ username: 'admin', password: '12345' });
+                        console.log('Auth call completed successfully');
+                      } catch (err) {
+                        console.error('Direct auth failed:', err);
+                        setError(err instanceof Error ? err.message : 'Login failed');
+                      } finally {
+                        setIsLocalLoginLoading(false);
+                      }
                     }}
                     className="text-xs"
                     disabled={isLocalLoginLoading}
