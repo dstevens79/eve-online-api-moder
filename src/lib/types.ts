@@ -231,3 +231,33 @@ export type TabType =
   | 'killmails' 
   | 'market' 
   | 'settings';
+
+export interface CorpSettings {
+  corpName: string;
+  corpTicker: string;
+  corpId?: number;
+  timezone: string;
+  language: string;
+  notifications: {
+    manufacturing: boolean;
+    mining: boolean;
+    killmails: boolean;
+    markets: boolean;
+  };
+  apiKeys: Array<{
+    id: string;
+    name: string;
+    keyId: string;
+    status: 'active' | 'expired' | 'invalid';
+    permissions: string[];
+    lastUsed?: string;
+  }>;
+  eveOnlineSync: {
+    enabled: boolean;
+    autoSync: boolean;
+    syncInterval: number; // minutes
+    lastSync?: string;
+    characterId?: number;
+    corporationId?: number;
+  };
+}

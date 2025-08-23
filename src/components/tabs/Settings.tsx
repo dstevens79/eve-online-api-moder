@@ -26,38 +26,9 @@ import {
   Refresh
 } from '@phosphor-icons/react';
 import { useKV } from '@github/spark/hooks';
+import { CorpSettings } from '@/lib/types';
 import { toast } from 'sonner';
 import { eveApi, type CharacterInfo, type CorporationInfo } from '@/lib/eveApi';
-
-interface CorpSettings {
-  corpName: string;
-  corpTicker: string;
-  corpId?: number;
-  timezone: string;
-  language: string;
-  notifications: {
-    manufacturing: boolean;
-    mining: boolean;
-    killmails: boolean;
-    markets: boolean;
-  };
-  apiKeys: Array<{
-    id: string;
-    name: string;
-    keyId: string;
-    status: 'active' | 'expired' | 'invalid';
-    permissions: string[];
-    lastUsed?: string;
-  }>;
-  eveOnlineSync: {
-    enabled: boolean;
-    autoSync: boolean;
-    syncInterval: number; // minutes
-    lastSync?: string;
-    characterId?: number;
-    corporationId?: number;
-  };
-}
 
 interface SyncStatus {
   isRunning: boolean;

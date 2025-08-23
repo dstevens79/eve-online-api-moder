@@ -31,7 +31,7 @@ import {
   Refresh,
   Globe
 } from '@phosphor-icons/react';
-import { ManufacturingJob, Blueprint, ProductionPlan, MaterialRequirement } from '@/lib/types';
+import { ManufacturingJob, Blueprint, ProductionPlan, MaterialRequirement, CorpSettings } from '@/lib/types';
 import { JobDetailsDialog } from '@/components/manufacturing/JobDetailsDialog';
 import { BlueprintDetailsDialog } from '@/components/manufacturing/BlueprintDetailsDialog';
 import { ProductionPlanDialog } from '@/components/manufacturing/ProductionPlanDialog';
@@ -41,7 +41,27 @@ export function Manufacturing() {
   const [activeJobs, setActiveJobs] = useKV<ManufacturingJob[]>('manufacturing-jobs', []);
   const [blueprints, setBlueprints] = useKV<Blueprint[]>('blueprints-library', []);
   const [productionPlans, setProductionPlans] = useKV<ProductionPlan[]>('production-plans', []);
-  const [settings] = useKV('corp-settings', { eveOnlineSync: { enabled: false, corporationId: 498125261 } });
+  const [settings] = useKV<CorpSettings>('corp-settings', {
+    corpName: 'Test Alliance Please Ignore',
+    corpTicker: 'TEST',
+    corpId: 498125261,
+    timezone: 'UTC',
+    language: 'en',
+    notifications: {
+      manufacturing: true,
+      mining: true,
+      killmails: false,
+      markets: true,
+    },
+    apiKeys: [],
+    eveOnlineSync: {
+      enabled: false,
+      autoSync: false,
+      syncInterval: 30,
+      corporationId: 498125261,
+      characterId: 91316135
+    }
+  });
   
   const [selectedTab, setSelectedTab] = useState('jobs');
   const [newJobDialogOpen, setNewJobDialogOpen] = useState(false);
@@ -53,8 +73,8 @@ export function Manufacturing() {
 
   // EVE Online integration
   const { data: eveData, refreshData, refreshIndustryJobs } = useEVEData(
-    settings.eveOnlineSync?.corporationId,
-    settings.eveOnlineSync?.characterId
+    settings?.eveOnlineSync?.corporationId,
+    settings?.eveOnlineSync?.characterId
   );
 
   // Initialize with sample data if empty
@@ -288,7 +308,7 @@ export function Manufacturing() {
           <h3 className="text-lg font-semibold">Manufacturing Jobs</h3>
           <p className="text-sm text-muted-foreground">
             Monitor ongoing production activities
-            {settings.eveOnlineSync?.enabled && eveData.industryJobs.length > 0 && (
+            {settings?.eveOnlineSync?.enabled && eveData.industryJobs.length > 0 && (
               <span className="ml-2 text-green-400">
                 • {eveData.industryJobs.length} EVE jobs detected
               </span>
@@ -296,7 +316,7 @@ export function Manufacturing() {
           </p>
         </div>
         <div className="flex gap-2">
-          {settings.eveOnlineSync?.enabled && (
+          {settings?.eveOnlineSync?.enabled && (
             <Button 
               variant="outline" 
               size="sm"
@@ -319,7 +339,7 @@ export function Manufacturing() {
       </div>
 
       {/* EVE Online Jobs Section */}
-      {settings.eveOnlineSync?.enabled && eveData.industryJobs.length > 0 && (
+      {settings?.eveOnlineSync?.enabled && eveData.industryJobs.length > 0 && (
         <div className="space-y-4">
           <div className="flex items-center gap-2">
             <Globe size={18} className="text-green-400" />
@@ -725,7 +745,7 @@ export function Manufacturing() {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm text-muted-foreground">EVE Data</p>
-                {settings.eveOnlineSync?.enabled ? (
+                {settings?.eveOnlineSync?.enabled ? (
                   <div>
                     <p className="text-sm font-bold text-green-400">Connected</p>
                     {eveData.lastUpdate && (
@@ -739,8 +759,8 @@ export function Manufacturing() {
                 )}
               </div>
               <div className="flex flex-col items-center gap-1">
-                <Globe size={20} className={settings.eveOnlineSync?.enabled ? 'text-green-400' : 'text-muted-foreground'} />
-                {settings.eveOnlineSync?.enabled && (
+                <Globe size={20} className={settings?.eveOnlineSync?.enabled ? 'text-green-400' : 'text-muted-foreground'} />
+                {settings?.eveOnlineSync?.enabled && (
                   <Button
                     size="sm"
                     variant="ghost"
