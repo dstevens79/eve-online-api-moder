@@ -228,7 +228,8 @@ function App() {
   ];
 
   const handleTabChange = (value: string) => {
-    console.log('🔄 Tab change request:', value);
+    console.log('🔄 Tab change request:', value, 'Current user:', user?.characterName || 'null');
+    console.log('🔄 Tab change - Auth state:', { hasUser: !!user, isAuthenticated, authTrigger });
     
     // Always allow navigation, but content will show login prompt if needed
     if (value === 'settings') {
@@ -242,6 +243,8 @@ function App() {
       setActiveTab(value as TabType);
       setSettingsExpanded(false);
     }
+    
+    console.log('✅ Tab change complete - new active tab:', value);
   };
 
   const handleSettingsTabChange = (value: string) => {

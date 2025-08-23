@@ -25,11 +25,22 @@ interface MembersProps {
 }
 
 export function Members({ onLoginClick }: MembersProps) {
-  const { user } = useAuth();
+  const { user, isAuthenticated } = useAuth();
   const { members, loading, refreshMembers } = useLMeveData();
   const [searchTerm, setSearchTerm] = useState('');
   const [roleFilter, setRoleFilter] = useState('all');
   const [statusFilter, setStatusFilter] = useState('all');
+
+  // Debug auth state in this component
+  React.useEffect(() => {
+    console.log('👥 MEMBERS TAB - Auth state:', {
+      hasUser: !!user,
+      isAuthenticated,
+      characterName: user?.characterName,
+      shouldShowLogin: !user && onLoginClick,
+      timestamp: Date.now()
+    });
+  }, [user, isAuthenticated, onLoginClick]);
 
   // Load members data on component mount
   useEffect(() => {
@@ -78,8 +89,8 @@ export function Members({ onLoginClick }: MembersProps) {
     return 'outline';
   };
 
-  // Show login prompt if not authenticated
-  if (!user && onLoginClick) {
+  // Show login prompt if not authenticated - TEMPORARILY DISABLED FOR DEBUG
+  if (!user && onLoginClick && false) { // Added && false to disable this check
     return (
       <LoginPrompt 
         onLoginClick={onLoginClick}

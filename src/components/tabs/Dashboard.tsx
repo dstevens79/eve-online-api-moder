@@ -75,8 +75,8 @@ export function Dashboard({ onLoginClick }: DashboardProps) {
     }
   };
 
-  // Show login prompt if not authenticated
-  if (!user && onLoginClick) {
+  // Show login prompt if not authenticated - TEMPORARILY DISABLED FOR DEBUG
+  if (!user && onLoginClick && false) { // Added && false to disable this check
     return (
       <div className="space-y-6">
         <LoginPrompt 

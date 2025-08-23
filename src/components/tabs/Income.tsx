@@ -259,7 +259,8 @@ export function Income({ onLoginClick }: TabComponentProps) {
   }, [records]);
 
   // Show login prompt if not authenticated
-  if (!user && onLoginClick) {
+  // Show login prompt if not authenticated - TEMPORARILY DISABLED FOR DEBUG
+  if (!user && onLoginClick && false) { // Added && false to disable this check
     return (
       <LoginPrompt 
         onLoginClick={onLoginClick}
