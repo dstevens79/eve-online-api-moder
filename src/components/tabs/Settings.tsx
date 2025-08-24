@@ -1440,15 +1440,6 @@ export function Settings({ activeTab, onTabChange }: SettingsProps) {
           </Card>
         </TabsContent>
                   </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="userAgent">User Agent</Label>
-                    <Input
-                      id="userAgent"
-                      value={esiConfig.userAgent}
-                      onChange={(e) => setESIConfig(c => ({ ...c, userAgent: e.target.value }))}
-                      placeholder="Your Application Name"
-                    />
-                  </div>
                 </div>
               </div>
 
