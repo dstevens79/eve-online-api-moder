@@ -1742,12 +1742,12 @@ export function Settings({ activeTab, onTabChange }: SettingsProps) {
           </Card>
         </TabsContent>
 
-        <TabsContent value="test" className="space-y-6">
+        <TabsContent value="debug" className="space-y-6">
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-3">
                 <UserCheck size={20} />
-                Admin Login Function Test
+                Authentication Debug
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
@@ -1761,6 +1761,69 @@ export function Settings({ activeTab, onTabChange }: SettingsProps) {
             </CardHeader>
             <CardContent>
               <SimpleLoginTest />
+            </CardContent>
+          </Card>
+          
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-3">
+                <Info size={20} />
+                System Debug Information
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label>Current User</Label>
+                  <div className="p-3 border border-border rounded bg-muted/50 font-mono text-sm">
+                    {user ? (
+                      <div>
+                        <div>Name: {user.characterName}</div>
+                        <div>Corp: {user.corporationName}</div>
+                        <div>ID: {user.characterId}</div>
+                        <div>Admin: {user.isAdmin ? 'Yes' : 'No'}</div>
+                        <div>Auth: {user.authMethod}</div>
+                        <div>ESI Access: {user.canManageESI ? 'Yes' : 'No'}</div>
+                      </div>
+                    ) : (
+                      'No user logged in'
+                    )}
+                  </div>
+                </div>
+                
+                <div className="space-y-2">
+                  <Label>Corporation Registry</Label>
+                  <div className="p-3 border border-border rounded bg-muted/50 font-mono text-sm max-h-32 overflow-y-auto">
+                    {registeredCorps && Object.keys(registeredCorps).length > 0 ? (
+                      Object.entries(registeredCorps).map(([corpId, corp]) => (
+                        <div key={corpId} className="text-xs">
+                          {corp.corporationName} ({corpId})
+                        </div>
+                      ))
+                    ) : (
+                      'No corporations registered'
+                    )}
+                  </div>
+                </div>
+                
+                <div className="space-y-2">
+                  <Label>Admin Configuration</Label>
+                  <div className="p-3 border border-border rounded bg-muted/50 font-mono text-sm">
+                    <div>Username: {adminConfig.username}</div>
+                    <div>Password Set: {adminConfig.password ? 'Yes' : 'No'}</div>
+                  </div>
+                </div>
+                
+                <div className="space-y-2">
+                  <Label>ESI Configuration Status</Label>
+                  <div className="p-3 border border-border rounded bg-muted/50 font-mono text-sm">
+                    <div>Client ID: {esiConfig.clientId ? 'Configured' : 'Not Set'}</div>
+                    <div>Secret: {esiConfig.clientSecret ? 'Configured' : 'Not Set'}</div>
+                    <div>Callback: {esiConfig.callbackUrl || 'Default'}</div>
+                    <div>Scopes: {esiConfig.scopes?.length || 0} configured</div>
+                  </div>
+                </div>
+              </div>
             </CardContent>
           </Card>
         </TabsContent>

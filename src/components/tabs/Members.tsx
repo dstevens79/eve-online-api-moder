@@ -44,10 +44,17 @@ export function Members({ onLoginClick }: MembersProps) {
 
   // Load members data on component mount
   useEffect(() => {
-    if (members.length === 0 && !loading.members) {
+    console.log('👥 Members effect - checking if should load data:', {
+      membersLength: members.length,
+      isLoading: loading.members,
+      hasUser: !!user
+    });
+    
+    if (user && members.length === 0 && !loading.members) {
+      console.log('👥 Loading members data...');
       refreshMembers();
     }
-  }, [members.length, loading.members, refreshMembers]);
+  }, [user]); // Only depend on user, not the other values to prevent loops
 
   const filteredMembers = members.filter(member => {
     const matchesSearch = member.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
