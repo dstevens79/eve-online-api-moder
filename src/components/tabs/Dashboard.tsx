@@ -4,18 +4,10 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { EVEApiStatus } from '@/components/EVEApiStatus';
 import { LoginPrompt } from '@/components/LoginPrompt';
-import { LoginDebug } from '@/components/LoginDebug';
-import { AuthServiceTest } from '@/components/AuthServiceTest';
-import { DebugAuthTest } from '@/components/DebugAuthTest';
-import { SimpleAuthTest } from '@/components/SimpleAuthTest';
-import { FixedLoginTest } from '@/components/FixedLoginTest';
-import { AuthStatusDisplay } from '@/components/AuthStatusDisplay';
-import { AuthFlowTest } from '@/components/AuthFlowTest';
-import { NavigationTest } from '@/components/NavigationTest';
-import { KVStorageTest } from '@/components/KVStorageTest';
-import { ComprehensiveAuthTest } from '@/components/ComprehensiveAuthTest';
+import { SimpleAuthStatus } from '@/components/SimpleAuthStatus';
+
 import { useLMeveData } from '@/lib/LMeveDataContext';
-import { useAuth } from '@/lib/auth';
+import { useCorporationAuth } from '@/lib/corp-auth';
 import { 
   Users, 
   Package, 
@@ -35,7 +27,7 @@ interface DashboardProps {
 }
 
 export function Dashboard({ onLoginClick }: DashboardProps) {
-  const { user } = useAuth();
+  const { user } = useCorporationAuth();
   const { 
     dashboardStats, 
     syncStatus, 
@@ -83,24 +75,7 @@ export function Dashboard({ onLoginClick }: DashboardProps) {
     }
   };
 
-  // Show login prompt if not authenticated - TEMPORARILY DISABLED FOR DEBUG
-  if (!user && onLoginClick && false) { // Added && false to disable this check
-    return (
-      <div className="space-y-6">
-        <LoginPrompt 
-          onLoginClick={onLoginClick}
-          title="Welcome to LMeve"
-          description="Sign in to access your corporation's dashboard, view assets, and manage operations"
-        />
-        
-        {/* Debug tools for testing login functionality */}
-        <div className="grid gap-4 md:grid-cols-2">
-          <LoginDebug />
-          <AuthServiceTest />
-        </div>
-      </div>
-    );
-  }
+  // Login prompt removed - authentication handled via modal in main app
 
   return (
     <div className="space-y-6">
@@ -337,16 +312,8 @@ export function Dashboard({ onLoginClick }: DashboardProps) {
         </CardContent>
       </Card>
 
-      {/* Debug Authentication Test */}
-      <ComprehensiveAuthTest />
-      
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <AuthFlowTest />
-        <NavigationTest />
-        <KVStorageTest />
-      </div>
-      <AuthStatusDisplay />
-      <FixedLoginTest />
+      {/* Simple corporation status display */}
+      <SimpleAuthStatus />
     </div>
   );
 }

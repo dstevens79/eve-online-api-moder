@@ -12,7 +12,7 @@ import { Progress } from '@/components/ui/progress';
 import { LoginPrompt } from '@/components/LoginPrompt';
 import { useKV } from '@github/spark/hooks';
 import { useEVEData } from '@/hooks/useEVEData';
-import { useAuth } from '@/lib/auth';
+import { useCorporationAuth } from '@/lib/corp-auth';
 import { 
   Factory, 
   Plus, 
@@ -44,7 +44,7 @@ interface ManufacturingProps {
 }
 
 export function Manufacturing({ onLoginClick }: ManufacturingProps) {
-  const { user } = useAuth();
+  const { user } = useCorporationAuth();
   const [activeJobs, setActiveJobs] = useKV<ManufacturingJob[]>('manufacturing-jobs', []);
   const [blueprints, setBlueprints] = useKV<Blueprint[]>('blueprints-library', []);
   const [productionPlans, setProductionPlans] = useKV<ProductionPlan[]>('production-plans', []);

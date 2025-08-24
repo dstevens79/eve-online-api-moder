@@ -2,11 +2,11 @@ import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { LoginPrompt } from '@/components/LoginPrompt';
 import { HardHat } from '@phosphor-icons/react';
-import { useAuth } from '@/lib/auth';
+import { useCorporationAuth } from '@/lib/corp-auth';
 import { TabComponentProps } from '@/lib/types';
 
 export function Mining({ onLoginClick }: TabComponentProps) {
-  const { user } = useAuth();
+  const { user } = useCorporationAuth();
 
   // Show login prompt if not authenticated
   // Show login prompt if not authenticated - TEMPORARILY DISABLED FOR DEBUG

@@ -6,7 +6,7 @@ import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { LoginPrompt } from '@/components/LoginPrompt';
-import { useAuth } from '@/lib/auth';
+import { useCorporationAuth } from '@/lib/corp-auth';
 import { TabComponentProps, IncomeRecord, IncomeAnalytics } from '@/lib/types';
 import { 
   TrendUp,
@@ -26,7 +26,7 @@ import { useKV } from '@github/spark/hooks';
 import { toast } from 'sonner';
 
 export function Income({ onLoginClick }: TabComponentProps) {
-  const { user } = useAuth();
+  const { user } = useCorporationAuth();
   const [incomeRecords] = useKV<IncomeRecord[]>('income-records', []);
   const [selectedPeriod, setSelectedPeriod] = useState('30d');
   const [selectedPilot, setSelectedPilot] = useState('all');
