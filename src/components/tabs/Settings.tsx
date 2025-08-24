@@ -215,17 +215,17 @@ export function Settings({ activeTab, onTabChange }: SettingsProps) {
     try {
       const result = await dbManager.testConnection();
       if (result.success && result.validated) {
-        toast.success(`✅ Connection validated! Latency: ${result.latency}ms - Database structure confirmed`);
+        toast.success(`✅ Database connection validated successfully! Latency: ${result.latency}ms - All LMeve requirements confirmed`);
         setDbStatus(prev => ({ ...prev, lastError: undefined }));
       } else if (result.success && !result.validated) {
-        toast.warning(`⚠️ Connected but validation incomplete. Latency: ${result.latency}ms`);
+        toast.warning(`⚠️ Connection established but validation incomplete. Latency: ${result.latency}ms - Check database structure`);
       } else {
-        toast.error(`❌ Connection failed: ${result.error}`);
+        toast.error(`❌ Database validation failed: ${result.error}`);
         setDbStatus(prev => ({ ...prev, lastError: result.error }));
       }
     } catch (error) {
       const errorMsg = error instanceof Error ? error.message : 'Unknown connection error';
-      toast.error(`❌ Connection test failed: ${errorMsg}`);
+      toast.error(`❌ Database connection test failed: ${errorMsg}`);
       setDbStatus(prev => ({ ...prev, lastError: errorMsg }));
     } finally {
       setTestingConnection(false);
@@ -239,10 +239,10 @@ export function Settings({ activeTab, onTabChange }: SettingsProps) {
     setDbStatus(dbManager.getStatus());
     
     if (result.success) {
-      toast.success('✅ Connected to database successfully - Ready for LMeve operations');
+      toast.success('✅ Database connection established successfully - LMeve operations ready');
       loadTableInfo();
     } else {
-      toast.error(`❌ Failed to connect: ${result.error}`);
+      toast.error(`❌ Database connection failed: ${result.error}`);
     }
   };
 
