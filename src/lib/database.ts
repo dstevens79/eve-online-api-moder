@@ -506,8 +506,6 @@ export class DatabaseManager {
       '123_db'
     ];
     
-    ];
-    }
     if (knownInvalidDatabases.includes(this.config.database.toLowerCase())) {
       return { valid: false, error: `Unknown database '${this.config.database}'` };
     const testDbPatterns = [
