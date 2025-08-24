@@ -1,18 +1,16 @@
 import React, { useState } from 'react';
-import { useCorporationAuth } from '@/lib/corp-auth';
+import { Button } from '@/components/ui/button';
 import { Button } from '@/components/ui/button';
 
-export function DirectLoginTest() {
+  const [testResults, setTestResult
   const [forceUpdate, setForceUpdate] = useState(0);
   const [testResults, setTestResults] = useState<string[]>([]);
   const { directLogin, logout } = useCorporationAuth();
-
+    setTestResults(prev => [...prev, `${new Date().toLocaleTimeString()}: ${message}`]);
   const addResult = (message: string) => {
     setTestResults(prev => [...prev, `${new Date().toLocaleTimeString()}: ${message}`]);
   };
 
-  const handleDirectLogin = async () => {
-    try {
       addResult('🧪 Starting direct login test...');
       
       const testUser = {
