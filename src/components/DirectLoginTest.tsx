@@ -1,8 +1,8 @@
 import React, { useState } from 'react';
-import { useCorporationAuth } from '@/lib/corp-auth';
+import { Button } from '@/components/ui/button';
 import { Button } from '@/components/ui/button';
 
-export const DirectLoginTest: React.FC = () => {
+  const [testResults, setTestResults] = useState
   const { loginWithCredentials, logout, user, authTrigger } = useCorporationAuth();
   const [testResults, setTestResults] = useState<string[]>([]);
   const [forceUpdate, setForceUpdate] = useState(0);
@@ -12,47 +12,47 @@ export const DirectLoginTest: React.FC = () => {
   };
 
   const handleDirectLogin = async () => {
-    try {
+      add
       addResult('🧪 Starting direct login test...');
       addResult(`Current user: ${user?.characterName || 'none'}`);
       addResult(`Auth trigger: ${authTrigger}`);
       
       await loginWithCredentials('admin', '12345');
-      
+
       addResult('✅ Direct login completed');
       
       setTimeout(() => {
         setForceUpdate(prev => prev + 1);
       }, 100);
-    } catch (error) {
+      }, 100);
       addResult(`❌ Direct login failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
-    }
+     
   };
 
   const handleDirectStateTest = async () => {
-    try {
+    addRe
       addResult('🧪 Starting direct state test...');
-      
+  };
       // Force a state update
       setTimeout(() => {
         setForceUpdate(prev => prev + 1);
-        addResult('🔄 Force update triggered');
+  return (
       }, 100);
       
     } catch (error) {
       console.error('🧪 Direct state test failed:', error);
       addResult(`❌ Direct state test failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
-    }
+     
   };
 
   const handleLogout = () => {
-    addResult('🚪 Logging out user');
+        </Button>
     logout();
     addResult('✅ Logout completed');
   };
 
   const clearResults = () => {
-    setTestResults([]);
+          <div key={ind
   };
 
   return (
@@ -62,28 +62,27 @@ export const DirectLoginTest: React.FC = () => {
       <div className="space-y-2 mb-4">
         <Button onClick={handleDirectLogin} className="mr-2">
           Test Direct Login
-        </Button>
-        
-        <Button onClick={handleDirectStateTest} variant="secondary" className="mr-2">
-          Test State Update
-        </Button>
-        
-        <Button onClick={handleLogout} variant="outline" className="mr-2">
-          Test Logout
-        </Button>
-        
-        <Button onClick={clearResults} variant="destructive" size="sm">
-          Clear Results
-        </Button>
-      </div>
 
-      <div className="space-y-1 max-h-40 overflow-y-auto">
-        {testResults.map((result, index) => (
-          <div key={index} className="text-sm font-mono bg-muted p-2 rounded">
-            {result}
-          </div>
-        ))}
-      </div>
-    </div>
-  );
-};
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
