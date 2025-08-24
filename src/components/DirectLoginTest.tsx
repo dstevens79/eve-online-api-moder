@@ -1,20 +1,19 @@
 import React, { useState } from 'react';
-import { useCorporationAuth } from '@/lib/corp-a
 import { useCorporationAuth } from '@/lib/corp-auth';
+import { Button } from '@/components/ui/button';
 
-  const [testResults, setTestResult
+export function DirectLoginTest() {
   const { loginWithCredentials, user, isAuthenticated, authTrigger } = useCorporationAuth();
   const [testResults, setTestResults] = useState<string[]>([]);
   const [forceUpdate, setForceUpdate] = useState(0);
 
-      await loginWithCredentials('admin', 
-      
-    
+  const addResult = (message: string) => {
+    setTestResults(prev => [...prev, `${new Date().toLocaleTimeString()}: ${message}`]);
+  };
 
-    }
-
+  const handleDirectLogin = async () => {
     try {
-      
+      addResult('🧪 Starting direct auth service test');
       
       await loginWithCredentials('admin', '12345');
       addResult('✅ Login with credentials completed');
@@ -34,13 +33,13 @@ import { useCorporationAuth } from '@/lib/corp-auth';
       // Create a test user object directly
       const testUser = {
         characterId: 12345,
-      setTimeout(() => {
+        characterName: 'Direct Test User',
         corporationId: 67890,
-
+        corporationName: 'Test Corporation',
         isAdmin: true,
         isCeo: false,
         isDirector: false,
-      addResult(`❌ Direct state test 
+        authMethod: 'test' as const,
         canManageESI: true,
         accessToken: 'direct-test-token',
         refreshToken: 'direct-test-refresh',
@@ -52,7 +51,7 @@ import { useCorporationAuth } from '@/lib/corp-auth';
       addResult('✅ Direct KV set completed');
 
       // Check if the useKV hook picks up the change
-          
+      setTimeout(() => {
         addResult(`After 100ms: user=${user?.characterName || 'null'}, auth=${isAuthenticated}`);
       }, 100);
 
@@ -60,9 +59,11 @@ import { useCorporationAuth } from '@/lib/corp-auth';
         addResult(`After 500ms: user=${user?.characterName || 'null'}, auth=${isAuthenticated}`);
       }, 500);
 
-              {testRe
+      setForceUpdate(prev => prev + 1);
+    } catch (error) {
+      console.error('🧪 Direct state test failed:', error);
       addResult(`❌ Direct state test failed: ${error}`);
-     
+    }
   };
 
   return (
@@ -80,29 +81,30 @@ import { useCorporationAuth } from '@/lib/corp-auth';
         <div className="space-y-2">
           <Button onClick={handleDirectLogin} className="w-full">
             Test Auth Service Login (admin/12345)
-
+          </Button>
           
           <Button onClick={handleDirectStateTest} variant="outline" className="w-full">
             Test Direct State Manipulation
-
+          </Button>
         </div>
 
         {testResults.length > 0 && (
           <div className="mt-4 p-3 bg-muted/50 rounded-lg max-h-40 overflow-y-auto">
             <h4 className="text-sm font-semibold mb-2">Test Results:</h4>
-
+            <div className="space-y-1">
               {testResults.map((result, index) => (
                 <div key={index} className="text-xs font-mono text-muted-foreground">
                   {result}
                 </div>
               ))}
-
+            </div>
           </div>
-
+        )}
         
         <div className="text-xs text-muted-foreground">
           This tests both the auth service and direct state manipulation
         </div>
       </div>
-
+    </div>
   );
+}
