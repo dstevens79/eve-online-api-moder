@@ -3,13 +3,22 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { useAuth } from '@/lib/auth';
+import { useCorporationAuth } from '@/lib/corp-auth';
 
 export function AdminLoginTest() {
-  const { user, isAuthenticated, login, logout, authTrigger, isLoading } = useAuth();
+  const { user, isAuthenticated, loginWithCredentials, logout, authTrigger, isLoading } = useCorporationAuth();
   const [testCredentials, setTestCredentials] = useState({ username: 'admin', password: '12345' });
   const [testResults, setTestResults] = useState<string[]>([]);
   const [isRunningTest, setIsRunningTest] = useState(false);
+
+  // Monitor authentication state changes
+  React.useEffect(() => {
+    if (testResults.length > 0) { // Only log if we're in a test session
+      const message = `🔄 Auth state changed: user=${user?.characterName || 'null'}, authenticated=${isAuthenticated}, trigger=${authTrigger}`;
+      console.log(message);
+      setTestResults(prev => [...prev, `${new Date().toLocaleTimeString()}: ${message}`]);
+    }
+  }, [user, isAuthenticated, authTrigger, testResults.length]);
 
   const log = (message: string) => {
     console.log(message);
@@ -28,15 +37,13 @@ export function AdminLoginTest() {
       log('🧪 Starting direct login test with admin/12345');
       log(`🔍 Before login: user=${user?.characterName || 'null'}, authenticated=${isAuthenticated}`);
       
-      await login(testCredentials);
+      await loginWithCredentials(testCredentials.username, testCredentials.password);
       
       log(`🔍 After login: user=${user?.characterName || 'null'}, authenticated=${isAuthenticated}`);
       log('✅ Login completed successfully');
       
-      // Wait and check again to see if state propagated
-      setTimeout(() => {
-        log(`🔍 1 second later: user=${user?.characterName || 'null'}, authenticated=${isAuthenticated}, trigger=${authTrigger}`);
-      }, 1000);
+      // Use effect to monitor state changes rather than timeout
+      log('🔍 State updates should be visible in the Current State section above');
       
     } catch (error) {
       log(`❌ Login failed: ${error instanceof Error ? error.message : 'Unknown error'}`);

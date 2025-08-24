@@ -116,7 +116,14 @@ function App() {
       authTrigger,
       timestamp: Date.now()
     });
-  }, [currentUser, currentAuth, forceRender, authTrigger]);
+    
+    // Reset tab to dashboard when user logs out
+    if (!currentUser && activeTab !== 'dashboard') {
+      console.log('🔄 User logged out - resetting to dashboard tab');
+      setActiveTab('dashboard');
+      setSettingsExpanded(false);
+    }
+  }, [currentUser, currentAuth, forceRender, authTrigger, activeTab]);
 
   // Check if this is an ESI callback
   useEffect(() => {
@@ -226,7 +233,13 @@ function App() {
     console.log('🔄 Tab change request:', value, 'Current user:', currentUser?.characterName || 'null');
     console.log('🔄 Tab change - Auth state:', { hasUser: !!currentUser, isAuthenticated: currentAuth, authTrigger });
     
-    // Allow all navigation when authenticated
+    // Restrict navigation when not authenticated
+    if (!currentUser) {
+      console.log('❌ Tab change blocked - user not authenticated');
+      setShowLoginModal(true);
+      return;
+    }
+    
     console.log('🔄 Allowing tab change to:', value);
     
     if (value === 'settings') {
@@ -352,14 +365,18 @@ function App() {
               {tabs.map((tab) => {
                 const IconComponent = tab.icon;
                 const isActive = activeTab === tab.id;
-                console.log(`Rendering tab button: ${tab.id}, isActive: ${isActive}, hasUser: ${!!currentUser}`);
+                const isDisabled = !currentUser;
+                console.log(`Rendering tab button: ${tab.id}, isActive: ${isActive}, hasUser: ${!!currentUser}, isDisabled: ${isDisabled}`);
                 return (
                   <Button
                     key={tab.id}
                     variant={isActive ? "default" : "ghost"}
+                    disabled={isDisabled}
                     className={`w-full justify-start gap-3 ${
                       isActive 
                         ? "bg-accent text-accent-foreground shadow-sm" 
+                        : isDisabled
+                        ? "opacity-50 cursor-not-allowed text-muted-foreground"
                         : "hover:bg-muted text-muted-foreground hover:text-foreground"
                     }`}
                     onClick={() => handleTabChange(tab.id)}
@@ -386,9 +403,12 @@ function App() {
               <div className="pt-2 border-t border-border">
                 <Button
                   variant={activeTab === 'settings' ? "default" : "ghost"}
+                  disabled={!currentUser}
                   className={`w-full justify-start gap-3 ${
                     activeTab === 'settings'
                       ? "bg-accent text-accent-foreground shadow-sm" 
+                      : !currentUser
+                      ? "opacity-50 cursor-not-allowed text-muted-foreground"
                       : "hover:bg-muted text-muted-foreground hover:text-foreground"
                   }`}
                   onClick={() => handleTabChange('settings')}
@@ -402,8 +422,8 @@ function App() {
                   )}
                 </Button>
 
-                {/* Settings sub-menu */}
-                {settingsExpanded && (
+                {/* Settings sub-menu - only show when authenticated */}
+                {settingsExpanded && currentUser && (
                   <div className="mt-2 ml-6 space-y-1">
                     {settingsTabs.map((settingsTab) => {
                       const IconComponent = settingsTab.icon;
@@ -435,7 +455,26 @@ function App() {
           <div className="flex-1 overflow-hidden">
             <div className="h-full overflow-y-auto">
               <div className="container mx-auto px-6 py-6">
-                {activeTab === 'settings' ? (
+                {!currentUser ? (
+                  // Show login prompt when not authenticated
+                  <div className="flex items-center justify-center h-full">
+                    <div className="text-center space-y-4 max-w-md">
+                      <Rocket size={48} className="mx-auto text-accent" />
+                      <h2 className="text-2xl font-bold">Welcome to LMeve</h2>
+                      <p className="text-muted-foreground">
+                        LMeve is a comprehensive corporation management tool for EVE Online. 
+                        Sign in to access your corporation's data and management features.
+                      </p>
+                      <Button 
+                        onClick={() => setShowLoginModal(true)}
+                        className="bg-accent hover:bg-accent/90 text-accent-foreground"
+                      >
+                        <SignIn size={16} className="mr-2" />
+                        Sign In to Continue
+                      </Button>
+                    </div>
+                  </div>
+                ) : activeTab === 'settings' ? (
                   <Settings activeTab={activeSettingsTab} onTabChange={handleSettingsTabChange} />
                 ) : (
                   <Tabs value={activeTab} onValueChange={handleTabChange}>

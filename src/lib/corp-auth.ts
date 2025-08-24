@@ -444,6 +444,20 @@ export function useCorporationAuth() {
       isAuthenticated,
       authTrigger
     });
+    
+    // Add detailed user state debugging
+    if (user) {
+      console.log('👤 USER OBJECT DETAILS:', {
+        characterId: user.characterId,
+        characterName: user.characterName,
+        corporationId: user.corporationId,
+        corporationName: user.corporationName,
+        isAdmin: user.isAdmin,
+        authMethod: user.authMethod,
+        loginTime: user.loginTime,
+        timestamp: Date.now()
+      });
+    }
   }, [user, isAuthenticated, authTrigger]);
 
   const loginWithCredentials = async (username: string, password: string): Promise<void> => {
@@ -471,13 +485,8 @@ export function useCorporationAuth() {
         return newTrigger;
       });
       
-      console.log('🔍 After login: user=' + (user ? user.characterName : 'null') + ', authenticated=' + isAuthenticated);
+      console.log('🔍 After login call: should have updated state');
       console.log('✅ Login completed successfully');
-      
-      // Add a small delay to allow state to propagate then verify
-      setTimeout(() => {
-        console.log('🔍 1 second later: user=' + (user ? user.characterName : 'null') + ', authenticated=' + isAuthenticated + ', trigger=' + authTrigger);
-      }, 1000);
       
     } catch (error) {
       console.error('❌ Login error:', error);
@@ -524,12 +533,17 @@ export function useCorporationAuth() {
   };
 
   const logout = (): void => {
+    console.log('🚪 CORP AUTH - Logging out user:', user?.characterName || 'null');
     setUser(null);
-    setAuthTrigger(prev => prev + 1);
+    setAuthTrigger(prev => {
+      console.log('🔄 CORP AUTH - Auth trigger updated on logout:', prev + 1);
+      return prev + 1;
+    });
     
     // Clean up any stored auth state
     sessionStorage.removeItem('esi-auth-state');
     sessionStorage.removeItem('esi-login-attempt');
+    console.log('✅ CORP AUTH - Logout completed');
   };
 
   const refreshUserToken = async (): Promise<void> => {
