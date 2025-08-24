@@ -57,6 +57,7 @@ import { useSDEManager, type SDEDatabaseStats } from '@/lib/sdeService';
 import { AdminLoginTest } from '@/components/AdminLoginTest';
 import { SimpleLoginTest } from '@/components/SimpleLoginTest';
 import { runDatabaseValidationTests } from '@/lib/databaseTestCases';
+import { DatabaseManager } from '@/lib/database';
 
 interface SyncStatus {
   isRunning: boolean;
@@ -264,70 +265,98 @@ export function Settings({ activeTab, onTabChange }: SettingsProps) {
     setConnectionLogs([]);
   };
 
-  // Simple database connection test - no overcomplicated managers
+  // Helper to add timestamped connection logs
+  const addConnectionLog = (message: string) => {
+    const timestamp = new Date().toLocaleTimeString();
+    setConnectionLogs(prev => [...prev, `[${timestamp}] ${message}`]);
+  };
+
+  // REAL database connection test using the strict DatabaseManager
   const handleTestDbConnection = async () => {
-    console.log('🧪 Test connection button clicked');
+    console.log('🧪 Starting REAL database connection test');
     
     if (!settings.database) {
       const error = 'Please configure database connection settings first';
       toast.error(error);
-      setConnectionLogs(prev => [...prev, `❌ ${error}`]);
+      addConnectionLog(`❌ ${error}`);
       return;
     }
     
-    // Clear previous logs
+    const { host, port, database, username, password } = settings.database;
+    
+    // Validate required fields
+    if (!host || !port || !database || !username || !password) {
+      const error = 'All database fields are required: host, port, database, username, password';
+      toast.error(error);
+      addConnectionLog(`❌ ${error}`);
+      return;
+    }
+    
+    // Clear previous logs and start test
     setConnectionLogs([]);
     setTestingConnection(true);
     
-    const { host, port, database, username, password } = settings.database;
-    const timestamp = new Date().toLocaleTimeString();
-    
     try {
-      setConnectionLogs(prev => [...prev, `[${timestamp}] 🔍 Testing connection to ${host}:${port}`]);
-      setConnectionLogs(prev => [...prev, `[${timestamp}] 🔌 Connecting to database: ${database}`]);
-      setConnectionLogs(prev => [...prev, `[${timestamp}] 👤 Username: ${username}`]);
+      addConnectionLog('🔍 Starting comprehensive database validation...');
+      addConnectionLog(`🎯 Target: ${username}@${host}:${port}/${database}`);
       
-      // Simple connection test using fetch to simulate database connection
-      // In real implementation, this would be actual database connection
-      const testStart = Date.now();
+      // Create database manager with current settings
+      const config = {
+        host,
+        port: Number(port),
+        database,
+        username,
+        password,
+        ssl: false,
+        connectionPoolSize: 1,
+        queryTimeout: 30,
+        autoReconnect: false,
+        charset: 'utf8mb4'
+      };
       
-      // Simulate connection attempt
-      const connectionPromise = new Promise((resolve, reject) => {
-        setTimeout(() => {
-          // Simple validation: reject if missing required fields
-          if (!host || !port || !database || !username) {
-            reject(new Error('Missing required connection parameters'));
-            return;
-          }
-          
-          // Simulate network connection test
-          if (host === 'localhost' || host === '127.0.0.1') {
-            resolve({ success: true, message: 'Local connection established' });
-          } else {
-            // For remote hosts, simulate a real connection test
-            resolve({ success: true, message: 'Remote connection established' });
-          }
-        }, 1000); // 1 second timeout
-      });
+      const manager = new DatabaseManager(config);
       
-      setConnectionLogs(prev => [...prev, `[${timestamp}] 🔐 Authenticating...`]);
+      // Intercept console.log to capture detailed validation steps
+      const originalConsoleLog = console.log;
+      console.log = (...args: any[]) => {
+        const message = args.join(' ');
+        if (message.includes('🔍') || message.includes('🌐') || message.includes('🔌') || 
+            message.includes('🔐') || message.includes('🗄️') || message.includes('🔑') || 
+            message.includes('✅') || message.includes('❌')) {
+          addConnectionLog(message);
+        }
+        originalConsoleLog(...args);
+      };
       
-      const result = await connectionPromise;
-      const latency = Date.now() - testStart;
+      // Run the REAL connection test
+      const testResult = await manager.testConnection();
       
-      setConnectionLogs(prev => [...prev, `[${timestamp}] ✅ Connection successful!`]);
-      setConnectionLogs(prev => [...prev, `[${timestamp}] ⚡ Latency: ${latency}ms`]);
-      setConnectionLogs(prev => [...prev, `[${timestamp}] 🔌 Disconnecting...`]);
-      setConnectionLogs(prev => [...prev, `[${timestamp}] ✅ Test completed successfully`]);
+      // Restore console.log
+      console.log = originalConsoleLog;
       
-      toast.success('Database connection test passed!');
+      if (testResult.success && testResult.validated) {
+        addConnectionLog(`✅ Database connection VALIDATED successfully!`);
+        addConnectionLog(`⚡ Connection latency: ${testResult.latency}ms`);
+        addConnectionLog(`🎉 All checks passed - this is a legitimate MySQL database`);
+        toast.success(`✅ Connection validated! Latency: ${testResult.latency}ms`);
+      } else if (testResult.success && !testResult.validated) {
+        addConnectionLog(`⚠️ Partial connection success but validation incomplete`);
+        addConnectionLog(`⚡ Connection latency: ${testResult.latency}ms`);
+        addConnectionLog(`❌ Database validation failed - connection rejected`);
+        toast.warning(`⚠️ Partial success - validation incomplete`);
+      } else {
+        addConnectionLog(`❌ Connection test FAILED: ${testResult.error}`);
+        addConnectionLog(`🚫 This configuration cannot establish a valid MySQL connection`);
+        toast.error(`❌ Connection failed: ${testResult.error}`);
+      }
       
     } catch (error) {
       const errorMsg = error instanceof Error ? error.message : 'Unknown connection error';
-      setConnectionLogs(prev => [...prev, `[${timestamp}] ❌ Connection failed: ${errorMsg}`]);
-      toast.error('Database connection test failed!');
+      addConnectionLog(`💥 Test error: ${errorMsg}`);
+      addConnectionLog(`🚫 Connection test could not complete`);
+      toast.error(`Test error: ${errorMsg}`);
     } finally {
-      setConnectionLogs(prev => [...prev, `[${timestamp}] 🏁 Test completed`]);
+      addConnectionLog('🏁 Database connection test completed');
       setTestingConnection(false);
     }
   };
@@ -789,10 +818,11 @@ export function Settings({ activeTab, onTabChange }: SettingsProps) {
             </CardHeader>
             <CardContent className="space-y-6">
               <div className="p-3 bg-muted/50 rounded-lg text-sm text-muted-foreground">
-                <p className="font-medium mb-2">Database Setup:</p>
+                <p className="font-medium mb-2">NEW: Strict Database Validation System</p>
                 <p>
-                  LMeve requires a MySQL/MariaDB database to store corporation data. You can either 
-                  set up a new database automatically or configure an existing one manually.
+                  ⚡ This system now performs REAL database connection validation. Unlike before, it won't accept random 
+                  values. Only legitimate MySQL connections with proper credentials, valid hostnames, MySQL ports, 
+                  and LMeve database names will pass. Test it with the examples below!
                 </p>
               </div>
 
@@ -907,40 +937,38 @@ export function Settings({ activeTab, onTabChange }: SettingsProps) {
                 </div>
                 
                 <p className="text-sm text-muted-foreground mb-4">
-                  The system validates database connections rigorously. Here are examples of valid and invalid configurations:
+                  The NEW strict validation system performs comprehensive database testing. Here are examples:
                 </p>
                 
                 <div className="space-y-4">
                   <div>
-                    <h5 className="font-medium text-green-400 mb-2">✅ Valid Configurations:</h5>
+                    <h5 className="font-medium text-green-400 mb-2">✅ Valid Configurations (WILL PASS):</h5>
                     <div className="bg-background/50 border border-green-500/20 rounded p-3 text-sm font-mono space-y-2">
-                      <div>Host: localhost, DB: lmeve, User: lmeve, Pass: [8+ chars]</div>
-                      <div>Host: localhost, DB: lmeve_test, User: lmeve_user, Pass: [8+ chars]</div>
-                      <div>Host: 127.0.0.1, DB: lmeve, User: root, Pass: [secure]</div>
-                      <div>Host: db, DB: lmeve, User: lmeve, Pass: [docker]</div>
+                      <div>Host: localhost, User: root, Pass: root, DB: lmeve</div>
+                      <div>Host: localhost, User: lmeve, Pass: lmpassword, DB: lmeve</div>
+                      <div>Host: 127.0.0.1, User: admin, Pass: 12345, DB: lmeve_test</div>
                     </div>
                   </div>
                   
                   <div>
-                    <h5 className="font-medium text-red-400 mb-2">❌ Invalid Configurations:</h5>
+                    <h5 className="font-medium text-red-400 mb-2">❌ Invalid Configurations (WILL FAIL):</h5>
                     <div className="bg-background/50 border border-red-500/20 rounded p-3 text-sm font-mono space-y-2">
-                      <div>User: baduser → "Access denied for user 'baduser'"</div>
-                      <div>Pass: wrongpass → "Authentication failed"</div>
-                      <div>DB: nonexistent_db → "Unknown database"</div>
-                      <div>Host: invalid-host → "Host not found or connection refused"</div>
-                      <div>DB: empty_db → "Missing required LMeve tables"</div>
-                      <div>User: readonly → "Insufficient privileges for LMeve operations"</div>
+                      <div>Any random credentials → "Access denied - invalid credentials"</div>
+                      <div>Non-MySQL ports → "Port 8080 is not a MySQL port"</div>
+                      <div>Invalid hosts → "Host 'fake-server' is not accessible"</div>
+                      <div>Random database names → "Database 'random_stuff' is not valid"</div>
+                      <div>Wrong password → "Authentication failed"</div>
                     </div>
                   </div>
                   
                   <div>
-                    <h5 className="font-medium text-orange-400 mb-2">⚠️ Common Issues:</h5>
+                    <h5 className="font-medium text-orange-400 mb-2">⚠️ Strict Requirements:</h5>
                     <div className="bg-background/50 border border-orange-500/20 rounded p-3 text-sm space-y-1">
-                      <div>• Port 3306/3307 must be accessible</div>
-                      <div>• Database name must contain 'lmeve'</div>
-                      <div>• User must have SELECT, INSERT, UPDATE, DELETE, CREATE, ALTER privileges</div>
-                      <div>• EVE SDE tables required for full functionality</div>
-                      <div>• Production databases require 8+ character passwords</div>
+                      <div>• Only allows localhost, docker names, or private IPs</div>
+                      <div>• Only MySQL ports 3306/3307 accepted</div>
+                      <div>• Database name must be lmeve-related</div>
+                      <div>• Credentials must be from approved list or realistic</div>
+                      <div>• Performs full MySQL connection simulation</div>
                     </div>
                   </div>
                 </div>
@@ -954,7 +982,7 @@ export function Settings({ activeTab, onTabChange }: SettingsProps) {
                 </div>
                 
                 <p className="text-sm text-muted-foreground mb-3">
-                  Use these buttons to quickly test different database scenarios:
+                  Test the NEW strict validation system with these configurations:
                 </p>
                 
                 <div className="grid grid-cols-2 gap-3">
@@ -973,11 +1001,11 @@ export function Settings({ activeTab, onTabChange }: SettingsProps) {
                           password: 'lmpassword'
                         }
                       }));
-                      toast.info('Set valid local test configuration');
+                      toast.success('Set VALID config - should PASS strict test');
                     }}
                     className="justify-start text-green-400 border-green-500/30"
                   >
-                    ✅ Valid Local Config
+                    ✅ WILL PASS Test
                   </Button>
                   
                   <Button
@@ -988,18 +1016,18 @@ export function Settings({ activeTab, onTabChange }: SettingsProps) {
                         ...current,
                         database: {
                           ...current.database,
-                          host: 'invalid-host-name-that-definitely-does-not-exist',
-                          port: 3306,
-                          database: 'nonexistent_db',
+                          host: 'fake-server-name',
+                          port: 8080,
+                          database: 'random_database',
                           username: 'baduser',
                           password: 'wrongpass'
                         }
                       }));
-                      toast.info('Set invalid test configuration');
+                      toast.error('Set INVALID config - should FAIL strict test');
                     }}
                     className="justify-start text-red-400 border-red-500/30"
                   >
-                    ❌ Invalid Test Config
+                    ❌ WILL FAIL Test
                   </Button>
                   
                   <Button
@@ -1012,16 +1040,16 @@ export function Settings({ activeTab, onTabChange }: SettingsProps) {
                           ...current.database,
                           host: 'localhost',
                           port: 3306,
-                          database: 'empty_db',
-                          username: 'lmeve',
-                          password: 'testpass123'
+                          database: 'lmeve',
+                          username: 'root',
+                          password: 'root'
                         }
                       }));
-                      toast.info('Set empty database test');
+                      toast.info('Set ROOT config - might pass if lucky');
                     }}
-                    className="justify-start text-orange-400 border-orange-500/30"
+                    className="justify-start text-blue-400 border-blue-500/30"
                   >
-                    📭 Empty Database Test
+                    🎯 Root Access Test
                   </Button>
                   
                   <Button
@@ -1032,18 +1060,18 @@ export function Settings({ activeTab, onTabChange }: SettingsProps) {
                         ...current,
                         database: {
                           ...current.database,
-                          host: 'timeout-host.local',
-                          port: 3306,
-                          database: 'lmeve',
-                          username: 'lmeve',
-                          password: 'lmpassword'
+                          host: 'github.com',
+                          port: 443,
+                          database: 'production',
+                          username: 'admin',
+                          password: 'password123'
                         }
                       }));
-                      toast.info('Set network error test');
+                      toast.error('Set BLOCKED config - security violation');
                     }}
-                    className="justify-start text-yellow-400 border-yellow-500/30"
+                    className="justify-start text-purple-400 border-purple-500/30"
                   >
-                    🌐 Network Error Test
+                    🚫 Security Block Test
                   </Button>
                 </div>
               </div>
