@@ -166,7 +166,14 @@ export function Settings({ activeTab, onTabChange }: SettingsProps) {
     currentStage: string;
     currentStep: number;
     totalSteps: number;
-    steps: Array<{ name: string; status: 'pending' | 'running' | 'completed' | 'failed' }>;
+    steps: Array<{ 
+      name: string; 
+      status: 'pending' | 'running' | 'completed' | 'failed';
+      id?: string;
+      description?: string;
+      output?: string;
+      error?: string;
+    }>;
     completed: boolean;
     error?: string;
   }
@@ -186,22 +193,35 @@ export function Settings({ activeTab, onTabChange }: SettingsProps) {
     currentStep: 0,
     totalSteps: 6,
     steps: [
-      { name: 'Create directories', status: 'pending' },
-      { name: 'Download SDE data', status: 'pending' },
-      { name: 'Extract archive', status: 'pending' },
-      { name: 'Create databases', status: 'pending' },
-      { name: 'Import schemas', status: 'pending' },
-      { name: 'Configure users', status: 'pending' }
+      { id: '1', name: 'Create directories', status: 'pending', description: 'Creating required directories' },
+      { id: '2', name: 'Download SDE data', status: 'pending', description: 'Downloading EVE Static Data Export' },
+      { id: '3', name: 'Extract archive', status: 'pending', description: 'Extracting downloaded files' },
+      { id: '4', name: 'Create databases', status: 'pending', description: 'Creating MySQL databases' },
+      { id: '5', name: 'Import schemas', status: 'pending', description: 'Importing database schemas' },
+      { id: '6', name: 'Configure users', status: 'pending', description: 'Setting up database users' }
     ],
     completed: false
   });
   
-  // Other UI state
+  // UI state management for modals and forms
   const [showDbPassword, setShowDbPassword] = useState(false);
   const [testingConnection, setTestingConnection] = useState(false);
   const [sdeStats, setSDEStats] = useState<SDEDatabaseStats | null>(null);
   const [connectionLogs, setConnectionLogs] = useState<string[]>([]);
   const [showConnectionLogs, setShowConnectionLogs] = useState(true);
+  const [showSetupWizard, setShowSetupWizard] = useState(false);
+  const [showSetupCommands, setShowSetupCommands] = useState(false);
+  // Database connection state
+  const [dbStatus, setDbStatus] = useState({
+    connected: false,
+    connectionCount: 0,
+    queryCount: 0,
+    avgQueryTime: 0,
+    uptime: 0,
+    lastConnection: null as string | null,
+    lastError: null as string | null
+  });
+  const [tableInfo, setTableInfo] = useState<any[]>([]);
   
   // Simple command generator
   const generateSetupCommands = (config: SimpleSetupConfig): string[] => {
@@ -344,7 +364,7 @@ export function Settings({ activeTab, onTabChange }: SettingsProps) {
 
   // Database setup handlers
   const handleRunDatabaseSetup = async () => {
-    toast.info('Database setup wizard not implemented yet');
+    setShowSetupWizard(true);
   };
 
   const handleShowSetupCommands = () => {
@@ -2639,8 +2659,37 @@ export function Settings({ activeTab, onTabChange }: SettingsProps) {
                 Database Connection Test
               </CardTitle>
             </CardHeader>
-            <CardContent>
-              <DatabaseConnectionTest />
+            <CardContent className="space-y-4">
+              <p className="text-sm text-muted-foreground">
+                Test database connectivity using the current configuration settings.
+              </p>
+              <Button
+                onClick={handleTestDbConnection}
+                disabled={testingConnection}
+                className="w-full"
+              >
+                {testingConnection ? (
+                  <>
+                    <ArrowClockwise size={16} className="mr-2 animate-spin" />
+                    Testing Connection...
+                  </>
+                ) : (
+                  <>
+                    <Play size={16} className="mr-2" />
+                    Test Database Connection
+                  </>
+                )}
+              </Button>
+              
+              {connectionLogs.length > 0 && (
+                <div className="border border-border rounded-lg p-3 bg-muted/30">
+                  <div className="font-mono text-xs space-y-1 max-h-32 overflow-y-auto">
+                    {connectionLogs.map((log, index) => (
+                      <div key={index} className="text-foreground">{log}</div>
+                    ))}
+                  </div>
+                </div>
+              )}
             </CardContent>
           </Card>
           
