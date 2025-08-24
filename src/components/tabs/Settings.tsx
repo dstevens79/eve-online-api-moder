@@ -49,7 +49,7 @@ import {
   FileText
 } from '@phosphor-icons/react';
 import { useKV } from '@github/spark/hooks';
-import { useCorporationAuth } from '@/lib/corp-auth';
+import { useCorporationAuth, type ESIConfig } from '@/lib/corp-auth';
 import { CorpSettings } from '@/lib/types';
 import { toast } from 'sonner';
 import { eveApi, type CharacterInfo, type CorporationInfo } from '@/lib/eveApi';
@@ -65,13 +65,6 @@ interface SyncStatus {
   progress: number;
   stage: string;
   error?: string;
-}
-
-interface ESIConfig {
-  clientId: string;
-  secretKey: string;
-  baseUrl: string;
-  userAgent?: string;
 }
 
 interface ESIOAuthState {
@@ -408,14 +401,26 @@ export function Settings({ activeTab, onTabChange }: SettingsProps) {
     setShowSetupCommands(true);
   };
 
+  // ESI scopes required for LMeve functionality
+  const ESI_SCOPES = [
+    'esi-corporations.read_corporation_membership.v1',
+    'esi-industry.read_corporation_jobs.v1', 
+    'esi-assets.read_corporation_assets.v1',
+    'esi-corporations.read_blueprints.v1',
+    'esi-markets.read_corporation_orders.v1',
+    'esi-wallet.read_corporation_wallets.v1',
+    'esi-killmails.read_corporation_killmails.v1',
+    'esi-contracts.read_corporation_contracts.v1'
+  ];
+
   // Generate OAuth authorization URL
   const generateAuthUrl = () => {
     const state = Math.random().toString(36).substring(2, 15);
-    const scopes = (esiConfig?.scopes || []).join(' ');
+    const scopes = ESI_SCOPES.join(' ');
     
     const authUrl = `https://login.eveonline.com/v2/oauth/authorize/?` +
       `response_type=code&` +
-      `redirect_uri=${encodeURIComponent(esiConfig?.callbackUrl || '')}&` +
+      `redirect_uri=${encodeURIComponent(window.location.origin)}&` +
       `client_id=${esiConfig?.clientId || ''}&` +
       `scope=${encodeURIComponent(scopes)}&` +
       `state=${state}`;
@@ -448,7 +453,7 @@ export function Settings({ activeTab, onTabChange }: SettingsProps) {
   };
 
   const handleSaveESIConfig = () => {
-    setESIConfig(esiConfig);
+    updateESIConfig(esiConfig);
     toast.success('ESI configuration saved');
   };
 
