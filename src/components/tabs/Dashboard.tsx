@@ -6,6 +6,8 @@ import { EVEApiStatus } from '@/components/EVEApiStatus';
 import { LoginPrompt } from '@/components/LoginPrompt';
 import { SimpleAuthStatus } from '@/components/SimpleAuthStatus';
 import { DirectLoginTest } from '@/components/DirectLoginTest';
+import { AuthDebugPanel } from '@/components/AuthDebugPanel';
+import { SimpleKVTest } from '@/components/SimpleKVTest';
 
 import { useLMeveData } from '@/lib/LMeveDataContext';
 import { useCorporationAuth } from '@/lib/corp-auth';
@@ -20,7 +22,8 @@ import {
   Clock,
   MapPin,
   ArrowClockwise,
-  Download
+  Download,
+  UserCheck
 } from '@phosphor-icons/react';
 
 interface DashboardProps {
@@ -28,7 +31,7 @@ interface DashboardProps {
 }
 
 export function Dashboard({ onLoginClick }: DashboardProps) {
-  const { user } = useCorporationAuth();
+  const { user, loginWithCredentials } = useCorporationAuth();
   const { 
     dashboardStats, 
     syncStatus, 
@@ -36,6 +39,24 @@ export function Dashboard({ onLoginClick }: DashboardProps) {
     refreshDashboard,
     loading 
   } = useLMeveData();
+
+  // Simple direct test function
+  const testDirectLogin = async () => {
+    console.log('🧪 Direct test button clicked');
+    try {
+      console.log('🔍 About to call loginWithCredentials');
+      await loginWithCredentials('admin', '12345');
+      console.log('✅ Test login completed - checking state in 100ms');
+      
+      // Check state after a short delay
+      setTimeout(() => {
+        console.log('🔍 State check after 100ms');
+        window.location.reload(); // Force a reload to see if state persists
+      }, 100);
+    } catch (error) {
+      console.error('❌ Test login failed:', error);
+    }
+  };
 
   // Load dashboard data on component mount
   useEffect(() => {
@@ -90,6 +111,18 @@ export function Dashboard({ onLoginClick }: DashboardProps) {
         </div>
         
         <div className="flex items-center gap-3">
+          {process.env.NODE_ENV === 'development' && (
+            <Button
+              onClick={testDirectLogin}
+              variant="secondary"
+              size="sm"
+              className="bg-purple-600 hover:bg-purple-700 text-white"
+            >
+              <UserCheck size={16} className="mr-2" />
+              Test Admin Login
+            </Button>
+          )}
+          
           {syncStatus.lastSync && (
             <p className="text-xs text-muted-foreground">
               Last sync: {new Date(syncStatus.lastSync).toLocaleTimeString()}
@@ -318,7 +351,11 @@ export function Dashboard({ onLoginClick }: DashboardProps) {
 
       {/* Direct Login Test for debugging */}
       {process.env.NODE_ENV === 'development' && (
-        <DirectLoginTest />
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          <DirectLoginTest />
+          <AuthDebugPanel />
+          <SimpleKVTest />
+        </div>
       )}
     </div>
   );

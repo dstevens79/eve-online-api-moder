@@ -435,39 +435,16 @@ export function useCorporationAuth() {
     });
   }, [user, authTrigger]);
 
-/**
- * React hook for corporation-based authentication
- */
-export function useCorporationAuth() {
-  const [user, setUser] = useKV<AuthenticatedUser | null>('corp-auth-user', null);
-  const [registeredCorps, setRegisteredCorps] = useKV<CorporationESIConfig[]>('registered-corporations', []);
-  const [esiConfig, setESIConfig] = useKV<ESIConfig>('esi-config', {
-    clientId: '',
-    secretKey: '',
-    baseUrl: 'https://login.eveonline.com'
-  });
-  const [adminConfig, setAdminConfig] = useKV<{ username: string; password: string }>('admin-config', {
-    username: 'admin',
-    password: '12345'
-  });
-  const [isLoading, setIsLoading] = React.useState(false);
-  const [authTrigger, setAuthTrigger] = React.useState(0);
-
-  const authService = React.useMemo(() => new CorporationAuthService(esiConfig), [esiConfig]);
-  const isAuthenticated = Boolean(user);
-
-  // Debug logging
+  // Additional debugging for KV state
   React.useEffect(() => {
-    console.log('🔄 CORP AUTH - User state changed:', {
-      hasUser: !!user,
-      characterName: user?.characterName,
-      corporationName: user?.corporationName,
-      isAdmin: user?.isAdmin,
-      authMethod: user?.authMethod,
-      canManageESI: user?.canManageESI,
-      timestamp: Date.now()
+    console.log('🔍 KV RAW STATE DEBUG:', {
+      userExists: !!user,
+      userType: typeof user,
+      userStringified: user ? JSON.stringify(user) : 'null',
+      isAuthenticated,
+      authTrigger
     });
-  }, [user, authTrigger]);
+  }, [user, isAuthenticated, authTrigger]);
 
   const loginWithCredentials = async (username: string, password: string): Promise<void> => {
     console.log('🧪 Starting direct login test with', username + '/' + password);
@@ -478,9 +455,13 @@ export function useCorporationAuth() {
       const authUser = await authService.loginWithCredentials(username, password, adminConfig);
       console.log('🔍 Login service returned user:', authUser.characterName);
       
+      // Log the user object details before setting
+      console.log('🔍 About to set user object:', JSON.stringify(authUser, null, 2));
+      
       // Use functional update to ensure the state is set properly
       setUser((currentUser) => {
         console.log('🔍 setUser functional update - current:', currentUser?.characterName || 'null', 'new:', authUser.characterName);
+        console.log('🔍 Full user object being set:', authUser);
         return authUser;
       });
       
@@ -490,7 +471,13 @@ export function useCorporationAuth() {
         return newTrigger;
       });
       
+      console.log('🔍 After login: user=' + (user ? user.characterName : 'null') + ', authenticated=' + isAuthenticated);
       console.log('✅ Login completed successfully');
+      
+      // Add a small delay to allow state to propagate then verify
+      setTimeout(() => {
+        console.log('🔍 1 second later: user=' + (user ? user.characterName : 'null') + ', authenticated=' + isAuthenticated + ', trigger=' + authTrigger);
+      }, 1000);
       
     } catch (error) {
       console.error('❌ Login error:', error);
