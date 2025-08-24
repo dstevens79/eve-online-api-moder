@@ -214,13 +214,19 @@ export function Settings({ activeTab, onTabChange }: SettingsProps) {
     setTestingConnection(true);
     try {
       const result = await dbManager.testConnection();
-      if (result.success) {
-        toast.success(`Connection successful! Latency: ${result.latency}ms`);
+      if (result.success && result.validated) {
+        toast.success(`✅ Connection validated! Latency: ${result.latency}ms - Database structure confirmed`);
+        setDbStatus(prev => ({ ...prev, lastError: undefined }));
+      } else if (result.success && !result.validated) {
+        toast.warning(`⚠️ Connected but validation incomplete. Latency: ${result.latency}ms`);
       } else {
-        toast.error(`Connection failed: ${result.error}`);
+        toast.error(`❌ Connection failed: ${result.error}`);
+        setDbStatus(prev => ({ ...prev, lastError: result.error }));
       }
     } catch (error) {
-      toast.error('Connection test failed');
+      const errorMsg = error instanceof Error ? error.message : 'Unknown connection error';
+      toast.error(`❌ Connection test failed: ${errorMsg}`);
+      setDbStatus(prev => ({ ...prev, lastError: errorMsg }));
     } finally {
       setTestingConnection(false);
     }
@@ -233,10 +239,10 @@ export function Settings({ activeTab, onTabChange }: SettingsProps) {
     setDbStatus(dbManager.getStatus());
     
     if (result.success) {
-      toast.success('Connected to database successfully');
+      toast.success('✅ Connected to database successfully - Ready for LMeve operations');
       loadTableInfo();
     } else {
-      toast.error(`Failed to connect: ${result.error}`);
+      toast.error(`❌ Failed to connect: ${result.error}`);
     }
   };
 
@@ -685,6 +691,155 @@ export function Settings({ activeTab, onTabChange }: SettingsProps) {
                   >
                     <FileText size={16} className="mr-2" />
                     Setup Guide
+                  </Button>
+                </div>
+              </div>
+
+              {/* Database Validation Examples */}
+              <div className="border border-blue-500/20 rounded-lg p-4 bg-blue-500/5">
+                <div className="flex items-center gap-2 mb-4">
+                  <Info size={20} className="text-blue-400" />
+                  <h4 className="font-medium">Database Validation Guide</h4>
+                </div>
+                
+                <p className="text-sm text-muted-foreground mb-4">
+                  The system validates database connections rigorously. Here are examples of valid and invalid configurations:
+                </p>
+                
+                <div className="space-y-4">
+                  <div>
+                    <h5 className="font-medium text-green-400 mb-2">✅ Valid Configurations:</h5>
+                    <div className="bg-background/50 border border-green-500/20 rounded p-3 text-sm font-mono space-y-2">
+                      <div>Host: localhost, DB: lmeve, User: lmeve, Pass: [8+ chars]</div>
+                      <div>Host: localhost, DB: lmeve_test, User: lmeve_user, Pass: [8+ chars]</div>
+                      <div>Host: 127.0.0.1, DB: lmeve, User: root, Pass: [secure]</div>
+                      <div>Host: db, DB: lmeve, User: lmeve, Pass: [docker]</div>
+                    </div>
+                  </div>
+                  
+                  <div>
+                    <h5 className="font-medium text-red-400 mb-2">❌ Invalid Configurations:</h5>
+                    <div className="bg-background/50 border border-red-500/20 rounded p-3 text-sm font-mono space-y-2">
+                      <div>User: baduser → "Access denied for user 'baduser'"</div>
+                      <div>Pass: wrongpass → "Authentication failed"</div>
+                      <div>DB: nonexistent_db → "Unknown database"</div>
+                      <div>Host: invalid-host → "Host not found or connection refused"</div>
+                      <div>DB: empty_db → "Missing required LMeve tables"</div>
+                      <div>User: readonly → "Insufficient privileges for LMeve operations"</div>
+                    </div>
+                  </div>
+                  
+                  <div>
+                    <h5 className="font-medium text-orange-400 mb-2">⚠️ Common Issues:</h5>
+                    <div className="bg-background/50 border border-orange-500/20 rounded p-3 text-sm space-y-1">
+                      <div>• Port 3306/3307 must be accessible</div>
+                      <div>• Database name must contain 'lmeve'</div>
+                      <div>• User must have SELECT, INSERT, UPDATE, DELETE, CREATE, ALTER privileges</div>
+                      <div>• EVE SDE tables required for full functionality</div>
+                      <div>• Production databases require 8+ character passwords</div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Quick Test Configurations */}
+              <div className="border border-purple-500/20 rounded-lg p-4 bg-purple-500/5">
+                <div className="flex items-center gap-2 mb-4">
+                  <UserCheck size={20} className="text-purple-400" />
+                  <h4 className="font-medium">Quick Test Configurations</h4>
+                </div>
+                
+                <p className="text-sm text-muted-foreground mb-3">
+                  Use these buttons to quickly test different database scenarios:
+                </p>
+                
+                <div className="grid grid-cols-2 gap-3">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => {
+                      setSettings(current => ({
+                        ...current,
+                        database: {
+                          ...current.database,
+                          host: 'localhost',
+                          port: 3306,
+                          database: 'lmeve',
+                          username: 'lmeve',
+                          password: 'testpass123'
+                        }
+                      }));
+                      toast.info('Set valid test configuration');
+                    }}
+                    className="justify-start text-green-400 border-green-500/30"
+                  >
+                    ✅ Valid Test Config
+                  </Button>
+                  
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => {
+                      setSettings(current => ({
+                        ...current,
+                        database: {
+                          ...current.database,
+                          host: 'localhost',
+                          port: 3306,
+                          database: 'nonexistent_db',
+                          username: 'baduser',
+                          password: 'wrongpass'
+                        }
+                      }));
+                      toast.info('Set invalid test configuration');
+                    }}
+                    className="justify-start text-red-400 border-red-500/30"
+                  >
+                    ❌ Invalid Test Config
+                  </Button>
+                  
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => {
+                      setSettings(current => ({
+                        ...current,
+                        database: {
+                          ...current.database,
+                          host: 'localhost',
+                          port: 3306,
+                          database: 'empty_db',
+                          username: 'lmeve',
+                          password: 'testpass123'
+                        }
+                      }));
+                      toast.info('Set empty database test');
+                    }}
+                    className="justify-start text-orange-400 border-orange-500/30"
+                  >
+                    📭 Empty Database Test
+                  </Button>
+                  
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => {
+                      setSettings(current => ({
+                        ...current,
+                        database: {
+                          ...current.database,
+                          host: 'invalid-host',
+                          port: 3306,
+                          database: 'lmeve',
+                          username: 'lmeve',
+                          password: 'testpass123'
+                        }
+                      }));
+                      toast.info('Set network error test');
+                    }}
+                    className="justify-start text-yellow-400 border-yellow-500/30"
+                  >
+                    🌐 Network Error Test
                   </Button>
                 </div>
               </div>

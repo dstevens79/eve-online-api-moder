@@ -75,10 +75,15 @@ export class DatabaseManager {
 
   async connect(): Promise<{ success: boolean; error?: string }> {
     try {
-      // Simulate connection attempt
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      // First validate the connection
+      const testResult = await this.testConnection();
+      if (!testResult.success) {
+        return { success: false, error: testResult.error };
+      }
+
+      // Simulate actual connection establishment
+      await new Promise(resolve => setTimeout(resolve, 500 + Math.random() * 500));
       
-      // In a real implementation, this would connect to MySQL
       this.connected = true;
       this.status = {
         ...this.status,
@@ -109,28 +114,31 @@ export class DatabaseManager {
     const startTime = Date.now();
     
     try {
-      // Validate configuration first
-      if (!this.config.host || !this.config.database || !this.config.username) {
-        throw new Error('Missing required connection parameters (host, database, username)');
+      // Step 1: Basic configuration validation
+      const configValidation = this.validateConfig();
+      if (!configValidation.valid) {
+        throw new Error(configValidation.error);
       }
 
-      if (this.config.port < 1 || this.config.port > 65535) {
-        throw new Error('Invalid port number. Must be between 1 and 65535');
-      }
-
-      // Check for empty password with default settings - common issue
-      if (!this.config.password && this.config.username === 'lmeve_user' && this.config.host === 'localhost') {
-        throw new Error('Database password is required. Please configure your database credentials in the settings.');
-      }
-
-      // Simulate realistic connection attempt with proper validation
-      await new Promise(resolve => setTimeout(resolve, Math.random() * 1000 + 500));
+      // Step 2: Simulate network connectivity check
+      await this.simulateNetworkCheck();
       
-      // CONCRETE VALIDATION: Only specific, valid configurations should pass
-      const isValidLMeveDatabase = await this.validateLMeveDatabase();
-      
-      if (!isValidLMeveDatabase.valid) {
-        throw new Error(`Database validation failed: ${isValidLMeveDatabase.error}`);
+      // Step 3: Simulate MySQL authentication
+      const authCheck = await this.simulateAuthenticationCheck();
+      if (!authCheck.valid) {
+        throw new Error(authCheck.error);
+      }
+
+      // Step 4: Simulate database existence and structure validation
+      const dbValidation = await this.validateDatabaseStructure();
+      if (!dbValidation.valid) {
+        throw new Error(dbValidation.error);
+      }
+
+      // Step 5: Simulate privilege validation
+      const privilegeCheck = await this.validatePrivileges();
+      if (!privilegeCheck.valid) {
+        throw new Error(privilegeCheck.error);
       }
 
       const latency = Date.now() - startTime;
@@ -144,91 +152,208 @@ export class DatabaseManager {
     }
   }
 
-  private async validateLMeveDatabase(): Promise<{ valid: boolean; error?: string }> {
-    try {
-      // Simulate connection to database and validate it's actually an LMeve setup
-      
-      // Check 1: Must be MySQL/MariaDB (simulated by checking port and config)
-      if (this.config.port !== 3306 && this.config.port !== 3307) {
-        return { valid: false, error: 'Only MySQL/MariaDB databases on standard ports (3306/3307) are supported' };
-      }
+  private validateConfig(): { valid: boolean; error?: string } {
+    // Required fields
+    if (!this.config.host?.trim()) {
+      return { valid: false, error: 'Database host is required' };
+    }
+    
+    if (!this.config.database?.trim()) {
+      return { valid: false, error: 'Database name is required' };
+    }
+    
+    if (!this.config.username?.trim()) {
+      return { valid: false, error: 'Database username is required' };
+    }
 
-      // Check 2: Database name validation
-      const validDatabaseNames = ['lmeve', 'lmeve_test', 'lmeve_prod', 'lmeve_dev'];
-      if (!validDatabaseNames.includes(this.config.database.toLowerCase())) {
-        return { valid: false, error: `Database name '${this.config.database}' is not a valid LMeve database. Expected: ${validDatabaseNames.join(', ')}` };
-      }
+    // Port validation
+    if (this.config.port < 1 || this.config.port > 65535) {
+      return { valid: false, error: 'Port must be between 1 and 65535' };
+    }
 
-      // Check 3: Username validation (must follow LMeve patterns)
-      const validUserPatterns = /^(lmeve|lmeve_user|lmeve_admin|root)(_.*)?$/i;
-      if (!validUserPatterns.test(this.config.username)) {
-        return { valid: false, error: `Username '${this.config.username}' doesn't follow LMeve conventions. Use: lmeve, lmeve_user, lmeve_admin, or root` };
-      }
+    // Common MySQL ports
+    if (![3306, 3307, 33060].includes(this.config.port)) {
+      return { valid: false, error: `Unusual MySQL port ${this.config.port}. Standard ports are 3306, 3307, or 33060` };
+    }
 
-      // Check 4: Password strength for production databases
-      if (this.config.database === 'lmeve' && this.config.password && this.config.password.length < 8) {
-        return { valid: false, error: 'Production database password must be at least 8 characters long' };
-      }
+    // Password validation for production
+    if (!this.config.password && this.config.host !== 'localhost') {
+      return { valid: false, error: 'Password required for remote database connections' };
+    }
 
-      // Check 5: Simulate checking for required LMeve tables (this would be real MySQL queries)
-      const hasLMeveTables = await this.checkLMeveTables();
-      if (!hasLMeveTables.valid) {
-        return { valid: false, error: hasLMeveTables.error };
-      }
+    return { valid: true };
+  }
 
-      // Check 6: Validate charset
-      if (this.config.charset && !['utf8mb4', 'utf8'].includes(this.config.charset)) {
-        return { valid: false, error: `Charset '${this.config.charset}' not supported. Use 'utf8mb4' or 'utf8'` };
-      }
-
-      return { valid: true };
-    } catch (error) {
-      return { valid: false, error: `Database validation error: ${error instanceof Error ? error.message : 'Unknown error'}` };
+  private async simulateNetworkCheck(): Promise<void> {
+    // Simulate network connectivity check
+    await new Promise(resolve => setTimeout(resolve, 200 + Math.random() * 300));
+    
+    // Simulate common network issues
+    if (this.config.host === 'unreachable-host.local') {
+      throw new Error('Host unreachable: Name resolution failed');
+    }
+    
+    if (this.config.host === 'timeout-host.local') {
+      throw new Error('Connection timeout: Host did not respond within timeout period');
+    }
+    
+    if (this.config.host.includes('firewall')) {
+      throw new Error('Connection refused: Port may be blocked by firewall');
     }
   }
 
-  private async checkLMeveTables(): Promise<{ valid: boolean; error?: string }> {
-    // Simulate checking for required LMeve database structure
-    await new Promise(resolve => setTimeout(resolve, 300));
+  private async simulateAuthenticationCheck(): Promise<{ valid: boolean; error?: string }> {
+    await new Promise(resolve => setTimeout(resolve, 100 + Math.random() * 200));
     
-    // Required LMeve core tables that must exist
-    const requiredTables = [
-      'characters', 'corporations', 'assets', 'industry_jobs', 
-      'market_prices', 'config', 'users', 'permissions'
-    ];
-    
-    // Simulate checking for required EVE SDE tables
-    const requiredSDETables = [
-      'invTypes', 'invGroups', 'mapSolarSystems', 'staStations'
-    ];
-
-    // For our simulation, we'll check based on config patterns
-    // In reality, this would execute: SHOW TABLES LIKE 'pattern'
-    
-    if (this.config.database === 'nonexistent-db') {
-      return { valid: false, error: 'Database does not exist on server' };
-    }
-    
+    // Simulate authentication failures based on known invalid credentials
     if (this.config.username === 'baduser') {
-      return { valid: false, error: 'Access denied: User does not have SELECT privileges on database' };
+      return { valid: false, error: 'Access denied for user \'baduser\'@\'host\' (using password: YES)' };
     }
     
     if (this.config.password === 'wrongpass') {
-      return { valid: false, error: 'Authentication failed: Incorrect password' };
+      return { valid: false, error: 'Access denied for user (using password: YES)' };
+    }
+    
+    if (this.config.username === 'readonly' && this.config.database === 'lmeve') {
+      return { valid: false, error: 'User has insufficient privileges for LMeve operations' };
+    }
+
+    // Simulate locked account
+    if (this.config.username === 'locked_user') {
+      return { valid: false, error: 'Account is locked due to too many failed login attempts' };
+    }
+
+    return { valid: true };
+  }
+
+  private async validateDatabaseStructure(): Promise<{ valid: boolean; error?: string }> {
+    await new Promise(resolve => setTimeout(resolve, 300 + Math.random() * 500));
+    
+    // Simulate database existence check
+    if (this.config.database === 'nonexistent_db') {
+      return { valid: false, error: `Unknown database '${this.config.database}'` };
+    }
+    
+    if (this.config.database === 'empty_db') {
+      return { valid: false, error: 'Database exists but appears to be empty. No LMeve tables found.' };
+    }
+    
+    if (this.config.database === 'corrupted_db') {
+      return { valid: false, error: 'Database exists but tables appear corrupted or incomplete' };
+    }
+
+    // Only accept specific valid database names that would contain LMeve
+    const validNames = ['lmeve', 'lmeve_test', 'lmeve_dev', 'lmeve_prod'];
+    if (!validNames.some(name => this.config.database.toLowerCase().includes(name))) {
+      return { valid: false, error: `Database name '${this.config.database}' does not appear to be an LMeve database` };
+    }
+
+    return { valid: true };
+  }
+
+  private async validatePrivileges(): Promise<{ valid: boolean; error?: string }> {
+    await new Promise(resolve => setTimeout(resolve, 100 + Math.random() * 200));
+    
+    // Simulate privilege checking
+    if (this.config.username === 'select_only') {
+      return { valid: false, error: 'User has SELECT privileges only. LMeve requires INSERT, UPDATE, DELETE privileges' };
+    }
+    
+    if (this.config.username === 'no_create') {
+      return { valid: false, error: 'User lacks CREATE and ALTER privileges required for schema updates' };
+    }
+
+    return { valid: true };
+  }
+
+
+
+  private async checkLMeveTables(): Promise<{ valid: boolean; error?: string }> {
+    // Simulate checking for required LMeve database structure
+    await new Promise(resolve => setTimeout(resolve, 400 + Math.random() * 600));
+    
+    // Required LMeve core tables that must exist
+    const requiredCoreTables = [
+      'characters', 'corporations', 'assets', 'industry_jobs', 
+      'market_prices', 'config', 'users', 'permissions',
+      'mining_operations', 'killmails', 'wallet_journal'
+    ];
+    
+    // Required EVE SDE tables that should exist in EveStaticData database or main database
+    const requiredSDETables = [
+      'invTypes', 'invGroups', 'mapSolarSystems', 'staStations',
+      'invCategories', 'mapRegions', 'chrRaces', 'eveUnits'
+    ];
+
+    // Simulate database-specific errors based on config
+    if (this.config.database === 'nonexistent_db') {
+      return { valid: false, error: 'Database does not exist on server' };
+    }
+    
+    if (this.config.database === 'empty_db') {
+      return { 
+        valid: false, 
+        error: `Database is empty. Missing all required LMeve tables: ${requiredCoreTables.slice(0, 5).join(', ')}...` 
+      };
+    }
+    
+    if (this.config.database === 'partial_db') {
+      return { 
+        valid: false, 
+        error: `Incomplete LMeve installation. Missing tables: ${requiredCoreTables.slice(3, 6).join(', ')}. Please run the complete installation.` 
+      };
+    }
+    
+    if (this.config.database === 'no_sde_db') {
+      return { 
+        valid: false, 
+        error: `LMeve core tables found but missing EVE SDE data. Missing: ${requiredSDETables.slice(0, 4).join(', ')}. Run EVE SDE update.` 
+      };
+    }
+
+    if (this.config.database === 'wrong_version_db') {
+      return { 
+        valid: false, 
+        error: 'Database schema version mismatch. This appears to be an older LMeve installation that needs migration.' 
+      };
+    }
+
+    // Test specific invalid connection scenarios
+    if (this.config.username === 'baduser' || this.config.password === 'wrongpass') {
+      return { valid: false, error: 'Authentication failed: Access denied' };
     }
     
     if (this.config.host === 'invalid-host') {
-      return { valid: false, error: 'Cannot connect to database server: Host not found' };
+      return { valid: false, error: 'Cannot connect to database server: Host not found or connection refused' };
     }
 
-    // Simulate missing tables scenario
-    if (this.config.database === 'empty-db') {
-      return { valid: false, error: `Missing required LMeve tables: ${requiredTables.join(', ')}. Database appears to be empty or not an LMeve installation.` };
-    }
+    // For simulation purposes, only allow specific "valid" configurations
+    const validConfigs = [
+      // Local development
+      { host: 'localhost', database: 'lmeve', username: 'lmeve' },
+      { host: 'localhost', database: 'lmeve', username: 'lmeve_user' },
+      { host: 'localhost', database: 'lmeve', username: 'root' },
+      // Test setups
+      { host: 'localhost', database: 'lmeve_test', username: 'lmeve' },
+      { host: 'localhost', database: 'lmeve_dev', username: 'lmeve' },
+      // Docker setups
+      { host: 'db', database: 'lmeve', username: 'lmeve' },
+      { host: 'mysql', database: 'lmeve', username: 'lmeve' },
+      // Remote but with proper naming
+      { host: '127.0.0.1', database: 'lmeve', username: 'lmeve' },
+    ];
 
-    // Simulate incomplete database
-    if (this.config.database === 'incomplete-db') {
-      return { valid: false, error: 'LMeve tables found but missing EVE SDE tables. Run the EVE SDE update to complete installation.' };
+    const isValidConfig = validConfigs.some(config => 
+      this.config.host === config.host && 
+      this.config.database === config.database && 
+      this.config.username === config.username
+    );
+
+    if (!isValidConfig) {
+      return { 
+        valid: false, 
+        error: `Configuration not recognized as a valid LMeve setup. Host: ${this.config.host}, DB: ${this.config.database}, User: ${this.config.username}` 
+      };
     }
 
     return { valid: true };
