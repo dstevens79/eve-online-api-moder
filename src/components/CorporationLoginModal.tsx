@@ -24,8 +24,8 @@ export function CorporationLoginModal({ open, onOpenChange }: CorporationLoginMo
   } = useCorporationAuth();
   
   const [activeTab, setActiveTab] = useState<'local' | 'esi'>('local');
-  const [username, setUsername] = useState('');
-  const [password, setPassword] = useState('');
+  const [username, setUsername] = useState('admin');
+  const [password, setPassword] = useState('12345');
   const [error, setError] = useState<string | null>(null);
   const [isESIProcessing, setIsESIProcessing] = useState(false);
 
@@ -33,27 +33,27 @@ export function CorporationLoginModal({ open, onOpenChange }: CorporationLoginMo
     e.preventDefault();
     setError(null);
 
+    console.log('🔐 Modal form submit triggered:', { username: username.trim(), hasPassword: !!password.trim() });
+
     if (!username.trim() || !password.trim()) {
       setError('Please enter both username and password');
       return;
     }
 
     try {
-      console.log('🔐 Submitting login form with:', username.trim());
-      await loginWithCredentials(username.trim(), password.trim());
-      console.log('✅ Login successful - clearing form and closing modal');
+      console.log('🔐 About to call loginWithCredentials from modal with:', username.trim());
+      const result = await loginWithCredentials(username.trim(), password.trim());
+      console.log('✅ Modal login successful - result:', result);
       
       // Clear form
       setUsername('');
       setPassword('');
       
-      // Close modal after a brief delay to ensure state updates
-      setTimeout(() => {
-        onOpenChange(false);
-      }, 250);
+      console.log('🔐 Login completed successfully - closing modal immediately');
+      onOpenChange(false);
       
     } catch (error) {
-      console.error('❌ Login form error:', error);
+      console.error('❌ Modal login form error:', error);
       setError(error instanceof Error ? error.message : 'Authentication failed');
     }
   };
@@ -78,8 +78,10 @@ export function CorporationLoginModal({ open, onOpenChange }: CorporationLoginMo
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === 'Enter') {
+      console.log('🔐 Enter key pressed - triggering form submit');
       e.preventDefault();
-      handleLocalSubmit(e);
+      const formEvent = new Event('submit', { bubbles: true }) as any;
+      handleLocalSubmit(formEvent);
     }
   };
 
@@ -156,9 +158,23 @@ export function CorporationLoginModal({ open, onOpenChange }: CorporationLoginMo
                 </div>
 
                 <Button
-                  type="submit"
+                  type="button"
                   disabled={isLoading || !username.trim() || !password.trim()}
                   className="w-full"
+                  onClick={async (e) => {
+                    console.log('🔐 Submit button clicked directly!');
+                    e.preventDefault();
+                    
+                    try {
+                      console.log('🔐 Direct button click - calling loginWithCredentials');
+                      await loginWithCredentials(username.trim(), password.trim());
+                      console.log('✅ Direct button login successful');
+                      onOpenChange(false);
+                    } catch (error) {
+                      console.error('❌ Direct button login error:', error);
+                      setError(error instanceof Error ? error.message : 'Authentication failed');
+                    }
+                  }}
                 >
                   {isLoading ? 'Signing in...' : 'Sign In'}
                 </Button>
