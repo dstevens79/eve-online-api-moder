@@ -1,45 +1,32 @@
 import React, { useState } from 'react';
-import { useCorporationAuth } from '@/lib/corp-a
-export const DirectLoginTest: React.FC = () => {
+import { useCorporationAuth } from '@/lib/corp-auth';
+import { Button } from '@/components/ui/button';
 
 export const DirectLoginTest: React.FC = () => {
-    setTestResults(prev => [...prev, `[${new Date().toLocaleTim
+  const { loginWithCredentials, logout, user, authTrigger } = useCorporationAuth();
+  const [testResults, setTestResults] = useState<string[]>([]);
+  const [forceUpdate, setForceUpdate] = useState(0);
 
+  const addResult = (message: string) => {
+    setTestResults(prev => [...prev, `[${new Date().toLocaleTimeString()}] ${message}`]);
+  };
+
+  const handleDirectLogin = async () => {
     try {
-
-        characterId: 99999999,
-        corporationId: 12345678,
-    
-
-        canManageESI: true,
+      addResult('🧪 Starting direct login test...');
+      addResult(`Current user: ${user?.characterName || 'none'}`);
+      addResult(`Auth trigger: ${authTrigger}`);
+      
+      await loginWithCredentials('admin', '12345');
       
       addResult('✅ Direct login completed');
       
-        setForceUpdate(p
-      }, 100);
-    } catch (error) {
-      addResult(`❌ Direct login 
-  };
-  const handleDirectSt
-      addResult('🧪 S
-      // Force a state upd
-        setForceUpdate(prev => prev +
-        canManageESI: true,
-      };
-      
-  };
-  const handleLogout = () => {
-    lo
-  };
       setTimeout(() => {
         setForceUpdate(prev => prev + 1);
-        addResult('🔄 Force update triggered');
       }, 100);
-      
     } catch (error) {
-      console.error('🧪 Direct test failed:', error);
       addResult(`❌ Direct login failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
-     
+    }
   };
 
   const handleDirectStateTest = async () => {
@@ -49,8 +36,8 @@ export const DirectLoginTest: React.FC = () => {
       // Force a state update
       setTimeout(() => {
         setForceUpdate(prev => prev + 1);
-        </Button>
-      }, 500);
+        addResult('🔄 Force update triggered');
+      }, 100);
       
     } catch (error) {
       console.error('🧪 Direct state test failed:', error);
@@ -74,14 +61,17 @@ export const DirectLoginTest: React.FC = () => {
       
       <div className="space-y-2 mb-4">
         <Button onClick={handleDirectLogin} className="mr-2">
-
-
-        <Button onClick={handleDirectStateTest} variant="secondary" className="mr-2">
-
+          Test Direct Login
         </Button>
-
+        
+        <Button onClick={handleDirectStateTest} variant="secondary" className="mr-2">
+          Test State Update
+        </Button>
+        
+        <Button onClick={handleLogout} variant="outline" className="mr-2">
           Test Logout
         </Button>
+        
         <Button onClick={clearResults} variant="destructive" size="sm">
           Clear Results
         </Button>
@@ -91,9 +81,9 @@ export const DirectLoginTest: React.FC = () => {
         {testResults.map((result, index) => (
           <div key={index} className="text-sm font-mono bg-muted p-2 rounded">
             {result}
-
+          </div>
         ))}
       </div>
     </div>
-
+  );
 };
