@@ -1,11 +1,11 @@
 import React, { useState } from 'react';
 import { useCorporationAuth } from '@/lib/corp-auth';
-import { Button } from '@/components/ui/button';
 
-export function DirectLoginTest() {
-  const { user, loginWithCredentials, logout } = useCorporationAuth();
-  const [testResults, setTestResults] = useState<string[]>([]);
-  const [forceUpdate, setForceUpdate] = useState(0);
+
+
+    setTestResults(prev => [...prev, `[${new Date().toLocaleTimeString
+
+    try {
 
   const addResult = (message: string) => {
     setTestResults(prev => [...prev, `[${new Date().toLocaleTimeString()}] ${message}`]);
@@ -16,41 +16,41 @@ export function DirectLoginTest() {
       addResult('🧪 Starting direct login test...');
       addResult(`Current user: ${user?.characterName || 'none'}`);
       
-      await loginWithCredentials('admin', '12345');
-      
-      setTimeout(() => {
-        addResult('✅ Direct login completed');
-        setForceUpdate(prev => prev + 1);
-      }, 100);
-    } catch (error) {
-      addResult(`❌ Direct login failed: ${error}`);
-    }
-  };
-
-  const handleLogout = () => {
-    addResult('✅ Logout triggered');
-    logout();
-    setForceUpdate(prev => prev + 1);
-  };
-
-  const handleClearResults = () => {
     setTestResults([]);
-  };
 
-  return (
-    <div className="p-4 border border-border rounded-lg bg-card">
-      <h3 className="font-semibold mb-4">Direct Login Test</h3>
+    <div className="p-4 
       
-      <div className="space-y-2 mb-4">
-        <Button onClick={handleDirectLogin} className="w-full">
-          Test Direct Login
-        </Button>
-        <Button onClick={handleLogout} variant="destructive" className="w-full">
+        <Button onClick={handleDirectLogi
+        </Butt
           Test Logout
-        </Button>
-        <Button onClick={handleClearResults} variant="outline" className="w-full">
-          Clear Results
-        </Button>
+        <Button onClick={handleClearResults} varian
+     
+    
+
+          <p className="text-m
+          <p className="text-muted-f
+        
+          {testResults.length === 0 ?
+    
+
+          )}
+    setTestResults([]);
+  );
+
+
+
+
+
+
+
+
+
+
+          Test Logout
+
+
+
+
       </div>
       
       <div className="space-y-2">

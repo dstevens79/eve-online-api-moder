@@ -542,11 +542,6 @@ export function Settings({ activeTab, onTabChange }: SettingsProps) {
     toast.success('Setup commands copied to clipboard');
   };
 
-  const handleSaveAdminConfig = () => {
-    updateAdminConfig(tempAdminConfig);
-    toast.success('Admin configuration updated');
-  };
-
   const handleNotificationToggle = (type: keyof typeof settings.notifications) => {
     setSettings(current => ({
       ...current,
