@@ -1,16 +1,18 @@
 import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
-import { Button } from '@/components/ui/button';
+import { useCorporationAuth } from '@/lib/corp-auth';
 
-  const [testResults, setTestResult
+export const DirectLoginTest: React.FC = () => {
   const [forceUpdate, setForceUpdate] = useState(0);
   const [testResults, setTestResults] = useState<string[]>([]);
   const { directLogin, logout } = useCorporationAuth();
-    setTestResults(prev => [...prev, `${new Date().toLocaleTimeString()}: ${message}`]);
+
   const addResult = (message: string) => {
     setTestResults(prev => [...prev, `${new Date().toLocaleTimeString()}: ${message}`]);
   };
 
+  const handleDirectLogin = async () => {
+    try {
       addResult('🧪 Starting direct login test...');
       
       const testUser = {
@@ -95,4 +97,4 @@ import { Button } from '@/components/ui/button';
       </div>
     </div>
   );
-}
+};
