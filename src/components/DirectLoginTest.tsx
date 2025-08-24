@@ -1,11 +1,11 @@
 import React, { useState } from 'react';
-import { useCorporationAuth } from '@/lib/corp-a
+import { useCorporationAuth } from '@/lib/corp-auth';
+import { Button } from '@/components/ui/button';
+
 export function DirectLoginTest() {
-
-
-    setTestResults(prev => [...prev, `[${new Date().toLocaleTimeString()}] ${messag
-
-    try {
+  const { user, loginWithCredentials, logout } = useCorporationAuth();
+  const [testResults, setTestResults] = useState<string[]>([]);
+  const [forceUpdate, setForceUpdate] = useState(0);
 
   const addResult = (message: string) => {
     setTestResults(prev => [...prev, `[${new Date().toLocaleTimeString()}] ${message}`]);
@@ -15,91 +15,62 @@ export function DirectLoginTest() {
     try {
       addResult('🧪 Starting direct login test...');
       addResult(`Current user: ${user?.characterName || 'none'}`);
-      addResult('🧪 Starting direct state test..
       
+      await loginWithCredentials('admin', '12345');
       
-
+      setTimeout(() => {
+        addResult('✅ Direct login completed');
+        setForceUpdate(prev => prev + 1);
       }, 100);
-    } 
-      addResult(`❌ Direc
+    } catch (error) {
+      addResult(`❌ Direct login failed: ${error}`);
+    }
   };
-  const handle
-    addResult('✅ Logo
 
+  const handleLogout = () => {
+    addResult('✅ Logout triggered');
+    logout();
+    setForceUpdate(prev => prev + 1);
+  };
+
+  const handleClearResults = () => {
     setTestResults([]);
-
   };
 
-        <Button onClick={handleDirectLogin} c
-        <
-          Test State Update
-        <Button onClick={handleLogout} variant="destructive" class
+  return (
+    <div className="p-4 border border-border rounded-lg bg-card">
+      <h3 className="font-semibold mb-4">Direct Login Test</h3>
+      
+      <div className="space-y-2 mb-4">
+        <Button onClick={handleDirectLogin} className="w-full">
+          Test Direct Login
         </Button>
+        <Button onClick={handleLogout} variant="destructive" className="w-full">
+          Test Logout
+        </Button>
+        <Button onClick={handleClearResults} variant="outline" className="w-full">
           Clear Results
-      
-      <div className="space-y
-        <div className="
-            <p className="text-muted-fore
-            te
-      
-            ))
-        </div>
-
-     
-    
-
-          <div>Force Update: {
+        </Button>
       </div>
+      
+      <div className="space-y-2">
+        <div className="text-sm">
+          <p className="text-muted-foreground">Current User: {user?.characterName || 'none'}</p>
+          <p className="text-muted-foreground">Corporation: {user?.corporationName || 'none'}</p>
+          <p className="text-muted-foreground">Is Admin: {user?.isAdmin ? 'true' : 'false'}</p>
+          <p className="text-muted-foreground">Force Update: {forceUpdate}</p>
+        </div>
+        
+        <div className="max-h-40 overflow-y-auto bg-muted/20 p-2 rounded text-xs font-mono">
+          {testResults.length === 0 ? (
+            <p className="text-muted-foreground italic">No test results yet</p>
+          ) : (
+            testResults.map((result, index) => (
+              <div key={index} className="mb-1">{result}</div>
+            ))
+          )}
+        </div>
+      </div>
+    </div>
   );
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+}
