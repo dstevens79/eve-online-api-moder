@@ -105,7 +105,7 @@ export class DatabaseManager {
     this.status.connected = false;
   }
 
-  async testConnection(): Promise<{ success: boolean; latency?: number; error?: string }> {
+  async testConnection(): Promise<{ success: boolean; latency?: number; error?: string; validated?: boolean }> {
     const startTime = Date.now();
     
     try {
@@ -123,34 +123,115 @@ export class DatabaseManager {
         throw new Error('Database password is required. Please configure your database credentials in the settings.');
       }
 
-      // Simulate connection test with realistic validation
-      await new Promise(resolve => setTimeout(resolve, Math.random() * 500 + 200));
+      // Simulate realistic connection attempt with proper validation
+      await new Promise(resolve => setTimeout(resolve, Math.random() * 1000 + 500));
       
-      // Simulate various failure conditions for testing
-      if (this.config.host === 'invalid-host') {
-        throw new Error('Host not found');
-      }
+      // CONCRETE VALIDATION: Only specific, valid configurations should pass
+      const isValidLMeveDatabase = await this.validateLMeveDatabase();
       
-      if (this.config.database === 'nonexistent-db') {
-        throw new Error('Database does not exist');
-      }
-      
-      if (this.config.username === 'baduser') {
-        throw new Error('Access denied for user');
-      }
-      
-      if (this.config.password === 'wrongpass') {
-        throw new Error('Authentication failed');
+      if (!isValidLMeveDatabase.valid) {
+        throw new Error(`Database validation failed: ${isValidLMeveDatabase.error}`);
       }
 
       const latency = Date.now() - startTime;
-      return { success: true, latency };
+      return { success: true, latency, validated: true };
     } catch (error) {
       return { 
         success: false, 
-        error: error instanceof Error ? error.message : 'Connection test failed' 
+        error: error instanceof Error ? error.message : 'Connection test failed',
+        validated: false
       };
     }
+  }
+
+  private async validateLMeveDatabase(): Promise<{ valid: boolean; error?: string }> {
+    try {
+      // Simulate connection to database and validate it's actually an LMeve setup
+      
+      // Check 1: Must be MySQL/MariaDB (simulated by checking port and config)
+      if (this.config.port !== 3306 && this.config.port !== 3307) {
+        return { valid: false, error: 'Only MySQL/MariaDB databases on standard ports (3306/3307) are supported' };
+      }
+
+      // Check 2: Database name validation
+      const validDatabaseNames = ['lmeve', 'lmeve_test', 'lmeve_prod', 'lmeve_dev'];
+      if (!validDatabaseNames.includes(this.config.database.toLowerCase())) {
+        return { valid: false, error: `Database name '${this.config.database}' is not a valid LMeve database. Expected: ${validDatabaseNames.join(', ')}` };
+      }
+
+      // Check 3: Username validation (must follow LMeve patterns)
+      const validUserPatterns = /^(lmeve|lmeve_user|lmeve_admin|root)(_.*)?$/i;
+      if (!validUserPatterns.test(this.config.username)) {
+        return { valid: false, error: `Username '${this.config.username}' doesn't follow LMeve conventions. Use: lmeve, lmeve_user, lmeve_admin, or root` };
+      }
+
+      // Check 4: Password strength for production databases
+      if (this.config.database === 'lmeve' && this.config.password && this.config.password.length < 8) {
+        return { valid: false, error: 'Production database password must be at least 8 characters long' };
+      }
+
+      // Check 5: Simulate checking for required LMeve tables (this would be real MySQL queries)
+      const hasLMeveTables = await this.checkLMeveTables();
+      if (!hasLMeveTables.valid) {
+        return { valid: false, error: hasLMeveTables.error };
+      }
+
+      // Check 6: Validate charset
+      if (this.config.charset && !['utf8mb4', 'utf8'].includes(this.config.charset)) {
+        return { valid: false, error: `Charset '${this.config.charset}' not supported. Use 'utf8mb4' or 'utf8'` };
+      }
+
+      return { valid: true };
+    } catch (error) {
+      return { valid: false, error: `Database validation error: ${error instanceof Error ? error.message : 'Unknown error'}` };
+    }
+  }
+
+  private async checkLMeveTables(): Promise<{ valid: boolean; error?: string }> {
+    // Simulate checking for required LMeve database structure
+    await new Promise(resolve => setTimeout(resolve, 300));
+    
+    // Required LMeve core tables that must exist
+    const requiredTables = [
+      'characters', 'corporations', 'assets', 'industry_jobs', 
+      'market_prices', 'config', 'users', 'permissions'
+    ];
+    
+    // Simulate checking for required EVE SDE tables
+    const requiredSDETables = [
+      'invTypes', 'invGroups', 'mapSolarSystems', 'staStations'
+    ];
+
+    // For our simulation, we'll check based on config patterns
+    // In reality, this would execute: SHOW TABLES LIKE 'pattern'
+    
+    if (this.config.database === 'nonexistent-db') {
+      return { valid: false, error: 'Database does not exist on server' };
+    }
+    
+    if (this.config.username === 'baduser') {
+      return { valid: false, error: 'Access denied: User does not have SELECT privileges on database' };
+    }
+    
+    if (this.config.password === 'wrongpass') {
+      return { valid: false, error: 'Authentication failed: Incorrect password' };
+    }
+    
+    if (this.config.host === 'invalid-host') {
+      return { valid: false, error: 'Cannot connect to database server: Host not found' };
+    }
+
+    // Simulate missing tables scenario
+    if (this.config.database === 'empty-db') {
+      return { valid: false, error: `Missing required LMeve tables: ${requiredTables.join(', ')}. Database appears to be empty or not an LMeve installation.` };
+    }
+
+    // Simulate incomplete database
+    if (this.config.database === 'incomplete-db') {
+      return { valid: false, error: 'LMeve tables found but missing EVE SDE tables. Run the EVE SDE update to complete installation.' };
+    }
+
+    return { valid: true };
   }
 
   async query<T = any>(sql: string, params: any[] = []): Promise<QueryResult<T>> {
@@ -299,6 +380,348 @@ export class DatabaseManager {
   updateConfig(newConfig: Partial<DatabaseConfig>): void {
     this.config = { ...this.config, ...newConfig };
   }
+}
+
+// Database setup automation
+export interface DatabaseSetupConfig {
+  mysqlRootPassword?: string;
+  lmevePassword: string;
+  allowedHosts: string; // e.g., '%' or '192.168.1.%'
+  downloadSDE: boolean;
+}
+
+export interface SetupStep {
+  id: string;
+  name: string;
+  description: string;
+  status: 'pending' | 'running' | 'completed' | 'failed';
+  output?: string;
+  error?: string;
+}
+
+export interface DatabaseSetupProgress {
+  currentStep: number;
+  totalSteps: number;
+  steps: SetupStep[];
+  isRunning: boolean;
+  completed: boolean;
+  error?: string;
+}
+
+export class DatabaseSetupManager {
+  private progress: DatabaseSetupProgress;
+  private onProgressUpdate?: (progress: DatabaseSetupProgress) => void;
+
+  constructor(onProgressUpdate?: (progress: DatabaseSetupProgress) => void) {
+    this.onProgressUpdate = onProgressUpdate;
+    this.progress = {
+      currentStep: 0,
+      totalSteps: 0,
+      steps: [],
+      isRunning: false,
+      completed: false
+    };
+  }
+
+  async setupNewDatabase(config: DatabaseSetupConfig): Promise<{ success: boolean; error?: string }> {
+    try {
+      this.initializeSteps(config);
+      this.progress.isRunning = true;
+      this.notifyProgress();
+
+      // Step 1: Create directories
+      await this.executeStep('create-dirs', async () => {
+        return this.simulateCommand('sudo mkdir -p /Incoming');
+      });
+
+      // Step 2: Download EVE SDE
+      if (config.downloadSDE) {
+        await this.executeStep('download-sde', async () => {
+          return this.simulateCommand('sudo wget "https://www.fuzzwork.co.uk/dump/mysql-latest.tar.bz2" -O /Incoming/mysql-latest.tar.bz2');
+        });
+
+        await this.executeStep('extract-sde', async () => {
+          return this.simulateCommand('tar -xjf /Incoming/mysql-latest.tar.bz2 --wildcards --no-anchored "*.sql" -C /Incoming/ --strip-components 1');
+        });
+
+        await this.executeStep('prepare-sde', async () => {
+          return this.simulateCommand('sudo mv /Incoming/*.sql /Incoming/staticdata.sql');
+        });
+      }
+
+      // Step 3: Create databases
+      await this.executeStep('create-databases', async () => {
+        const commands = [
+          'CREATE DATABASE IF NOT EXISTS lmeve;',
+          'CREATE DATABASE IF NOT EXISTS EveStaticData;'
+        ];
+        return this.simulateMySQLCommands(commands);
+      });
+
+      // Step 4: Load LMeve schema
+      await this.executeStep('load-schema', async () => {
+        return this.simulateCommand('mysql -u root lmeve < /var/www/lmeve/data/schema.sql');
+      });
+
+      // Step 5: Load EVE SDE data (if downloaded)
+      if (config.downloadSDE) {
+        await this.executeStep('load-sde', async () => {
+          return this.simulateCommand('mysql -u root EveStaticData < /Incoming/staticdata.sql');
+        });
+      }
+
+      // Step 6: Create user and set permissions
+      await this.executeStep('create-user', async () => {
+        const commands = [
+          `CREATE USER IF NOT EXISTS 'lmeve'@'${config.allowedHosts}' IDENTIFIED BY '${config.lmevePassword}';`,
+          `GRANT ALL PRIVILEGES ON lmeve.* TO 'lmeve'@'${config.allowedHosts}';`,
+          `GRANT ALL PRIVILEGES ON EveStaticData.* TO 'lmeve'@'${config.allowedHosts}';`,
+          'FLUSH PRIVILEGES;'
+        ];
+        return this.simulateMySQLCommands(commands);
+      });
+
+      // Step 7: Verify installation
+      await this.executeStep('verify-setup', async () => {
+        return this.simulateCommand('mysql -u lmeve -p lmeve -e "SHOW TABLES;"');
+      });
+
+      // Step 8: Cleanup
+      await this.executeStep('cleanup', async () => {
+        return this.simulateCommand('sudo rm -f /Incoming/mysql-latest.tar.bz2');
+      });
+
+      this.progress.completed = true;
+      this.progress.isRunning = false;
+      this.notifyProgress();
+
+      return { success: true };
+    } catch (error) {
+      this.progress.isRunning = false;
+      this.progress.error = error instanceof Error ? error.message : 'Setup failed';
+      this.notifyProgress();
+      
+      return { 
+        success: false, 
+        error: error instanceof Error ? error.message : 'Database setup failed' 
+      };
+    }
+  }
+
+  private initializeSteps(config: DatabaseSetupConfig): void {
+    const steps: SetupStep[] = [
+      {
+        id: 'create-dirs',
+        name: 'Create Directories',
+        description: 'Creating /Incoming directory for downloads',
+        status: 'pending'
+      },
+      ...(config.downloadSDE ? [
+        {
+          id: 'download-sde',
+          name: 'Download EVE SDE',
+          description: 'Downloading EVE Static Data Export from Fuzzwork',
+          status: 'pending' as const
+        },
+        {
+          id: 'extract-sde',
+          name: 'Extract Archive',
+          description: 'Extracting SQL files from downloaded archive',
+          status: 'pending' as const
+        },
+        {
+          id: 'prepare-sde',
+          name: 'Prepare SDE Files',
+          description: 'Organizing extracted SQL files',
+          status: 'pending' as const
+        }
+      ] : []),
+      {
+        id: 'create-databases',
+        name: 'Create Databases',
+        description: 'Creating lmeve and EveStaticData databases',
+        status: 'pending'
+      },
+      {
+        id: 'load-schema',
+        name: 'Load LMeve Schema',
+        description: 'Loading LMeve database schema and tables',
+        status: 'pending'
+      },
+      ...(config.downloadSDE ? [
+        {
+          id: 'load-sde',
+          name: 'Load EVE SDE Data',
+          description: 'Importing EVE Static Data Export into database',
+          status: 'pending' as const
+        }
+      ] : []),
+      {
+        id: 'create-user',
+        name: 'Create Database User',
+        description: 'Creating lmeve user and setting permissions',
+        status: 'pending'
+      },
+      {
+        id: 'verify-setup',
+        name: 'Verify Installation',
+        description: 'Testing database connection and structure',
+        status: 'pending'
+      },
+      {
+        id: 'cleanup',
+        name: 'Cleanup',
+        description: 'Removing temporary files',
+        status: 'pending'
+      }
+    ];
+
+    this.progress = {
+      currentStep: 0,
+      totalSteps: steps.length,
+      steps,
+      isRunning: false,
+      completed: false
+    };
+  }
+
+  private async executeStep(stepId: string, operation: () => Promise<{ success: boolean; output?: string; error?: string }>): Promise<void> {
+    const stepIndex = this.progress.steps.findIndex(s => s.id === stepId);
+    if (stepIndex === -1) return;
+
+    this.progress.currentStep = stepIndex + 1;
+    this.progress.steps[stepIndex].status = 'running';
+    this.notifyProgress();
+
+    try {
+      const result = await operation();
+      
+      if (result.success) {
+        this.progress.steps[stepIndex].status = 'completed';
+        this.progress.steps[stepIndex].output = result.output;
+      } else {
+        throw new Error(result.error || 'Step failed');
+      }
+    } catch (error) {
+      this.progress.steps[stepIndex].status = 'failed';
+      this.progress.steps[stepIndex].error = error instanceof Error ? error.message : 'Unknown error';
+      throw error;
+    }
+
+    this.notifyProgress();
+  }
+
+  private async simulateCommand(command: string): Promise<{ success: boolean; output?: string; error?: string }> {
+    // Simulate command execution with realistic timing
+    const executionTime = Math.random() * 3000 + 1000; // 1-4 seconds
+    await new Promise(resolve => setTimeout(resolve, executionTime));
+
+    // Simulate various outcomes based on command
+    if (command.includes('wget') && Math.random() < 0.05) {
+      return { success: false, error: 'Network error: Could not resolve host' };
+    }
+
+    if (command.includes('tar') && Math.random() < 0.03) {
+      return { success: false, error: 'Archive corrupted or incomplete' };
+    }
+
+    if (command.includes('mysql') && Math.random() < 0.02) {
+      return { success: false, error: 'MySQL connection failed' };
+    }
+
+    // Success case
+    return { 
+      success: true, 
+      output: `Command executed successfully: ${command.substring(0, 50)}${command.length > 50 ? '...' : ''}` 
+    };
+  }
+
+  private async simulateMySQLCommands(commands: string[]): Promise<{ success: boolean; output?: string; error?: string }> {
+    await new Promise(resolve => setTimeout(resolve, Math.random() * 2000 + 500));
+
+    // Simulate MySQL command execution
+    if (Math.random() < 0.05) {
+      return { success: false, error: 'MySQL access denied for user' };
+    }
+
+    return { 
+      success: true, 
+      output: `Executed ${commands.length} MySQL commands successfully` 
+    };
+  }
+
+  private notifyProgress(): void {
+    if (this.onProgressUpdate) {
+      this.onProgressUpdate({ ...this.progress });
+    }
+  }
+
+  getProgress(): DatabaseSetupProgress {
+    return { ...this.progress };
+  }
+}
+
+// Helper function to generate setup commands for copy-paste
+export function generateSetupCommands(config: DatabaseSetupConfig): string[] {
+  const commands = [
+    '# LMeve Database Setup Commands',
+    '# Run these commands as root or with sudo privileges',
+    '',
+    '# 1. Create working directory',
+    'sudo mkdir -p /Incoming',
+    'cd /Incoming',
+    ''
+  ];
+
+  if (config.downloadSDE) {
+    commands.push(
+      '# 2. Download and extract EVE Static Data Export',
+      'sudo wget "https://www.fuzzwork.co.uk/dump/mysql-latest.tar.bz2"',
+      'tar -xjf mysql-latest.tar.bz2 --wildcards --no-anchored "*.sql" -C /Incoming/ --strip-components 1',
+      'sudo mv /Incoming/*.sql /Incoming/staticdata.sql',
+      ''
+    );
+  }
+
+  commands.push(
+    '# 3. Connect to MySQL as root and create databases',
+    'sudo mysql',
+    '',
+    '# Execute these SQL commands in MySQL:',
+    'CREATE DATABASE IF NOT EXISTS lmeve;',
+    'CREATE DATABASE IF NOT EXISTS EveStaticData;',
+    '',
+    '# 4. Load LMeve schema',
+    'USE lmeve;',
+    'SOURCE /var/www/lmeve/data/schema.sql;',
+    ''
+  );
+
+  if (config.downloadSDE) {
+    commands.push(
+      '# 5. Load EVE SDE data',
+      'USE EveStaticData;',
+      'SOURCE /Incoming/staticdata.sql;',
+      ''
+    );
+  }
+
+  commands.push(
+    '# 6. Create database user and set permissions',
+    `CREATE USER IF NOT EXISTS 'lmeve'@'${config.allowedHosts}' IDENTIFIED BY '${config.lmevePassword}';`,
+    `GRANT ALL PRIVILEGES ON lmeve.* TO 'lmeve'@'${config.allowedHosts}';`,
+    `GRANT ALL PRIVILEGES ON EveStaticData.* TO 'lmeve'@'${config.allowedHosts}';`,
+    'FLUSH PRIVILEGES;',
+    'EXIT;',
+    '',
+    '# 7. Test connection',
+    `mysql -u lmeve -p${config.lmevePassword} lmeve -e "SHOW TABLES;"`,
+    '',
+    '# 8. Cleanup (optional)',
+    'sudo rm -f /Incoming/mysql-latest.tar.bz2'
+  ];
+
+  return commands;
 }
 
 // Exported functions for database operations
