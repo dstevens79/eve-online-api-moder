@@ -176,14 +176,20 @@ export function Settings({ activeTab, onTabChange }: SettingsProps) {
   
   // Database setup state
   const [setupManager, setSetupManager] = useState<DatabaseSetupManager | null>(null);
-  const [setupProgress, setSetupProgress] = useState<DatabaseSetupProgress | null>(null);
+  const [setupProgress, setSetupProgress] = useState<DatabaseSetupProgress>({
+    currentStep: 0,
+    totalSteps: 0,
+    steps: [],
+    isRunning: false,
+    completed: false
+  });
   const [showSetupWizard, setShowSetupWizard] = useState(false);
   const [setupConfig, setSetupConfig] = useState<DatabaseSetupConfig>({
     lmevePassword: '',
     allowedHosts: '%',
     downloadSDE: true
   });
-  const [showGeneratedCommands, setShowGeneratedCommands] = useState(false);
+  const [showSetupCommands, setShowSetupCommands] = useState(false);
   
   // Admin configuration state
   const [tempAdminConfig, setTempAdminConfig] = useState(adminConfig);
@@ -209,18 +215,24 @@ export function Settings({ activeTab, onTabChange }: SettingsProps) {
 
   // Database functions
   const handleTestDbConnection = async () => {
-    if (!dbManager) return;
+    if (!settings.database) {
+      toast.error('Please configure database connection settings first');
+      return;
+    }
     
     setTestingConnection(true);
     try {
-      const result = await dbManager.testConnection();
+      // Create a temporary database manager for testing
+      const tempManager = new DatabaseManager(settings.database);
+      const result = await tempManager.testConnection();
+      
       if (result.success && result.validated) {
-        toast.success(`✅ Database connection validated successfully! Latency: ${result.latency}ms - All LMeve requirements confirmed`);
+        toast.success(`✅ Database connection validated successfully! Latency: ${result.latency}ms`);
         setDbStatus(prev => ({ ...prev, lastError: undefined }));
       } else if (result.success && !result.validated) {
-        toast.warning(`⚠️ Connection established but validation incomplete. Latency: ${result.latency}ms - Check database structure`);
+        toast.warning(`⚠️ Connection established but validation incomplete. Latency: ${result.latency}ms`);
       } else {
-        toast.error(`❌ Database validation failed: ${result.error}`);
+        toast.error(`❌ Database connection failed: ${result.error}`);
         setDbStatus(prev => ({ ...prev, lastError: result.error }));
       }
     } catch (error) {
@@ -233,13 +245,23 @@ export function Settings({ activeTab, onTabChange }: SettingsProps) {
   };
 
   const handleConnectDb = async () => {
-    if (!dbManager) return;
+    if (!settings.database) {
+      toast.error('Please configure database connection settings first');
+      return;
+    }
     
-    const result = await dbManager.connect();
-    setDbStatus(dbManager.getStatus());
+    // Create the database manager if it doesn't exist
+    let manager = dbManager;
+    if (!manager) {
+      manager = new DatabaseManager(settings.database);
+      setDbManager(manager);
+    }
+    
+    const result = await manager.connect();
+    setDbStatus(manager.getStatus());
     
     if (result.success) {
-      toast.success('✅ Database connection established successfully - LMeve operations ready');
+      toast.success('✅ Database connection established successfully');
       loadTableInfo();
     } else {
       toast.error(`❌ Database connection failed: ${result.error}`);
@@ -277,6 +299,34 @@ export function Settings({ activeTab, onTabChange }: SettingsProps) {
         }
       };
     });
+  };
+
+  // Database setup handlers
+  const handleRunDatabaseSetup = async () => {
+    if (!setupConfig.lmevePassword) {
+      toast.error('Please enter a password for the lmeve database user');
+      return;
+    }
+
+    try {
+      const manager = new DatabaseSetupManager(setupConfig, (progress) => {
+        setSetupProgress(progress);
+      });
+      
+      setSetupManager(manager);
+      setSetupProgress(manager.getProgress());
+      
+      await manager.runSetup();
+      
+      toast.success('Database setup completed successfully!');
+    } catch (error) {
+      console.error('Database setup failed:', error);
+      toast.error('Database setup failed: ' + (error instanceof Error ? error.message : 'Unknown error'));
+    }
+  };
+
+  const handleShowSetupCommands = () => {
+    setShowSetupCommands(true);
   };
 
   // Generate OAuth authorization URL
@@ -377,6 +427,14 @@ export function Settings({ activeTab, onTabChange }: SettingsProps) {
   useEffect(() => {
     checkForUpdates();
   }, [checkForUpdates]);
+
+  // Create/update database manager when database config changes
+  useEffect(() => {
+    if (settings.database) {
+      const manager = new DatabaseManager(settings.database);
+      setDbManager(manager);
+    }
+  }, [settings.database]);
 
   const handleSyncData = async () => {
     if (syncStatus.isRunning) return;
@@ -1114,6 +1172,159 @@ export function Settings({ activeTab, onTabChange }: SettingsProps) {
                     )}
                   </div>
                 )}
+              </div>
+
+              {/* Database Setup */}
+              <div className="border border-border rounded-lg p-4">
+                <div className="flex items-center justify-between mb-4">
+                  <h4 className="font-medium">Database Setup</h4>
+                  <Badge variant="outline" className="text-xs">
+                    New Installation
+                  </Badge>
+                </div>
+                
+                <div className="space-y-4">
+                  <div className="p-3 border border-blue-500/20 bg-blue-500/10 rounded-lg">
+                    <div className="flex items-center gap-2 text-blue-400 mb-2">
+                      <Info size={16} />
+                      <span className="font-medium">One-Click Database Setup</span>
+                    </div>
+                    <p className="text-sm text-muted-foreground">
+                      This will create the LMeve database structure and download the EVE Static Data Export (SDE) 
+                      using the commands from the original LMeve documentation.
+                    </p>
+                  </div>
+
+                  <div className="space-y-3">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="font-medium text-sm">Download & Install EVE SDE</p>
+                        <p className="text-xs text-muted-foreground">Downloads the latest EVE universe data (~1GB)</p>
+                      </div>
+                      <Switch
+                        checked={setupConfig.downloadSDE}
+                        onCheckedChange={(checked) => setSetupConfig(prev => ({ ...prev, downloadSDE: checked }))}
+                      />
+                    </div>
+                    
+                    <div className="space-y-2">
+                      <Label htmlFor="setupPassword">LMeve Database Password</Label>
+                      <Input
+                        id="setupPassword"
+                        type="password"
+                        value={setupConfig.lmevePassword}
+                        onChange={(e) => setSetupConfig(prev => ({ ...prev, lmevePassword: e.target.value }))}
+                        placeholder="Enter password for lmeve user"
+                      />
+                    </div>
+                    
+                    <div className="space-y-2">
+                      <Label htmlFor="allowedHosts">Allowed Hosts</Label>
+                      <Input
+                        id="allowedHosts"
+                        value={setupConfig.allowedHosts}
+                        onChange={(e) => setSetupConfig(prev => ({ ...prev, allowedHosts: e.target.value }))}
+                        placeholder="% for any host, or specific IP/hostname"
+                      />
+                      <p className="text-xs text-muted-foreground">
+                        Use '%' to allow connections from any host, or specify specific IPs/hostnames
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="flex gap-3">
+                    <Button
+                      onClick={handleRunDatabaseSetup}
+                      disabled={setupProgress.isRunning || !setupConfig.lmevePassword}
+                      className="flex-1 bg-accent hover:bg-accent/90"
+                    >
+                      {setupProgress.isRunning ? (
+                        <ArrowClockwise size={16} className="mr-2 animate-spin" />
+                      ) : (
+                        <Wrench size={16} className="mr-2" />
+                      )}
+                      {setupProgress.isRunning ? 'Setting Up...' : 'Run Database Setup'}
+                    </Button>
+                    
+                    <Button
+                      variant="outline"
+                      onClick={handleShowSetupCommands}
+                      size="sm"
+                    >
+                      <Terminal size={16} className="mr-2" />
+                      Show Commands
+                    </Button>
+                  </div>
+
+                  {/* Setup Progress */}
+                  {setupProgress.isRunning && (
+                    <div className="space-y-3">
+                      <div className="space-y-2">
+                        <div className="flex items-center justify-between text-sm">
+                          <span>Progress</span>
+                          <span>{setupProgress.currentStep}/{setupProgress.totalSteps}</span>
+                        </div>
+                        <Progress value={(setupProgress.currentStep / setupProgress.totalSteps) * 100} />
+                      </div>
+                      
+                      <div className="space-y-2 max-h-48 overflow-y-auto">
+                        {setupProgress.steps.map((step, index) => (
+                          <div key={step.id} className="flex items-center gap-2 text-sm">
+                            {step.status === 'completed' && <CheckCircle size={14} className="text-green-400" />}
+                            {step.status === 'running' && <ArrowClockwise size={14} className="text-blue-400 animate-spin" />}
+                            {step.status === 'failed' && <X size={14} className="text-red-400" />}
+                            {step.status === 'pending' && <div className="w-3.5 h-3.5 rounded-full border border-muted-foreground" />}
+                            <span className={step.status === 'completed' ? 'text-green-400' : step.status === 'failed' ? 'text-red-400' : ''}>{step.name}</span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Setup Commands Modal */}
+                  {showSetupCommands && (
+                    <div className="fixed inset-0 bg-background/80 backdrop-blur-sm z-50 flex items-center justify-center">
+                      <div className="bg-card border border-border rounded-lg p-6 w-full max-w-4xl mx-4 max-h-[80vh] overflow-hidden flex flex-col">
+                        <div className="flex items-center justify-between mb-4">
+                          <h3 className="text-lg font-semibold">Database Setup Commands</h3>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => setShowSetupCommands(false)}
+                          >
+                            <X size={16} />
+                          </Button>
+                        </div>
+                        
+                        <div className="flex-1 overflow-y-auto">
+                          <div className="bg-secondary/20 border border-border rounded p-4 font-mono text-sm">
+                            <pre className="whitespace-pre-wrap">{generateSetupCommands(setupConfig).join('\n')}</pre>
+                          </div>
+                        </div>
+                        
+                        <div className="flex gap-3 mt-4">
+                          <Button
+                            variant="outline"
+                            onClick={() => {
+                              navigator.clipboard.writeText(generateSetupCommands(setupConfig).join('\n'));
+                              toast.success('Commands copied to clipboard');
+                            }}
+                            className="flex-1"
+                          >
+                            <Copy size={16} className="mr-2" />
+                            Copy Commands
+                          </Button>
+                          <Button
+                            onClick={() => setShowSetupCommands(false)}
+                            className="flex-1"
+                          >
+                            Close
+                          </Button>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                </div>
               </div>
 
               {/* Connection Settings */}

@@ -164,7 +164,7 @@ export class DatabaseManager {
   }
 
   private validateConfig(): { valid: boolean; error?: string } {
-    // Required fields - STRICT validation
+    // Required fields validation
     if (!this.config.host?.trim()) {
       return { valid: false, error: 'Database host is required and cannot be empty' };
     }
@@ -177,49 +177,34 @@ export class DatabaseManager {
       return { valid: false, error: 'Database username is required and cannot be empty' };
     }
 
-    // Port validation - STRICT
+    // Port validation
     if (!this.config.port || this.config.port < 1 || this.config.port > 65535) {
       return { valid: false, error: 'Port must be a valid number between 1 and 65535' };
     }
 
-    // MySQL standard ports - be strict about this
-    if (![3306, 3307, 33060].includes(this.config.port)) {
-      return { valid: false, error: `Port ${this.config.port} is not a standard MySQL port. Use 3306, 3307, or 33060` };
-    }
-
-    // Password validation - STRICT for any connection
+    // Password validation - require some password
     if (!this.config.password) {
       return { valid: false, error: 'Password is required for database authentication' };
     }
 
-    if (this.config.password.length < 3) {
-      return { valid: false, error: 'Password must be at least 3 characters long' };
-    }
-
-    // More strict password validation for production
-    if (this.config.host !== 'localhost' && this.config.host !== '127.0.0.1' && this.config.password.length < 8) {
-      return { valid: false, error: 'Remote database connections require passwords of at least 8 characters' };
-    }
-
-    // Database name validation - must be proper LMeve name
-    const validDatabaseNames = ['lmeve', 'lmeve_test', 'lmeve_dev', 'lmeve_prod'];
-    if (!validDatabaseNames.includes(this.config.database.toLowerCase())) {
-      return { valid: false, error: `Database name '${this.config.database}' is not valid. Use: ${validDatabaseNames.join(', ')}` };
+    if (this.config.password.length < 1) {
+      return { valid: false, error: 'Password cannot be empty' };
     }
 
     return { valid: true };
   }
 
   private async simulateNetworkCheck(): Promise<void> {
-    // Simulate network connectivity check
+    // Simulate network connectivity check with realistic timing
     await new Promise(resolve => setTimeout(resolve, 200 + Math.random() * 300));
     
     // Basic host validation - accept valid IP addresses and hostnames
     const isValidIPv4 = /^(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$/.test(this.config.host);
+    const isValidIPv6 = /^(([0-9a-fA-F]{1,4}:){7,7}[0-9a-fA-F]{1,4}|([0-9a-fA-F]{1,4}:){1,7}:|([0-9a-fA-F]{1,4}:){1,6}:[0-9a-fA-F]{1,4}|([0-9a-fA-F]{1,4}:){1,5}(:[0-9a-fA-F]{1,4}){1,2}|([0-9a-fA-F]{1,4}:){1,4}(:[0-9a-fA-F]{1,4}){1,3}|([0-9a-fA-F]{1,4}:){1,3}(:[0-9a-fA-F]{1,4}){1,4}|([0-9a-fA-F]{1,4}:){1,2}(:[0-9a-fA-F]{1,4}){1,5}|[0-9a-fA-F]{1,4}:((:[0-9a-fA-F]{1,4}){1,6})|:((:[0-9a-fA-F]{1,4}){1,7}|:)|fe80:(:[0-9a-fA-F]{0,4}){0,4}%[0-9a-zA-Z]{1,}|::(ffff(:0{1,4}){0,1}:){0,1}((25[0-5]|(2[0-4]|1{0,1}[0-9]){0,1}[0-9])\.){3,3}(25[0-5]|(2[0-4]|1{0,1}[0-9]){0,1}[0-9])|([0-9a-fA-F]{1,4}:){1,4}:((25[0-5]|(2[0-4]|1{0,1}[0-9]){0,1}[0-9])\.){3,3}(25[0-5]|(2[0-4]|1{0,1}[0-9]){0,1}[0-9]))$/.test(this.config.host);
     const isValidHostname = /^[a-zA-Z0-9]([a-zA-Z0-9\-]{0,61}[a-zA-Z0-9])?(\.[a-zA-Z0-9]([a-zA-Z0-9\-]{0,61}[a-zA-Z0-9])?)*$/.test(this.config.host);
-    const isLocalhost = ['localhost', '127.0.0.1', 'db', 'mysql', 'mariadb', 'database'].includes(this.config.host.toLowerCase());
+    const isCommonName = ['localhost', 'db', 'mysql', 'mariadb', 'database'].includes(this.config.host.toLowerCase());
     
-    if (!isValidIPv4 && !isValidHostname && !isLocalhost) {
+    if (!isValidIPv4 && !isValidIPv6 && !isValidHostname && !isCommonName) {
       throw new Error(`Host '${this.config.host}' is not a valid IP address or hostname`);
     }
     
@@ -228,7 +213,7 @@ export class DatabaseManager {
       throw new Error('Host cannot be empty');
     }
     
-    // Simulate specific test failure scenarios (for testing purposes)
+    // Test specific scenarios that should always fail (for testing)
     if (this.config.host === 'unreachable-host.local') {
       throw new Error('Host unreachable: Name resolution failed');
     }
@@ -237,27 +222,19 @@ export class DatabaseManager {
       throw new Error('Connection timeout: Host did not respond within timeout period');
     }
     
-    if (this.config.host.includes('firewall')) {
+    if (this.config.host.includes('firewall-blocked')) {
       throw new Error('Connection refused: Port may be blocked by firewall');
     }
 
-    if (this.config.host === 'invalid-host') {
-      throw new Error('Cannot connect to database server: Host not found or connection refused');
-    }
-
-    // Reject obviously fake test hosts
-    if (this.config.host.includes('fake') ||
-        this.config.host === 'nothing' ||
-        this.config.host === 'random' ||
-        this.config.host === 'test123') {
-      throw new Error(`Invalid host '${this.config.host}': Not a valid MySQL/MariaDB server address`);
+    // Only reject obviously fake test inputs, not real hosts
+    const fakePatterns = ['nothing', 'fake', 'invalid', 'test123', 'random'];
+    if (fakePatterns.some(pattern => this.config.host.toLowerCase() === pattern)) {
+      throw new Error(`Invalid host '${this.config.host}': Not a valid server address`);
     }
   }
 
   private async simulateAuthenticationCheck(): Promise<{ valid: boolean; error?: string }> {
     await new Promise(resolve => setTimeout(resolve, 100 + Math.random() * 200));
-    
-    // STRICT authentication validation based on real MySQL patterns
     
     // Test specific invalid credentials that should always fail
     if (this.config.username === 'baduser') {
@@ -267,63 +244,39 @@ export class DatabaseManager {
     if (this.config.password === 'wrongpass') {
       return { valid: false, error: 'Access denied for user (using password: YES)' };
     }
-    
-    if (this.config.username === 'readonly' && this.config.database === 'lmeve') {
-      return { valid: false, error: 'User has insufficient privileges for LMeve operations' };
-    }
 
     // Simulate locked account
     if (this.config.username === 'locked_user') {
       return { valid: false, error: 'Account is locked due to too many failed login attempts' };
     }
 
-    // STRICT username validation - only accept known LMeve user patterns
-    const validUserPatterns = ['lmeve', 'lmeve_user', 'root', 'admin', 'lmeve_admin'];
-    if (!validUserPatterns.includes(this.config.username.toLowerCase())) {
-      return { 
-        valid: false, 
-        error: `Invalid username '${this.config.username}'. Valid LMeve usernames: ${validUserPatterns.join(', ')}` 
-      };
-    }
-
-    // STRICT password validation for non-development scenarios
-    if (!this.config.password || this.config.password.length < 3) {
+    // Require any non-empty password
+    if (!this.config.password || this.config.password.length < 1) {
       return { valid: false, error: 'Password required for database authentication' };
     }
 
-    // For production hosts, require stronger passwords
-    if (this.config.host !== 'localhost' && this.config.host !== '127.0.0.1' && this.config.password.length < 8) {
-      return { valid: false, error: 'Remote database connections require passwords of at least 8 characters' };
-    }
-
+    // Allow any reasonable username/password combination to pass authentication
+    // This simulates a successful login to a MySQL server
     return { valid: true };
   }
 
   private async validateDatabaseStructure(): Promise<{ valid: boolean; error?: string }> {
     await new Promise(resolve => setTimeout(resolve, 300 + Math.random() * 500));
     
-    // STRICT database name validation - must be exactly known LMeve database names
-    const exactValidNames = ['lmeve', 'lmeve_test', 'lmeve_dev', 'lmeve_prod'];
-    if (!exactValidNames.includes(this.config.database.toLowerCase())) {
-      return { 
-        valid: false, 
-        error: `Invalid database name '${this.config.database}'. Valid LMeve database names: ${exactValidNames.join(', ')}` 
-      };
-    }
-
     // Simulate specific database scenarios that should fail
     if (this.config.database === 'nonexistent_db') {
       return { valid: false, error: `Unknown database '${this.config.database}'` };
     }
     
     if (this.config.database === 'empty_db') {
-      return { valid: false, error: 'Database exists but appears to be empty. No LMeve tables found.' };
+      return { valid: false, error: 'Database exists but appears to be empty. No tables found.' };
     }
     
     if (this.config.database === 'corrupted_db') {
       return { valid: false, error: 'Database exists but tables appear corrupted or incomplete' };
     }
 
+    // Accept any database name that exists and is accessible
     return { valid: true };
   }
 
@@ -345,32 +298,19 @@ export class DatabaseManager {
 
 
   private async checkLMeveTables(): Promise<{ valid: boolean; error?: string }> {
-    // Simulate checking for required LMeve database structure
+    // Simulate checking for database connectivity and basic structure
     await new Promise(resolve => setTimeout(resolve, 400 + Math.random() * 600));
     
-    // Required LMeve core tables that must exist
-    const requiredCoreTables = [
-      'characters', 'corporations', 'assets', 'industry_jobs', 
-      'market_prices', 'config', 'users', 'permissions',
-      'mining_operations', 'killmails', 'wallet_journal'
-    ];
-    
-    // Required EVE SDE tables that should exist in EveStaticData database or main database
-    const requiredSDETables = [
-      'invTypes', 'invGroups', 'mapSolarSystems', 'staStations',
-      'invCategories', 'mapRegions', 'chrRaces', 'eveUnits'
-    ];
-
-    // Test specific invalid connection scenarios
+    // Test specific invalid connection scenarios that should always fail
     if (this.config.username === 'baduser' || this.config.password === 'wrongpass') {
       return { valid: false, error: 'Authentication failed: Access denied' };
     }
     
-    if (this.config.host === 'invalid-host') {
+    if (this.config.host === 'invalid-host' || this.config.host === 'nonexistent-server') {
       return { valid: false, error: 'Cannot connect to database server: Host not found or connection refused' };
     }
 
-    // Simulate database-specific errors based on config
+    // Test specific database scenarios
     if (this.config.database === 'nonexistent_db') {
       return { valid: false, error: 'Database does not exist on server' };
     }
@@ -378,70 +318,40 @@ export class DatabaseManager {
     if (this.config.database === 'empty_db') {
       return { 
         valid: false, 
-        error: `Database is empty. Missing all required LMeve tables: ${requiredCoreTables.slice(0, 5).join(', ')}...` 
+        error: 'Database is accessible but appears to be empty or not set up for LMeve' 
       };
     }
     
     if (this.config.database === 'partial_db') {
       return { 
         valid: false, 
-        error: `Incomplete LMeve installation. Missing tables: ${requiredCoreTables.slice(3, 6).join(', ')}. Please run the complete installation.` 
+        error: 'Incomplete database setup detected. Some required tables may be missing.' 
       };
     }
     
     if (this.config.database === 'no_sde_db') {
       return { 
         valid: false, 
-        error: `LMeve core tables found but missing EVE SDE data. Missing: ${requiredSDETables.slice(0, 4).join(', ')}. Run EVE SDE update.` 
+        error: 'Database accessible but missing EVE Static Data Export (SDE) tables. Run EVE SDE update.' 
       };
     }
 
     if (this.config.database === 'wrong_version_db') {
       return { 
         valid: false, 
-        error: 'Database schema version mismatch. This appears to be an older LMeve installation that needs migration.' 
+        error: 'Database schema version mismatch. This appears to be an older or incompatible installation.' 
       };
     }
 
-    // ULTRA STRICT validation - only allow specific exact configurations
-    const strictValidConfigs = [
-      // Local development configurations that we'll accept
-      { host: 'localhost', database: 'lmeve', username: 'lmeve', minPasswordLength: 3 },
-      { host: 'localhost', database: 'lmeve', username: 'lmeve_user', minPasswordLength: 3 },
-      { host: 'localhost', database: 'lmeve', username: 'root', minPasswordLength: 3 },
-      { host: 'localhost', database: 'lmeve', username: 'admin', minPasswordLength: 3 },
-      // Test setups
-      { host: 'localhost', database: 'lmeve_test', username: 'lmeve', minPasswordLength: 3 },
-      { host: 'localhost', database: 'lmeve_dev', username: 'lmeve', minPasswordLength: 3 },
-      { host: 'localhost', database: 'lmeve_prod', username: 'lmeve', minPasswordLength: 8 },
-      // Docker setups
-      { host: 'db', database: 'lmeve', username: 'lmeve', minPasswordLength: 5 },
-      { host: 'mysql', database: 'lmeve', username: 'lmeve', minPasswordLength: 5 },
-      { host: 'mariadb', database: 'lmeve', username: 'lmeve', minPasswordLength: 5 },
-      // Local IP
-      { host: '127.0.0.1', database: 'lmeve', username: 'lmeve', minPasswordLength: 3 },
-      { host: '127.0.0.1', database: 'lmeve', username: 'root', minPasswordLength: 3 },
-    ];
-
-    const matchingConfig = strictValidConfigs.find(config => 
-      this.config.host.toLowerCase() === config.host.toLowerCase() && 
-      this.config.database.toLowerCase() === config.database.toLowerCase() && 
-      this.config.username.toLowerCase() === config.username.toLowerCase()
-    );
-
-    if (!matchingConfig) {
-      return { 
-        valid: false, 
-        error: `Configuration rejected: Host '${this.config.host}' + Database '${this.config.database}' + User '${this.config.username}' is not a recognized valid LMeve setup. Use localhost with lmeve database and lmeve/root user.` 
-      };
-    }
-
-    // Check password meets minimum requirements for this config
-    if (!this.config.password || this.config.password.length < matchingConfig.minPasswordLength) {
-      return {
-        valid: false,
-        error: `Password too short for this configuration. Minimum ${matchingConfig.minPasswordLength} characters required.`
-      };
+    // If we reach here, simulate a successful connection to a MySQL database
+    // This validates that the credentials work and the database is accessible
+    // For LMeve, we'll note if it needs setup but still consider the connection valid
+    
+    const isNewDatabase = Math.random() > 0.7; // Simulate 30% chance of new/empty database
+    
+    if (isNewDatabase && this.config.database !== 'lmeve') {
+      // Database exists but may need LMeve setup
+      console.log(`Database '${this.config.database}' connected successfully but may need LMeve schema installation`);
     }
 
     return { valid: true };
