@@ -56,6 +56,7 @@ import { eveApi, type CharacterInfo, type CorporationInfo } from '@/lib/eveApi';
 import { DatabaseManager, DatabaseConfig, DatabaseStatus, defaultDatabaseConfig, TableInfo, DatabaseSetupManager, DatabaseSetupConfig, DatabaseSetupProgress, generateSetupCommands } from '@/lib/database';
 import { useSDEManager, type SDEDatabaseStats } from '@/lib/sdeService';
 import { AdminLoginTest } from '@/components/AdminLoginTest';
+import { SimpleLoginTest } from '@/components/SimpleLoginTest';
 import { DatabaseConnectionTest } from '@/components/DatabaseConnectionTest';
 import { runDatabaseValidationTests } from '@/lib/databaseTestCases';
 
