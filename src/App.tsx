@@ -2,7 +2,9 @@ import React, { useState, useEffect } from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
 import { Toaster } from '@/components/ui/sonner';
+import { toast } from 'sonner';
 import { 
   House, 
   Users, 
@@ -26,7 +28,9 @@ import {
   Shield,
   Archive,
   SignIn,
-  UserCheck
+  UserCheck,
+  Eye,
+  EyeSlash
 } from '@phosphor-icons/react';
 import { useKV } from '@github/spark/hooks';
 import { TabType } from '@/lib/types';
@@ -34,7 +38,6 @@ import { DatabaseProvider } from '@/lib/DatabaseContext';
 import { LMeveDataProvider } from '@/lib/LMeveDataContext';
 import { useCorporationAuth } from '@/lib/corp-auth';
 import { CorporationESICallback } from '@/components/CorporationESICallback';
-import { CorporationLoginModal } from '@/components/CorporationLoginModal';
 
 // Tab Components (will be implemented)
 import { Dashboard } from '@/components/tabs/Dashboard';
@@ -63,7 +66,13 @@ function App() {
   } = useCorporationAuth();
   const [isESICallback, setIsESICallback] = useState(false);
   const [forceRender, setForceRender] = useState(0);
-  const [showLoginModal, setShowLoginModal] = useState(false);
+  
+  // Simple login form state
+  const [showQuickLogin, setShowQuickLogin] = useState(false);
+  const [loginUsername, setLoginUsername] = useState('');
+  const [loginPassword, setLoginPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
+  const [isLoggingIn, setIsLoggingIn] = useState(false);
 
   // Use corporation auth system
   const currentUser = user;
@@ -96,8 +105,11 @@ function App() {
       // Clear test marker since login was successful
       sessionStorage.removeItem('login-test-run');
       
-      // Close login modal if open
-      setShowLoginModal(false);
+      // Close quick login if open
+      setShowQuickLogin(false);
+      setLoginUsername('');
+      setLoginPassword('');
+      setIsLoggingIn(false);
     } else {
       console.log('❌ No user object - should show login');
     }
@@ -189,7 +201,29 @@ function App() {
     }
   };
 
-  const handleLoginError = () => {
+  // Handle quick login form submission
+  const handleQuickLogin = async (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    if (!loginUsername.trim() || !loginPassword.trim()) {
+      toast.error('Please enter both username and password');
+      return;
+    }
+    
+    setIsLoggingIn(true);
+    
+    try {
+      console.log('🔐 Quick login attempt:', loginUsername);
+      await loginWithCredentials(loginUsername.trim(), loginPassword.trim());
+      console.log('✅ Quick login successful');
+      toast.success('Login successful!');
+    } catch (error) {
+      console.error('❌ Quick login failed:', error);
+      toast.error('Login failed. Please check your credentials.');
+    } finally {
+      setIsLoggingIn(false);
+    }
+  };
     setIsESICallback(false);
     
     // Clean up ESI-related session storage
@@ -246,7 +280,7 @@ function App() {
     // Restrict navigation when not authenticated - except dashboard
     if (!currentUser && value !== 'dashboard') {
       console.log('❌ Tab change blocked - user not authenticated');
-      setShowLoginModal(true);
+      setShowQuickLogin(true);
       return;
     }
     
@@ -255,7 +289,7 @@ function App() {
     if (value === 'settings') {
       // Only allow settings access if authenticated
       if (!currentUser) {
-        setShowLoginModal(true);
+        setShowQuickLogin(true);
         return;
       }
       setSettingsExpanded(!settingsExpanded);
@@ -293,7 +327,7 @@ function App() {
             <div>Auth Method: {currentUser?.authMethod || 'none'}</div>
             <div>Can Manage ESI: {currentUser?.canManageESI ? 'true' : 'false'}</div>
             <div>Is Authenticated: {currentAuth ? 'true' : 'false'}</div>
-            <div>Show Login Modal: {showLoginModal ? 'true' : 'false'}</div>
+            <div>Show Quick Login: {showQuickLogin ? 'true' : 'false'}</div>
             <div>Active Tab: {activeTab}</div>
             <div>Auth Trigger: {authTrigger}</div>
             <div>Force Render: {forceRender}</div>
@@ -335,11 +369,86 @@ function App() {
           </div>
         )}
         
-        {/* Login Modal */}
-        <CorporationLoginModal 
-          open={showLoginModal} 
-          onOpenChange={setShowLoginModal}
-        />
+        {/* Quick Login Overlay */}
+        {showQuickLogin && !currentUser && (
+          <div className="fixed inset-0 bg-background/80 backdrop-blur-sm z-50 flex items-center justify-center">
+            <div className="bg-card border border-border rounded-lg p-6 w-full max-w-md mx-4 shadow-lg">
+              <div className="text-center mb-6">
+                <Rocket size={32} className="mx-auto text-accent mb-3" />
+                <h2 className="text-xl font-semibold mb-2">Sign In to LMeve</h2>
+                <p className="text-sm text-muted-foreground">
+                  Enter your credentials to access corporation management
+                </p>
+              </div>
+              
+              <form onSubmit={handleQuickLogin} className="space-y-4">
+                <div>
+                  <Input
+                    type="text"
+                    placeholder="Username"
+                    value={loginUsername}
+                    onChange={(e) => setLoginUsername(e.target.value)}
+                    disabled={isLoggingIn}
+                    className="w-full"
+                    autoFocus
+                  />
+                </div>
+                
+                <div className="relative">
+                  <Input
+                    type={showPassword ? "text" : "password"}
+                    placeholder="Password"
+                    value={loginPassword}
+                    onChange={(e) => setLoginPassword(e.target.value)}
+                    disabled={isLoggingIn}
+                    className="w-full pr-10"
+                  />
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    className="absolute right-0 top-0 h-full px-3 hover:bg-transparent"
+                    onClick={() => setShowPassword(!showPassword)}
+                    disabled={isLoggingIn}
+                  >
+                    {showPassword ? (
+                      <EyeSlash size={16} className="text-muted-foreground" />
+                    ) : (
+                      <Eye size={16} className="text-muted-foreground" />
+                    )}
+                  </Button>
+                </div>
+                
+                <div className="flex gap-3 pt-2">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => {
+                      setShowQuickLogin(false);
+                      setLoginUsername('');
+                      setLoginPassword('');
+                    }}
+                    disabled={isLoggingIn}
+                    className="flex-1"
+                  >
+                    Cancel
+                  </Button>
+                  <Button
+                    type="submit"
+                    disabled={isLoggingIn || !loginUsername.trim() || !loginPassword.trim()}
+                    className="flex-1 bg-accent hover:bg-accent/90 text-accent-foreground"
+                  >
+                    {isLoggingIn ? 'Signing In...' : 'Sign In'}
+                  </Button>
+                </div>
+              </form>
+              
+              <div className="text-xs text-muted-foreground text-center mt-4">
+                Default admin: <strong>admin</strong> / <strong>12345</strong>
+              </div>
+            </div>
+          </div>
+        )}
         
         {/* Header */}
         <header className="border-b border-border bg-card">
@@ -386,7 +495,7 @@ function App() {
                 ) : (
                   // Unauthenticated user section  
                   <Button 
-                    onClick={() => setShowLoginModal(true)}
+                    onClick={() => setShowQuickLogin(true)}
                     className="bg-accent hover:bg-accent/90 text-accent-foreground"
                     size="sm"
                   >
@@ -510,7 +619,7 @@ function App() {
                           Sign in to access your corporation's data and management features.
                         </p>
                         <Button 
-                          onClick={() => setShowLoginModal(true)}
+                          onClick={() => setShowQuickLogin(true)}
                           className="bg-accent hover:bg-accent/90 text-accent-foreground"
                         >
                           <SignIn size={16} className="mr-2" />
@@ -527,7 +636,7 @@ function App() {
                           You need to sign in to access this section.
                         </p>
                         <Button 
-                          onClick={() => setShowLoginModal(true)}
+                          onClick={() => setShowQuickLogin(true)}
                           className="bg-accent hover:bg-accent/90 text-accent-foreground"
                         >
                           <SignIn size={16} className="mr-2" />
@@ -544,7 +653,7 @@ function App() {
                       const Component = tab.component;
                       return (
                         <TabsContent key={tab.id} value={tab.id} className="mt-0">
-                          <Component onLoginClick={() => setShowLoginModal(true)} />
+                          <Component onLoginClick={() => setShowQuickLogin(true)} />
                         </TabsContent>
                       );
                     })}
