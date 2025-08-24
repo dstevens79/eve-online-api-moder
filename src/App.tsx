@@ -56,27 +56,8 @@ function App() {
   const [forceRender, setForceRender] = useState(0);
   const [showLoginModal, setShowLoginModal] = useState(false);
 
-  // TEST: Direct login on page load for debugging
-  React.useEffect(() => {
-    const testLogin = async () => {
-      if (!user) {
-        console.log('🧪 TEST: No user found, attempting direct login...');
-        try {
-          await login({ username: 'admin', password: '12345' });
-          console.log('✅ TEST: Direct login successful');
-        } catch (error) {
-          console.error('❌ TEST: Direct login failed:', error);
-        }
-      }
-    };
-    
-    // Only run once on mount and if no user exists
-    const hasRunTest = sessionStorage.getItem('login-test-run');
-    if (!hasRunTest && !user) {
-      sessionStorage.setItem('login-test-run', 'true');
-      testLogin();
-    }
-  }, []); // Empty dependency array - run once on mount
+  // TEST: Remove auto-login for debugging
+  // Let user manually login to test flow
 
   // Force re-render when user changes to ensure UI updates
   React.useEffect(() => {
@@ -231,7 +212,9 @@ function App() {
     console.log('🔄 Tab change request:', value, 'Current user:', user?.characterName || 'null');
     console.log('🔄 Tab change - Auth state:', { hasUser: !!user, isAuthenticated, authTrigger });
     
-    // Always allow navigation, but content will show login prompt if needed
+    // For now, allow all navigation - debug the auth issue separately
+    console.log('🔄 Allowing tab change to:', value);
+    
     if (value === 'settings') {
       setSettingsExpanded(!settingsExpanded);
       if (!settingsExpanded) {

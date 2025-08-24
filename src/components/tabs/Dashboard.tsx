@@ -6,6 +6,10 @@ import { EVEApiStatus } from '@/components/EVEApiStatus';
 import { LoginPrompt } from '@/components/LoginPrompt';
 import { LoginDebug } from '@/components/LoginDebug';
 import { AuthServiceTest } from '@/components/AuthServiceTest';
+import { DebugAuthTest } from '@/components/DebugAuthTest';
+import { SimpleAuthTest } from '@/components/SimpleAuthTest';
+import { FixedLoginTest } from '@/components/FixedLoginTest';
+import { AuthStatusDisplay } from '@/components/AuthStatusDisplay';
 import { useLMeveData } from '@/lib/LMeveDataContext';
 import { useAuth } from '@/lib/auth';
 import { 
@@ -328,6 +332,10 @@ export function Dashboard({ onLoginClick }: DashboardProps) {
           </div>
         </CardContent>
       </Card>
+
+      {/* Debug Authentication Test */}
+      <AuthStatusDisplay />
+      <FixedLoginTest />
     </div>
   );
 }
