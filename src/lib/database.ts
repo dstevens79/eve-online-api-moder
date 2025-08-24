@@ -931,7 +931,7 @@ export function generateSetupCommands(config: DatabaseSetupConfig): string[] {
     '',
     '# 8. Cleanup (optional)',
     'sudo rm -f /Incoming/mysql-latest.tar.bz2'
-  ];
+  );
 
   return commands;
 }
