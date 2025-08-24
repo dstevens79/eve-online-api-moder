@@ -181,13 +181,20 @@ export function Settings({ activeTab, onTabChange }: SettingsProps) {
     totalSteps: 0,
     steps: [],
     isRunning: false,
-    completed: false
+    completed: false,
+    progress: 0,
+    currentStage: 'Ready'
   });
   const [showSetupWizard, setShowSetupWizard] = useState(false);
   const [setupConfig, setSetupConfig] = useState<DatabaseSetupConfig>({
     lmevePassword: '',
     allowedHosts: '%',
-    downloadSDE: true
+    downloadSDE: true,
+    createDatabases: true,
+    importSchema: true,
+    createUser: true,
+    grantPrivileges: true,
+    validateSetup: true
   });
   const [showSetupCommands, setShowSetupCommands] = useState(false);
   
@@ -553,7 +560,7 @@ export function Settings({ activeTab, onTabChange }: SettingsProps) {
     toast.success('Admin configuration updated');
   };
 
-  // Database setup functions
+  // Enhanced database setup functions for one-click setup
   const handleStartSetup = async () => {
     if (!setupConfig.lmevePassword) {
       toast.error('Please enter a password for the lmeve database user');
@@ -561,7 +568,19 @@ export function Settings({ activeTab, onTabChange }: SettingsProps) {
     }
 
     if (setupConfig.lmevePassword.length < 8) {
-      toast.error('Password must be at least 8 characters long');
+      toast.error('Password must be at least 8 characters long for production use');
+      return;
+    }
+
+    // Validate current database connection first
+    if (!dbManager) {
+      toast.error('Database manager not initialized. Please configure database connection first.');
+      return;
+    }
+
+    const testResult = await dbManager.testConnection();
+    if (!testResult.success) {
+      toast.error(`Database connection failed: ${testResult.error}`);
       return;
     }
 
@@ -573,21 +592,43 @@ export function Settings({ activeTab, onTabChange }: SettingsProps) {
     setSetupProgress(manager.getProgress());
 
     try {
-      const result = await manager.setupNewDatabase(setupConfig);
+      console.log('🚀 Starting complete database setup process');
+      
+      // Enhanced setup with all LMeve requirements
+      const enhancedConfig: DatabaseSetupConfig = {
+        ...setupConfig,
+        mysqlRootPassword: setupConfig.mysqlRootPassword || '',
+        createDatabases: true,
+        downloadSDE: true,
+        importSchema: true,
+        createUser: true,
+        grantPrivileges: true,
+        validateSetup: true
+      };
+
+      const result = await manager.setupNewDatabase(enhancedConfig);
       
       if (result.success) {
-        toast.success('Database setup completed successfully!');
-        setShowSetupWizard(false);
+        toast.success('Complete database setup completed successfully!');
         
         // Update database config with the new settings
         updateDatabaseConfig('username', 'lmeve');
         updateDatabaseConfig('password', setupConfig.lmevePassword);
         updateDatabaseConfig('database', 'lmeve');
+        
+        // Trigger SDE download and install as part of complete setup
+        console.log('✅ Triggering SDE download as part of complete setup');
+        await downloadSDE();
+        
+        setShowSetupWizard(false);
       } else {
-        toast.error(`Setup failed: ${result.error}`);
+        toast.error(`Complete setup failed: ${result.error}`);
+        console.error('❌ Database setup failed:', result.error);
       }
     } catch (error) {
-      toast.error('Setup failed with an unexpected error');
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
+      toast.error(`Setup failed: ${errorMessage}`);
+      console.error('❌ Setup failed with exception:', error);
     }
   };
 
@@ -711,46 +752,107 @@ export function Settings({ activeTab, onTabChange }: SettingsProps) {
                 </p>
               </div>
 
-              {/* Quick Setup Section */}
+              {/* One-Button Complete Setup */}
+              <div className="border border-green-500/20 rounded-lg p-4 bg-green-500/5">
+                <div className="flex items-center justify-between mb-4">
+                  <div className="flex items-center gap-2">
+                    <Wrench size={20} className="text-green-400" />
+                    <h4 className="font-medium">Complete Database Setup</h4>
+                  </div>
+                  <Button
+                    onClick={handleStartSetup}
+                    className="bg-green-600 hover:bg-green-700 text-white"
+                    size="sm"
+                    disabled={setupManager?.getProgress().isRunning}
+                  >
+                    {setupManager?.getProgress().isRunning ? (
+                      <>
+                        <ArrowClockwise size={16} className="mr-2 animate-spin" />
+                        Setting Up...
+                      </>
+                    ) : (
+                      <>
+                        <Play size={16} className="mr-2" />
+                        One-Click Setup
+                      </>
+                    )}
+                  </Button>
+                </div>
+                
+                <p className="text-sm text-muted-foreground mb-3">
+                  <strong>Complete automated setup:</strong> Creates databases, downloads EVE SDE data, 
+                  imports schema, and configures everything in one step. Requires MySQL root access.
+                </p>
+                
+                <div className="space-y-3">
+                  <div className="space-y-2">
+                    <Label htmlFor="setup-password">LMeve Database Password</Label>
+                    <Input
+                      id="setup-password"
+                      type="password"
+                      placeholder="Enter secure password (8+ characters)"
+                      value={setupConfig.lmevePassword}
+                      onChange={(e) => setSetupConfig(prev => ({ ...prev, lmevePassword: e.target.value }))}
+                      disabled={setupManager?.getProgress().isRunning}
+                    />
+                    <p className="text-xs text-muted-foreground">
+                      This password will be used for the 'lmeve' database user
+                    </p>
+                  </div>
+                  
+                  {setupManager?.getProgress().isRunning && (
+                    <div className="space-y-2">
+                      <div className="flex justify-between text-sm">
+                        <span>{setupProgress.currentStage || 'Initializing...'}</span>
+                        <span>{Math.round(setupProgress.progress)}%</span>
+                      </div>
+                      <Progress value={setupProgress.progress} className="h-2" />
+                    </div>
+                  )}
+                </div>
+                
+                <div className="flex gap-2 mt-4">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={handleGenerateCommands}
+                    disabled={setupManager?.getProgress().isRunning}
+                  >
+                    <Terminal size={16} className="mr-2" />
+                    Manual Commands
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => window.open('https://github.com/dstevens79/lmeve', '_blank')}
+                  >
+                    <FileText size={16} className="mr-2" />
+                    LMeve Guide
+                  </Button>
+                </div>
+              </div>
+
+              {/* Advanced Manual Setup */}
               <div className="border border-accent/20 rounded-lg p-4 bg-accent/5">
                 <div className="flex items-center justify-between mb-4">
                   <div className="flex items-center gap-2">
-                    <Wrench size={20} className="text-accent" />
-                    <h4 className="font-medium">New Database Setup</h4>
+                    <Gear size={20} className="text-accent" />
+                    <h4 className="font-medium">Manual Database Setup</h4>
                   </div>
                   <Button
                     onClick={() => setShowSetupWizard(true)}
                     className="bg-accent hover:bg-accent/90"
                     size="sm"
                   >
-                    <Play size={16} className="mr-2" />
-                    Setup New Database
+                    <Gear size={16} className="mr-2" />
+                    Manual Setup
                   </Button>
                 </div>
                 
                 <p className="text-sm text-muted-foreground mb-3">
-                  Automatically create and configure a new LMeve database with EVE SDE data. 
-                  This will run the complete setup process including downloading EVE static data.
+                  Configure an existing database or use custom setup parameters. 
+                  Use this option if you need specific database configurations.
                 </p>
-                
-                <div className="flex gap-2">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={handleGenerateCommands}
-                  >
-                    <Terminal size={16} className="mr-2" />
-                    Generate Commands
-                  </Button>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => window.open('https://developers.eveonline.com/docs/services/sso/', '_blank')}
-                  >
-                    <FileText size={16} className="mr-2" />
-                    Setup Guide
-                  </Button>
-                </div>
               </div>
 
               {/* Database Validation Examples */}
