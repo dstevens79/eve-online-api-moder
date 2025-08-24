@@ -1,8 +1,10 @@
 import React, { useState } from 'react';
-import { useCorporationAuth } from '@/lib/corp-a
 import { useCorporationAuth } from '@/lib/corp-auth';
+import { Button } from '@/components/ui/button';
+
 export function DirectLoginTest() {
   const [forceUpdate, setForceUpdate] = useState(0);
+  const [testResults, setTestResults] = useState<string[]>([]);
   const { directLogin, logout } = useCorporationAuth();
 
   const addResult = (message: string) => {
