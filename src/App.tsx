@@ -25,7 +25,8 @@ import {
   Bell,
   Shield,
   Archive,
-  SignIn
+  SignIn,
+  UserCheck
 } from '@phosphor-icons/react';
 import { useKV } from '@github/spark/hooks';
 import { TabType } from '@/lib/types';
