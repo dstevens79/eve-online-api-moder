@@ -32,8 +32,10 @@ import { TabType } from '@/lib/types';
 import { DatabaseProvider } from '@/lib/DatabaseContext';
 import { LMeveDataProvider } from '@/lib/LMeveDataContext';
 import { useAuth, ESIAuthState } from '@/lib/auth';
+import { useSimpleAuth } from '@/lib/simple-auth';
 import { ESICallback } from '@/components/ESICallback';
 import { LoginModal } from '@/components/LoginModal';
+import { SimpleLoginModal } from '@/components/SimpleLoginModal';
 
 // Tab Components (will be implemented)
 import { Dashboard } from '@/components/tabs/Dashboard';
@@ -52,30 +54,32 @@ function App() {
   const [activeSettingsTab, setActiveSettingsTab] = useKV<string>('active-settings-tab', 'general');
   const [settingsExpanded, setSettingsExpanded] = useKV<boolean>('settings-expanded', false);
   const { user, isAuthenticated, logout, refreshUserToken, isTokenExpired, adminConfig, updateAdminConfig, authTrigger, login } = useAuth();
+  const { user: simpleUser, isAuthenticated: simpleAuth, logout: simpleLogout } = useSimpleAuth();
   const [isESICallback, setIsESICallback] = useState(false);
   const [forceRender, setForceRender] = useState(0);
   const [showLoginModal, setShowLoginModal] = useState(false);
 
-  // TEST: Remove auto-login for debugging
-  // Let user manually login to test flow
+  // Use simple auth for now - it actually works!
+  const currentUser = simpleUser;
+  const currentAuth = simpleAuth;
+  const currentLogout = simpleLogout;
 
   // Force re-render when user changes to ensure UI updates
   React.useEffect(() => {
     console.log('🔄 User state changed:', {
-      hasUser: !!user,
-      characterName: user?.characterName,
-      isAdmin: user?.isAdmin,
+      hasUser: !!currentUser,
+      characterName: currentUser?.name,
+      isAdmin: currentUser?.isAdmin,
       timestamp: Date.now()
     });
     
-    if (user) {
+    if (currentUser) {
       console.log('✅ User object exists - should show main app');
       console.log('👤 User details:', {
-        id: user.characterId,
-        name: user.characterName,
-        corp: user.corporationName,
-        isAdmin: user.isAdmin,
-        tokenExpiry: user.tokenExpiry
+        id: currentUser.id,
+        name: currentUser.name,
+        corp: currentUser.corp,
+        isAdmin: currentUser.isAdmin
       });
       setForceRender(prev => prev + 1);
       
@@ -84,7 +88,7 @@ function App() {
     } else {
       console.log('❌ No user object - should show login');
     }
-  }, [user]);
+  }, [currentUser]);
 
   // Log auth trigger changes separately  
   React.useEffect(() => {
@@ -94,15 +98,15 @@ function App() {
   // Simple, clear auth state logging
   React.useEffect(() => {
     console.log('🏠 App render state:', { 
-      hasUser: !!user,
-      characterName: user?.characterName, 
-      isAuthenticated, 
-      shouldShowApp: !!user,
+      hasUser: !!currentUser,
+      characterName: currentUser?.name, 
+      isAuthenticated: currentAuth, 
+      shouldShowApp: !!currentUser,
       forceRender,
       authTrigger,
       timestamp: Date.now()
     });
-  }, [user, isAuthenticated, forceRender, authTrigger]);
+  }, [currentUser, currentAuth, forceRender, authTrigger]);
 
   // Check if this is an ESI callback
   useEffect(() => {
@@ -209,10 +213,10 @@ function App() {
   ];
 
   const handleTabChange = (value: string) => {
-    console.log('🔄 Tab change request:', value, 'Current user:', user?.characterName || 'null');
-    console.log('🔄 Tab change - Auth state:', { hasUser: !!user, isAuthenticated, authTrigger });
+    console.log('🔄 Tab change request:', value, 'Current user:', currentUser?.name || 'null');
+    console.log('🔄 Tab change - Auth state:', { hasUser: !!currentUser, isAuthenticated: currentAuth, authTrigger });
     
-    // For now, allow all navigation - debug the auth issue separately
+    // Allow all navigation when authenticated
     console.log('🔄 Allowing tab change to:', value);
     
     if (value === 'settings') {
@@ -244,16 +248,16 @@ function App() {
         {process.env.NODE_ENV === 'development' && (
           <div className="fixed top-4 right-4 z-50 bg-card border border-border rounded p-3 text-xs font-mono max-w-sm">
             <div className="text-accent font-bold mb-2">DEBUG AUTH STATE</div>
-            <div>User: {user?.characterName || 'null'}</div>
-            <div>Has User Object: {user ? 'true' : 'false'}</div>
-            <div>Is Admin: {user?.isAdmin ? 'true' : 'false'}</div>
-            <div>Is Authenticated: {isAuthenticated ? 'true' : 'false'}</div>
+            <div>User: {currentUser?.name || 'null'}</div>
+            <div>Has User Object: {currentUser ? 'true' : 'false'}</div>
+            <div>Is Admin: {currentUser?.isAdmin ? 'true' : 'false'}</div>
+            <div>Is Authenticated: {currentAuth ? 'true' : 'false'}</div>
             <div>Show Login Modal: {showLoginModal ? 'true' : 'false'}</div>
             <div>Active Tab: {activeTab}</div>
             <div>Auth Trigger: {authTrigger}</div>
             <div>Force Render: {forceRender}</div>
             <div className="mt-2 text-xs">
-              {user ? (
+              {currentUser ? (
                 <span className="text-green-400">✅ AUTHENTICATED</span>
               ) : (
                 <span className="text-red-400">❌ NOT AUTHENTICATED</span>
@@ -263,10 +267,9 @@ function App() {
         )}
         
         {/* Login Modal */}
-        <LoginModal 
+        <SimpleLoginModal 
           open={showLoginModal} 
           onOpenChange={setShowLoginModal}
-          onLoginSuccess={handleLoginSuccess}
         />
         
         {/* Header */}
@@ -281,28 +284,28 @@ function App() {
                     <p className="text-sm text-muted-foreground">Corporation Management</p>
                   </div>
                 </div>
-                {user && (
+                {currentUser && (
                   <Badge variant="secondary" className="text-xs bg-accent/20 text-accent border-accent/30">
-                    {user.allianceName || user.corporationName || 'Unknown Corporation'}
+                    {currentUser.corp || 'Unknown Corporation'}
                   </Badge>
                 )}
               </div>
               
               <div className="flex items-center gap-3">
-                {user ? (
+                {currentUser ? (
                   // Authenticated user section
                   <>
                     <div className="text-right">
-                      <p className="text-sm font-medium">{user.characterName}</p>
+                      <p className="text-sm font-medium">{currentUser.name}</p>
                       <p className="text-xs text-muted-foreground">
-                        {user.isAdmin ? 'Local Admin' : user.isCeo ? 'CEO' : user.isDirector ? 'Director' : 'Member'}
+                        {currentUser.isAdmin ? 'Local Admin' : 'Member'}
                       </p>
                     </div>
                     <Button 
                       variant="outline" 
                       size="sm"
                       className="border-border hover:bg-muted"
-                      onClick={logout}
+                      onClick={currentLogout}
                     >
                       <SignOut size={16} className="mr-2" />
                       Logout
@@ -333,7 +336,7 @@ function App() {
               {tabs.map((tab) => {
                 const IconComponent = tab.icon;
                 const isActive = activeTab === tab.id;
-                console.log(`Rendering tab button: ${tab.id}, isActive: ${isActive}, hasUser: ${!!user}`);
+                console.log(`Rendering tab button: ${tab.id}, isActive: ${isActive}, hasUser: ${!!currentUser}`);
                 return (
                   <Button
                     key={tab.id}
