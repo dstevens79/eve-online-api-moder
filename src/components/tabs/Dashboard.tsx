@@ -10,6 +10,10 @@ import { DebugAuthTest } from '@/components/DebugAuthTest';
 import { SimpleAuthTest } from '@/components/SimpleAuthTest';
 import { FixedLoginTest } from '@/components/FixedLoginTest';
 import { AuthStatusDisplay } from '@/components/AuthStatusDisplay';
+import { AuthFlowTest } from '@/components/AuthFlowTest';
+import { NavigationTest } from '@/components/NavigationTest';
+import { KVStorageTest } from '@/components/KVStorageTest';
+import { ComprehensiveAuthTest } from '@/components/ComprehensiveAuthTest';
 import { useLMeveData } from '@/lib/LMeveDataContext';
 import { useAuth } from '@/lib/auth';
 import { 
@@ -334,6 +338,13 @@ export function Dashboard({ onLoginClick }: DashboardProps) {
       </Card>
 
       {/* Debug Authentication Test */}
+      <ComprehensiveAuthTest />
+      
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <AuthFlowTest />
+        <NavigationTest />
+        <KVStorageTest />
+      </div>
       <AuthStatusDisplay />
       <FixedLoginTest />
     </div>
