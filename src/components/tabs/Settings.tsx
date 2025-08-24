@@ -56,7 +56,8 @@ import { eveApi, type CharacterInfo, type CorporationInfo } from '@/lib/eveApi';
 import { DatabaseManager, DatabaseConfig, DatabaseStatus, defaultDatabaseConfig, TableInfo, DatabaseSetupManager, DatabaseSetupConfig, DatabaseSetupProgress, generateSetupCommands } from '@/lib/database';
 import { useSDEManager, type SDEDatabaseStats } from '@/lib/sdeService';
 import { AdminLoginTest } from '@/components/AdminLoginTest';
-import { SimpleLoginTest } from '@/components/SimpleLoginTest';
+import { DatabaseConnectionTest } from '@/components/DatabaseConnectionTest';
+import { runDatabaseValidationTests } from '@/lib/databaseTestCases';
 
 interface SyncStatus {
   isRunning: boolean;
@@ -173,6 +174,8 @@ export function Settings({ activeTab, onTabChange }: SettingsProps) {
   const [showDbPassword, setShowDbPassword] = useState(false);
   const [testingConnection, setTestingConnection] = useState(false);
   const [sdeStats, setSDEStats] = useState<SDEDatabaseStats | null>(null);
+  const [connectionLogs, setConnectionLogs] = useState<string[]>([]);
+  const [showConnectionLogs, setShowConnectionLogs] = useState(false);
   
   // Database setup state
   const [setupManager, setSetupManager] = useState<DatabaseSetupManager | null>(null);
@@ -220,42 +223,91 @@ export function Settings({ activeTab, onTabChange }: SettingsProps) {
     }
   }, [settings?.database]);
 
+  // Helper function to add connection logs
+  const addConnectionLog = (message: string) => {
+    const timestamp = new Date().toLocaleTimeString();
+    const logEntry = `[${timestamp}] ${message}`;
+    setConnectionLogs(prev => [...prev, logEntry].slice(-50)); // Keep last 50 logs
+    console.log(logEntry);
+  };
+
+  // Clear connection logs
+  const clearConnectionLogs = () => {
+    setConnectionLogs([]);
+    addConnectionLog('Connection logs cleared');
+  };
+
   // Database functions
   const handleTestDbConnection = async () => {
     if (!settings.database) {
-      toast.error('Please configure database connection settings first');
+      const error = 'Please configure database connection settings first';
+      toast.error(error);
+      addConnectionLog(`❌ Test failed: ${error}`);
       return;
     }
+    
+    addConnectionLog(`🔍 Starting database connection test...`);
+    addConnectionLog(`📍 Target: ${settings.database.username}@${settings.database.host}:${settings.database.port}/${settings.database.database}`);
     
     setTestingConnection(true);
     try {
       // Create a temporary database manager for testing
       const tempManager = new DatabaseManager(settings.database);
+      
+      // Intercept console.log calls from the database manager
+      const originalConsoleLog = console.log;
+      console.log = (...args: any[]) => {
+        const message = args.join(' ');
+        if (message.includes('🔍') || message.includes('🌐') || message.includes('🔌') || 
+            message.includes('🔐') || message.includes('🗄️') || message.includes('🔑') || 
+            message.includes('✅') || message.includes('❌')) {
+          addConnectionLog(message);
+        }
+        originalConsoleLog(...args);
+      };
+      
       const result = await tempManager.testConnection();
       
+      // Restore original console.log
+      console.log = originalConsoleLog;
+      
       if (result.success && result.validated) {
-        toast.success(`✅ Database connection validated successfully! Latency: ${result.latency}ms`);
+        const successMsg = `✅ Database connection validated successfully! Latency: ${result.latency}ms`;
+        toast.success(successMsg);
+        addConnectionLog(successMsg);
         setDbStatus(prev => ({ ...prev, lastError: undefined }));
       } else if (result.success && !result.validated) {
-        toast.warning(`⚠️ Connection established but validation incomplete. Latency: ${result.latency}ms`);
+        const warningMsg = `⚠️ Connection established but validation incomplete. Latency: ${result.latency}ms`;
+        toast.warning(warningMsg);
+        addConnectionLog(warningMsg);
       } else {
-        toast.error(`❌ Database connection failed: ${result.error}`);
+        const errorMsg = `❌ Database connection failed: ${result.error}`;
+        toast.error(errorMsg);
+        addConnectionLog(errorMsg);
         setDbStatus(prev => ({ ...prev, lastError: result.error }));
       }
     } catch (error) {
       const errorMsg = error instanceof Error ? error.message : 'Unknown connection error';
-      toast.error(`❌ Database connection test failed: ${errorMsg}`);
+      const fullErrorMsg = `❌ Database connection test failed: ${errorMsg}`;
+      toast.error(fullErrorMsg);
+      addConnectionLog(fullErrorMsg);
       setDbStatus(prev => ({ ...prev, lastError: errorMsg }));
     } finally {
       setTestingConnection(false);
+      addConnectionLog('🏁 Connection test completed');
     }
   };
 
   const handleConnectDb = async () => {
     if (!settings.database) {
-      toast.error('Please configure database connection settings first');
+      const error = 'Please configure database connection settings first';
+      toast.error(error);
+      addConnectionLog(`❌ Connect failed: ${error}`);
       return;
     }
+    
+    addConnectionLog(`🔗 Establishing database connection...`);
+    addConnectionLog(`📍 Target: ${settings.database.username}@${settings.database.host}:${settings.database.port}/${settings.database.database}`);
     
     // Create the database manager if it doesn't exist
     let manager = dbManager;
@@ -268,20 +320,27 @@ export function Settings({ activeTab, onTabChange }: SettingsProps) {
     setDbStatus(manager.getStatus());
     
     if (result.success) {
-      toast.success('✅ Database connection established successfully');
+      const successMsg = '✅ Database connection established successfully';
+      toast.success(successMsg);
+      addConnectionLog(successMsg);
       loadTableInfo();
     } else {
-      toast.error(`❌ Database connection failed: ${result.error}`);
+      const errorMsg = `❌ Database connection failed: ${result.error}`;
+      toast.error(errorMsg);
+      addConnectionLog(errorMsg);
     }
   };
 
   const handleDisconnectDb = async () => {
     if (!dbManager) return;
     
+    addConnectionLog('🔌 Disconnecting from database...');
     await dbManager.disconnect();
     setDbStatus(dbManager.getStatus());
     setTableInfo([]);
-    toast.success('Disconnected from database');
+    const successMsg = 'Disconnected from database';
+    toast.success(successMsg);
+    addConnectionLog(`✅ ${successMsg}`);
   };
 
   const loadTableInfo = async () => {
@@ -1272,6 +1331,66 @@ export function Settings({ activeTab, onTabChange }: SettingsProps) {
                         Last error: {dbStatus.lastError}
                       </p>
                     )}
+                  </div>
+                )}
+              </div>
+
+              {/* Connection Logs */}
+              <div className="border border-border rounded-lg p-4">
+                <div className="flex items-center justify-between mb-4">
+                  <h4 className="font-medium">Connection Logs</h4>
+                  <div className="flex gap-2">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setShowConnectionLogs(!showConnectionLogs)}
+                    >
+                      <Eye size={16} className="mr-2" />
+                      {showConnectionLogs ? 'Hide' : 'Show'} Logs
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={clearConnectionLogs}
+                      disabled={connectionLogs.length === 0}
+                    >
+                      <X size={16} className="mr-2" />
+                      Clear
+                    </Button>
+                  </div>
+                </div>
+
+                {showConnectionLogs && (
+                  <div className="space-y-2">
+                    <div className="bg-muted/30 border border-border rounded-lg p-3 h-48 overflow-y-auto font-mono text-xs">
+                      {connectionLogs.length === 0 ? (
+                        <div className="flex items-center justify-center h-full text-muted-foreground">
+                          No connection logs yet. Run a connection test to see detailed logs.
+                        </div>
+                      ) : (
+                        <div className="space-y-1">
+                          {connectionLogs.map((log, index) => (
+                            <div 
+                              key={index} 
+                              className={`${
+                                log.includes('❌') ? 'text-red-300' :
+                                log.includes('⚠️') ? 'text-yellow-300' :
+                                log.includes('✅') ? 'text-green-300' :
+                                log.includes('🔍') || log.includes('🌐') || log.includes('🔌') || 
+                                log.includes('🔐') || log.includes('🗄️') || log.includes('🔑') ? 'text-blue-300' :
+                                'text-foreground'
+                              }`}
+                            >
+                              {log}
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                    <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                      <Info size={12} />
+                      <span>Logs show the complete database connection validation process including network connectivity, authentication, and database structure checks.</span>
+                    </div>
                   </div>
                 )}
               </div>
@@ -2514,6 +2633,18 @@ export function Settings({ activeTab, onTabChange }: SettingsProps) {
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-3">
+                <Database size={20} />
+                Database Connection Test
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <DatabaseConnectionTest />
+            </CardContent>
+          </Card>
+          
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-3">
                 <Info size={20} />
                 System Debug Information
               </CardTitle>
@@ -2570,6 +2701,27 @@ export function Settings({ activeTab, onTabChange }: SettingsProps) {
                     <div>User Agent: {esiConfig.userAgent || 'Not Set'}</div>
                   </div>
                 </div>
+              </div>
+              
+              <Separator />
+              
+              <div className="space-y-3">
+                <h4 className="font-medium">Database Validation Tests</h4>
+                <p className="text-sm text-muted-foreground">
+                  Run comprehensive tests to verify database connection validation is working properly.
+                  This will test both invalid configurations (should fail) and valid ones (might pass with real MySQL).
+                </p>
+                <Button
+                  onClick={() => {
+                    toast.info('Running database validation tests - check browser console for detailed results');
+                    runDatabaseValidationTests();
+                  }}
+                  variant="outline"
+                  className="w-full"
+                >
+                  <Database size={16} className="mr-2" />
+                  Run Database Validation Test Suite
+                </Button>
               </div>
             </CardContent>
           </Card>

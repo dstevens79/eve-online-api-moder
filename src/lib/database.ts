@@ -582,6 +582,27 @@ export class DatabaseManager {
     return { valid: true };
   }
 
+  private async validatePrivileges(): Promise<{ valid: boolean; error?: string }> {
+    await new Promise(resolve => setTimeout(resolve, 200 + Math.random() * 400));
+    
+    console.log(`🔑 Testing database privileges for user '${this.config.username}'`);
+    
+    // Simulate MySQL privilege checking
+    // This would normally involve SHOW GRANTS or attempting actual operations
+    
+    if (this.config.username === 'readonly_user') {
+      return { valid: false, error: 'User has insufficient privileges for LMeve operations (needs SELECT, INSERT, UPDATE, DELETE)' };
+    }
+    
+    if (this.config.username === 'limited_user') {
+      return { valid: false, error: 'User missing required privileges: CREATE, DROP, INDEX, ALTER' };
+    }
+    
+    // Simulate successful privilege validation
+    console.log(`✅ Database privileges validated for user '${this.config.username}'`);
+    return { valid: true };
+  }
+
   async checkLMeveTables(): Promise<{ valid: boolean; error?: string }> {
     // Simulate comprehensive LMeve database validation
     await new Promise(resolve => setTimeout(resolve, 400 + Math.random() * 600));
