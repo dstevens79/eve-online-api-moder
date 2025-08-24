@@ -1,39 +1,39 @@
 import React, { useState } from 'react';
-import { useCorporationAuth } from '@/lib/corp-auth';
+import { Button } from '@/components/ui/button';
 import { Button } from '@/components/ui/button';
 
-export function DirectLoginTest() {
+  const [forceUpdate, setForceUpdat
   const [testResults, setTestResults] = useState<string[]>([]);
   const [forceUpdate, setForceUpdate] = useState(0);
   const { directLogin, logout } = useCorporationAuth();
 
-  const addResult = (message: string) => {
-    const timestamp = new Date().toLocaleTimeString();
-    const resultMessage = `${timestamp}: ${message}`;
-    console.log(resultMessage);
-    setTestResults(prev => [...prev, resultMessage]);
-  };
-
-  const handleDirectLogin = async () => {
-    try {
-      addResult('🧪 Starting direct login test...');
-      
+      addResult('🧪 Starting direct login 
       const testUser = {
-        characterId: 'test-123',
         characterName: 'Direct Test User',
-        corporationId: 'corp-456',
-        corporationName: 'Test Corporation',
-        isAdmin: false,
+        corporationName: 'Test 
         isCeo: false,
-        isDirector: false,
-        authMethod: 'direct' as const,
-        canManageESI: true,
-        accessToken: 'test-token',
-        refreshToken: 'test-refresh-token',
-        tokenExpiry: Date.now() + (24 * 60 * 60 * 1000)
-      };
+    
 
-      addResult('🚪 Attempting direct login...');
+        tokenExpiry: Date.now() + (24 * 6
+
+      await directLogin(testUser);
+      
+        setForceUpdate(p
+      
+      console.error('🧪 Direct test failed
+    }
+
+    try {
+      
+      setTimeout(() => {
+        addResult('🔄 Force update tri
+      
+      console.error('🧪 Direct sta
+    }
+
+    addR
+
+
       await directLogin(testUser);
       addResult('✅ Direct login completed');
       
@@ -80,29 +80,28 @@ export function DirectLoginTest() {
       <div className="space-y-2 mb-4">
         <Button onClick={handleDirectLogin} className="mr-2">
           Test Login
-        </Button>
+
         <Button onClick={handleDirectStateTest} variant="secondary" className="mr-2">
           Test Direct State
         </Button>
         <Button onClick={handleLogout} variant="outline" className="mr-2">
           Test Logout
         </Button>
-        <Button onClick={clearResults} variant="outline">
-          Clear Results
-        </Button>
-      </div>
-      
-      <div className="space-y-1 font-mono text-xs max-h-60 overflow-y-auto bg-muted p-3 rounded">
-        {testResults.length === 0 ? (
-          <div className="text-muted-foreground">No test results yet...</div>
-        ) : (
-          testResults.map((result, index) => (
-            <div key={index} className="text-foreground">
-              {result}
-            </div>
-          ))
-        )}
-      </div>
-    </div>
-  );
-}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
