@@ -1,11 +1,11 @@
 import React, { useState } from 'react';
+import { Button } from '@/components/ui/button';
 import { useCorporationAuth } from '@/lib/corp-auth';
 
-
-
-    setTestResults(prev => [...prev, `[${new Date().toLocaleTimeString
-
-    try {
+export function DirectLoginTest() {
+  const { user, loginWithCredentials, logout } = useCorporationAuth();
+  const [testResults, setTestResults] = useState<string[]>([]);
+  const [forceUpdate, setForceUpdate] = useState(0);
 
   const addResult = (message: string) => {
     setTestResults(prev => [...prev, `[${new Date().toLocaleTimeString()}] ${message}`]);
@@ -16,41 +16,45 @@ import { useCorporationAuth } from '@/lib/corp-auth';
       addResult('🧪 Starting direct login test...');
       addResult(`Current user: ${user?.characterName || 'none'}`);
       
-    setTestResults([]);
+      await loginWithCredentials('admin', '12345');
+      addResult('✅ Direct login successful');
+      setForceUpdate(prev => prev + 1);
+    } catch (error) {
+      addResult(`❌ Direct login failed: ${error instanceof Error ? error.message : String(error)}`);
+    }
+  };
 
-    <div className="p-4 
+  const handleDirectLogout = async () => {
+    try {
+      addResult('🧪 Starting direct logout test...');
+      addResult(`Current user: ${user?.characterName || 'none'}`);
       
-        <Button onClick={handleDirectLogi
-        </Butt
-          Test Logout
-        <Button onClick={handleClearResults} varian
-     
-    
+      logout();
+      addResult('✅ Direct logout successful');
+      setForceUpdate(prev => prev + 1);
+    } catch (error) {
+      addResult(`❌ Direct logout failed: ${error instanceof Error ? error.message : String(error)}`);
+    }
+  };
 
-          <p className="text-m
-          <p className="text-muted-f
-        
-          {testResults.length === 0 ?
-    
-
-          )}
+  const handleClearResults = () => {
     setTestResults([]);
-  );
+  };
 
-
-
-
-
-
-
-
-
-
+  return (
+    <div className="p-4 border border-border rounded-lg bg-card">
+      <h3 className="text-lg font-semibold mb-4">Direct Login Test</h3>
+      
+      <div className="flex gap-2 mb-4">
+        <Button onClick={handleDirectLogin} variant="outline" size="sm">
+          Test Login
+        </Button>
+        <Button onClick={handleDirectLogout} variant="outline" size="sm">
           Test Logout
-
-
-
-
+        </Button>
+        <Button onClick={handleClearResults} variant="outline" size="sm">
+          Clear Results
+        </Button>
       </div>
       
       <div className="space-y-2">
