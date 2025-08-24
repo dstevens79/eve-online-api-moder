@@ -40,7 +40,8 @@ import {
   Info,
   CloudArrowDown,
   Archive,
-  UserCheck
+  UserCheck,
+  Building
 } from '@phosphor-icons/react';
 import { useKV } from '@github/spark/hooks';
 import { useCorporationAuth } from '@/lib/corp-auth';

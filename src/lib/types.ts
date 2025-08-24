@@ -34,88 +34,96 @@ export interface Member {
 
 // Manufacturing types
 export interface ManufacturingJob {
-  jobId: number;
+  id: string;
+  jobId?: number;
   installerId: number;
   installerName: string;
   facilityId: number;
-  facilityName: string;
-  stationId: number;
+  facility: string;
+  facilityName?: string;
+  stationId?: number;
   blueprintId: number;
-  blueprintTypeId: number;
-  blueprintTypeName: string;
-  blueprintLocationId: number;
-  outputLocationId: number;
+  blueprintName: string;
+  blueprintTypeId?: number;
+  blueprintTypeName?: string;
+  blueprintLocationId?: number;
+  outputLocationId?: number;
   runs: number;
-  cost?: number;
+  cost: number;
   licensedRuns?: number;
   probability?: number;
-  productTypeId?: number;
-  productTypeName?: string;
-  status: 'active' | 'paused' | 'ready' | 'delivered' | 'cancelled' | 'reverted';
-  timeInSeconds: number;
+  productTypeId: number;
+  productTypeName: string;
+  productQuantity: number;
+  status: 'active' | 'paused' | 'ready' | 'delivered' | 'cancelled' | 'reverted' | 'completed';
+  timeInSeconds?: number;
+  duration: number;
   startDate: string;
   endDate: string;
   pauseDate?: string;
   completedDate?: string;
   completedCharacterId?: number;
   successfulRuns?: number;
-  activityId: number;
-  activityName: string;
+  activityId?: number;
+  activityName?: string;
   priority: 'low' | 'normal' | 'high' | 'urgent';
-  profitMargin: number;
-  estimatedProfit: number;
+  profitMargin?: number;
+  estimatedProfit?: number;
+  materialEfficiency: number;
+  timeEfficiency: number;
   materials: MaterialRequirement[];
 }
 
 export interface Blueprint {
-  itemId: number;
+  id: string;
+  itemId?: number;
   typeId: number;
   typeName: string;
-  locationId: number;
-  locationName: string;
-  locationFlag: string;
-  quantity: number;
+  location: string;
+  locationId?: number;
+  locationName?: string;
+  locationFlag?: string;
+  quantity?: number;
   materialEfficiency: number;
   timeEfficiency: number;
   runs: number;
-  isCopy: boolean;
+  maxRuns?: number;
+  isCopy?: boolean;
   isOriginal: boolean;
-  categoryId: number;
-  categoryName: string;
-  groupId: number;
-  groupName: string;
+  category: string;
+  categoryId?: number;
+  categoryName?: string;
+  groupId?: number;
+  groupName?: string;
   metaLevel?: number;
   techLevel?: number;
   estimatedValue: number;
   productTypeId: number;
   productTypeName: string;
-  productQuantity: number;
-  manufacturingTime: number;
-  materials: MaterialRequirement[];
+  productQuantity?: number;
+  baseTime: number;
+  manufacturingTime?: number;
+  jobType: string;
+  baseMaterials: MaterialRequirement[];
+  materials?: MaterialRequirement[];
 }
 
 export interface ProductionPlan {
   id: string;
   name: string;
-  description: string;
+  description?: string;
   targetProduct: {
     typeId: number;
     typeName: string;
     quantity: number;
   };
-  blueprint: {
-    typeId: number;
-    typeName: string;
-    me: number;
-    te: number;
-    runs: number;
-  };
+  blueprints: Blueprint[];
   materials: MaterialRequirement[];
   estimatedCost: number;
   estimatedProfit: number;
-  estimatedTime: number;
+  estimatedDuration: number;
   priority: 'low' | 'normal' | 'high' | 'urgent';
-  status: 'planning' | 'approved' | 'active' | 'completed' | 'cancelled';
+  status: 'draft' | 'approved' | 'in_progress' | 'completed' | 'cancelled';
   createdBy: string;
   createdDate: string;
   assignedTo?: string;
@@ -127,11 +135,12 @@ export interface MaterialRequirement {
   typeId: number;
   typeName: string;
   quantity: number;
-  quantityAvailable: number;
-  quantityNeeded: number;
-  estimatedCost: number;
-  priority: 'critical' | 'high' | 'normal' | 'low';
-  source: 'inventory' | 'market' | 'manufacturing' | 'mining';
+  quantityAvailable?: number;
+  quantityNeeded?: number;
+  totalValue: number;
+  estimatedCost?: number;
+  priority?: 'critical' | 'high' | 'normal' | 'low';
+  source?: 'inventory' | 'market' | 'manufacturing' | 'mining';
 }
 
 // Income tracking types
