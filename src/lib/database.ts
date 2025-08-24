@@ -620,9 +620,10 @@ export class DatabaseManager {
     // The user appears to have sufficient privileges for LMeve operations
     return { valid: true };
   }
-e async checkLMeveTables(): Promise<{ valid: boolean; error?: string }> {
-/ Simulate comprehensive LMeve database validation
-await new Promise(resolve => setTimeout(resolve, 400 + Math.random() * 600));
+
+  async checkLMeveTables(): Promise<{ valid: boolean; error?: string }> {
+    // Simulate comprehensive LMeve database validation
+    await new Promise(resolve => setTimeout(resolve, 400 + Math.random() * 600));
     
     // CRITICAL: Only validate if we have a legitimate MySQL connection established
     await new Promise(resolve => setTimeout(resolve, 400 + Math.random() * 600));
