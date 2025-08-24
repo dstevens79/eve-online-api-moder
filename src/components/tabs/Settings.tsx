@@ -597,7 +597,7 @@ export function Settings({ activeTab, onTabChange }: SettingsProps) {
       return;
     }
 
-    setShowGeneratedCommands(true);
+    setShowSetupCommands(true);
   };
 
   const handleCopyCommands = () => {
@@ -1042,7 +1042,7 @@ export function Settings({ activeTab, onTabChange }: SettingsProps) {
               )}
 
               {/* Generated Commands Modal */}
-              {showGeneratedCommands && (
+              {showSetupCommands && (
                 <div className="fixed inset-0 bg-background/80 backdrop-blur-sm z-50 flex items-center justify-center">
                   <div className="bg-card border border-border rounded-lg p-6 w-full max-w-4xl mx-4 shadow-lg max-h-[90vh] overflow-y-auto">
                     <div className="flex items-center justify-between mb-4">
@@ -1059,7 +1059,7 @@ export function Settings({ activeTab, onTabChange }: SettingsProps) {
                         <Button
                           variant="ghost"
                           size="sm"
-                          onClick={() => setShowGeneratedCommands(false)}
+                          onClick={() => setShowSetupCommands(false)}
                         >
                           <X size={16} />
                         </Button>
