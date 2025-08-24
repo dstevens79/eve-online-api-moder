@@ -1,23 +1,23 @@
 // Enhanced Corporate Authentication System for LMeve
-// Integrates ESI authentication with corporation-based access control
+import { useKV } from '@github/spark/hooks';
 import { useKV } from '@github/spark/hooks';
 import React from 'react';
 
 export interface CorporationESIConfig {
-  corporationId: number;
-  corporationName: string;
-  refreshToken: string;
   scopes: string[];
-  registeredBy: number; // Character ID who registered
-  registeredAt: string;
   isActive: boolean;
-  keyExpiry?: string;
-}
 
-export interface AuthenticatedUser {
-  characterId: number;
-  characterName: string;
-  corporationId: number;
+  characterId: numb
+  corporationName: string;
+  allianceName?: string
+  refreshToken: stri
+  scopes: string[];
+ 
+
+  authMethod: 'esi' | 'local'; // Tr
+
+  state: string;
+  timestamp: number;
   corporationName: string;
   allianceId?: number;
   allianceName?: string;
@@ -31,7 +31,7 @@ export interface AuthenticatedUser {
   canManageESI: boolean; // CEO/Director can manage corp ESI
   loginTime: number;
   authMethod: 'esi' | 'local'; // Track how user authenticated
-}
+ 
 
 export interface ESIAuthState {
   state: string;
@@ -40,13 +40,13 @@ export interface ESIAuthState {
   redirectUri: string;
 }
 
-interface ESIConfig {
+    'esi-corporations
   clientId: string;
-  secretKey: string;
-  baseUrl: string;
-}
 
-/**
+  baseUrl: string;
+ 
+
+  g
  * Enhanced Corporation Authentication Service
  * Handles ESI authentication with corporation-based access control
  */
@@ -58,11 +58,11 @@ class CorporationAuthService {
     'esi-assets.read_corporation_assets.v1',
     'esi-corporations.read_blueprints.v1',
     'esi-markets.read_corporation_orders.v1',
-    'esi-wallet.read_corporation_wallets.v1',
+      state,
     'esi-killmails.read_corporation_killmails.v1',
     'esi-contracts.read_corporation_contracts.v1',
     'esi-corporations.read_titles.v1',
-    'esi-characters.read_corporation_roles.v1'
+      url: `${this.ESI_BASE_URL}/authorize?${p
   ];
 
   constructor(private esiConfig: ESIConfig) {}
@@ -77,11 +77,11 @@ class CorporationAuthService {
     const redirectUri = `${window.location.origin}${window.location.pathname}`;
 
     const authState: ESIAuthState = {
-      state,
+    const co
       codeVerifier,
       timestamp: Date.now(),
       redirectUri
-    };
+      
 
     const params = new URLSearchParams({
       response_type: 'code',
@@ -102,21 +102,21 @@ class CorporationAuthService {
   /**
    * Handle ESI OAuth callback and validate corporation access
    */
-  async handleESICallback(
+  }
     code: string, 
-    state: string, 
+   * Validate corpo
     storedState: ESIAuthState,
     registeredCorps: CorporationESIConfig[]
   ): Promise<AuthenticatedUser> {
-    if (state !== storedState.state) {
+    accessToken: string
       throw new Error('Invalid state parameter - possible CSRF attack');
-    }
+    /
 
     // Exchange authorization code for access token
     const tokenData = await this.exchangeCodeForToken(code, storedState);
     const { access_token, refresh_token, expires_in } = tokenData;
 
-    // Verify token and get character info
+    const corporationInfo = await this.get
     const characterData = await this.verifyToken(access_token);
     const characterInfo = await this.getCharacterInfo(characterData.CharacterID, access_token);
     const corporationInfo = await this.getCorporationInfo(characterData.corporation_id, access_token);
@@ -124,9 +124,9 @@ class CorporationAuthService {
     // Check corporation access permissions
     const corpAccess = await this.validateCorporationAccess(
       characterData.corporation_id,
-      characterData.CharacterID,
+      hasAccess: false, 
       registeredCorps,
-      access_token
+  }
     );
 
     if (!corpAccess.hasAccess) {
@@ -138,29 +138,29 @@ class CorporationAuthService {
 
     return {
       characterId: characterData.CharacterID,
-      characterName: characterData.CharacterName,
+        return { isDirector: false, roles: [] };
       corporationId: characterData.corporation_id,
       corporationName: corporationInfo.name,
       allianceId: corporationInfo.alliance_id,
       allianceName: corporationInfo.alliance_id ? await this.getAllianceName(corporationInfo.alliance_id) : undefined,
       accessToken: access_token,
-      refreshToken: refresh_token,
+      console.warn('Error fetching
       tokenExpiry: Date.now() + (expires_in * 1000),
       scopes: characterData.Scopes ? characterData.Scopes.split(' ') : [],
       isDirector: roles.isDirector,
-      isCeo: corporationInfo.ceo_id === characterData.CharacterID,
+   * Register new corporation ESI access
       isAdmin: false,
       canManageESI: roles.isDirector || corporationInfo.ceo_id === characterData.CharacterID,
       loginTime: Date.now(),
       authMethod: 'esi'
     };
-  }
+   
 
-  /**
+     
    * Validate corporation access permissions
-   */
+     
   private async validateCorporationAccess(
-    corporationId: number,
+
     characterId: number,
     registeredCorps: CorporationESIConfig[],
     accessToken: string
@@ -172,7 +172,7 @@ class CorporationAuthService {
     if (registeredCorp) {
       console.log(`✅ Corporation ${corporationId} is registered - access granted`);
       return { hasAccess: true };
-    }
+     
 
     // Corporation not registered - check if user is CEO/Director who can register it
     const corporationInfo = await this.getCorporationInfo(corporationId, accessToken);
@@ -184,17 +184,17 @@ class CorporationAuthService {
     if (isCeo || isDirector) {
       console.log(`✅ User is ${isCeo ? 'CEO' : 'Director'} of unregistered corp - access granted for registration`);
       return { hasAccess: true };
-    }
+
 
     return { 
       hasAccess: false, 
       reason: `Corporation "${corporationInfo.name}" is not registered with LMeve. Contact your CEO or Directors to register corporation ESI access.`
     };
-  }
+   
 
-  /**
+     
    * Get character roles from ESI
-   */
+     
   private async getCharacterRoles(characterId: number, corporationId: number, token: string): Promise<{
     isDirector: boolean;
     roles: string[];
@@ -202,11 +202,11 @@ class CorporationAuthService {
     try {
       const response = await fetch(`https://esi.evetech.net/latest/characters/${characterId}/roles/`, {
         headers: {
-          'Authorization': `Bearer ${token}`
+      expiresIn: data.expires_in
         }
       });
 
-      if (!response.ok) {
+    const response = awai
         console.warn('Could not fetch character roles - access may be limited');
         return { isDirector: false, roles: [] };
       }
@@ -216,39 +216,39 @@ class CorporationAuthService {
       const isDirector = roles.includes('Director');
 
       return { isDirector, roles };
-    } catch (error) {
+      const error = a
       console.warn('Error fetching character roles:', error);
       return { isDirector: false, roles: [] };
     }
-  }
 
-  /**
+
+     
    * Register new corporation ESI access
    */
   async registerCorporationESI(
-    corporationId: number,
+      throw new Error('Fai
     corporationName: string,
-    refreshToken: string,
+    return response.json(
     registeredBy: number,
-    scopes: string[]
+  private async getC
   ): Promise<CorporationESIConfig> {
     const config: CorporationESIConfig = {
       corporationId,
-      corporationName,
+
       refreshToken,
-      scopes,
+    }
       registeredBy,
-      registeredAt: new Date().toISOString(),
+  }
       isActive: true
-    };
+    co
 
     console.log(`📝 Registering ESI access for corporation: ${corporationName} (${corporationId})`);
     return config;
-  }
+   
 
-  /**
+
    * Local admin authentication (unchanged from existing system)
-   */
+
   async loginWithCredentials(username: string, password: string, adminConfig: { username: string; password: string }): Promise<AuthenticatedUser> {
     console.log('🔐 Local login attempt for:', username);
     
@@ -262,47 +262,47 @@ class CorporationAuthService {
         characterId: 999999999,
         characterName: 'Local Administrator',
         corporationId: 1000000000,
-        corporationName: 'LMeve Administration',
+  }
         allianceId: undefined,
         allianceName: undefined,
         accessToken: 'admin-access-token',
         refreshToken: 'admin-refresh-token',
         tokenExpiry: Date.now() + (24 * 60 * 60 * 1000), // 24 hours
-        scopes: this.ESI_SCOPES,
+/**
         isDirector: true,
-        isCeo: true,
+export function useC
         isAdmin: true,
         canManageESI: true,
         loginTime: Date.now(),
         authMethod: 'local'
       };
-    }
+    u
 
     throw new Error(`Invalid credentials for user: ${trimmedUsername}`);
   }
 
   /**
-   * Refresh ESI access token
+  // Debug logging
    */
   async refreshToken(refreshToken: string): Promise<{ accessToken: string; expiresIn: number }> {
     const response = await fetch(`${this.ESI_BASE_URL}/token`, {
-      method: 'POST',
+      isAdmin: user?.
       headers: {
         'Content-Type': 'application/x-www-form-urlencoded',
         'Authorization': `Basic ${btoa(`${this.esiConfig.clientId}:${this.esiConfig.secretKey}`)}`
-      },
+
       body: new URLSearchParams({
-        grant_type: 'refresh_token',
+    try {
         refresh_token: refreshToken
-      })
+      se
     });
 
     if (!response.ok) {
-      throw new Error('Failed to refresh token');
+    }
     }
 
     const data = await response.json();
-    return {
+    }
       accessToken: data.access_token,
       expiresIn: data.expires_in
     };
@@ -316,27 +316,27 @@ class CorporationAuthService {
         'Content-Type': 'application/x-www-form-urlencoded',
         'Authorization': `Basic ${btoa(`${this.esiConfig.clientId}:${this.esiConfig.secretKey}`)}`
       },
-      body: new URLSearchParams({
+
         grant_type: 'authorization_code',
         code,
         redirect_uri: storedState.redirectUri,
         code_verifier: storedState.codeVerifier
       })
-    });
+      t
 
-    if (!response.ok) {
+    }
       const error = await response.text();
       throw new Error(`Failed to exchange authorization code: ${error}`);
     }
 
     return response.json();
-  }
+  )
 
   private async verifyToken(accessToken: string) {
     const response = await fetch('https://esi.evetech.net/verify/', {
-      headers: {
+      scopes
         'Authorization': `Bearer ${accessToken}`
-      }
+    set
     });
 
     if (!response.ok) {
@@ -344,7 +344,7 @@ class CorporationAuthService {
     }
 
     return response.json();
-  }
+  c
 
   private async getCharacterInfo(characterId: number, token: string) {
     const response = await fetch(`https://esi.evetech.net/latest/characters/${characterId}/`, {
@@ -354,17 +354,17 @@ class CorporationAuthService {
     });
 
     if (!response.ok) {
-      throw new Error('Failed to get character info');
+
     }
 
     return response.json();
-  }
+  c
 
   private async getCorporationInfo(corporationId: number, token: string) {
     const response = await fetch(`https://esi.evetech.net/latest/corporations/${corporationId}/`, {
       headers: {
         'Authorization': `Bearer ${token}`
-      }
+    use
     });
 
     if (!response.ok) {
@@ -378,14 +378,14 @@ class CorporationAuthService {
     try {
       const response = await fetch(`https://esi.evetech.net/latest/alliances/${allianceId}/`);
       if (response.ok) {
-        const data = await response.json();
+
         return data.name;
       }
     } catch {
       // Fallback if alliance info is not available
-    }
+
     return 'Unknown Alliance';
-  }
+
 
   private generateRandomString(length: number): string {
     const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-._~';
@@ -394,7 +394,7 @@ class CorporationAuthService {
       result += chars.charAt(Math.floor(Math.random() * chars.length));
     }
     return result;
-  }
+
 
   private generateCodeChallenge(verifier: string): string {
     // In a real implementation, this would use SHA256
@@ -406,7 +406,7 @@ class CorporationAuthService {
 /**
  * React hook for corporation-based authentication
  */
-export function useCorporationAuth() {
+
   const [user, setUser] = useKV<AuthenticatedUser | null>('corp-auth-user', null);
   const [registeredCorps, setRegisteredCorps] = useKV<CorporationESIConfig[]>('registered-corporations', []);
   const [esiConfig, setESIConfig] = useKV<ESIConfig>('esi-config', {
@@ -416,7 +416,7 @@ export function useCorporationAuth() {
   });
   const [adminConfig, setAdminConfig] = useKV<{ username: string; password: string }>('admin-config', {
     username: 'admin',
-    password: '12345'
+
   });
   const [isLoading, setIsLoading] = React.useState(false);
   const [authTrigger, setAuthTrigger] = React.useState(0);
@@ -424,21 +424,21 @@ export function useCorporationAuth() {
   const authService = React.useMemo(() => new CorporationAuthService(esiConfig), [esiConfig]);
   const isAuthenticated = Boolean(user);
 
-  // Debug logging
+
   React.useEffect(() => {
     console.log('🔄 CORP AUTH - User state changed:', {
       hasUser: !!user,
-      characterName: user?.characterName,
+
       corporationName: user?.corporationName,
       isAdmin: user?.isAdmin,
       authMethod: user?.authMethod,
       canManageESI: user?.canManageESI,
       timestamp: Date.now()
-    });
+
   }, [user, authTrigger]);
 
   const loginWithCredentials = async (username: string, password: string): Promise<void> => {
-    setIsLoading(true);
+
     try {
       const authUser = await authService.loginWithCredentials(username, password, adminConfig);
       setUser(authUser);
@@ -448,120 +448,119 @@ export function useCorporationAuth() {
       throw error;
     } finally {
       setIsLoading(false);
-    }
+
   };
 
   const loginWithESI = (): string => {
-    if (!esiConfig.clientId) {
+
       throw new Error('ESI Client ID not configured. Please configure ESI settings first.');
-    }
+
     
     const { url, state } = authService.generateESIAuthUrl();
     sessionStorage.setItem('esi-auth-state', JSON.stringify(state));
     sessionStorage.setItem('esi-login-attempt', 'true');
     return url;
-  };
+
 
   const handleESICallback = async (code: string, state: string): Promise<void> => {
     setIsLoading(true);
-    try {
+
       const storedStateData = sessionStorage.getItem('esi-auth-state');
-      if (!storedStateData) {
+
         throw new Error('No stored ESI auth state found');
-      }
+
 
       const storedState = JSON.parse(storedStateData) as ESIAuthState;
       const authUser = await authService.handleESICallback(code, state, storedState, registeredCorps);
-      
+
       setUser(authUser);
       setAuthTrigger(prev => prev + 1);
 
       // Clean up session storage
       sessionStorage.removeItem('esi-auth-state');
-      sessionStorage.removeItem('esi-login-attempt');
-    } catch (error) {
-      console.error('ESI callback error:', error);
-      // Clean up on error
-      sessionStorage.removeItem('esi-auth-state');
-      sessionStorage.removeItem('esi-login-attempt');
-      throw error;
-    } finally {
-      setIsLoading(false);
-    }
-  };
 
-  const registerCorporationESI = async (
-    corporationId: number,
-    corporationName: string,
-    refreshToken: string,
-    registeredBy: number,
-    scopes: string[]
-  ): Promise<void> => {
-    const newCorpConfig = await authService.registerCorporationESI(
-      corporationId,
-      corporationName,
-      refreshToken,
-      registeredBy,
-      scopes
-    );
 
-    setRegisteredCorps(current => {
-      const filtered = current.filter(corp => corp.corporationId !== corporationId);
-      return [...filtered, newCorpConfig];
-    });
-  };
 
-  const logout = (): void => {
-    console.log('🚪 Logging out user');
-    setUser(null);
-    setAuthTrigger(prev => prev + 1);
-  };
 
-  const refreshUserToken = async (): Promise<void> => {
-    if (!user?.refreshToken || user?.isAdmin) return;
 
-    try {
-      const { accessToken, expiresIn } = await authService.refreshToken(user.refreshToken);
-      setUser(currentUser => currentUser ? {
-        ...currentUser,
-        accessToken,
-        tokenExpiry: Date.now() + (expiresIn * 1000)
-      } : null);
-    } catch (error) {
-      console.error('Failed to refresh token:', error);
-      logout();
-    }
-  };
 
-  const isTokenExpired = (): boolean => {
-    if (user?.isAdmin) return false;
-    return user ? Date.now() >= user.tokenExpiry - 300000 : false; // 5 min buffer
-  };
 
-  const updateESIConfig = (newConfig: Partial<ESIConfig>): void => {
-    setESIConfig(current => ({ ...current, ...newConfig }));
-  };
 
-  const updateAdminConfig = (newConfig: { username: string; password: string }): void => {
-    setAdminConfig(newConfig);
-  };
 
-  return {
-    user,
-    isAuthenticated,
-    isLoading,
-    registeredCorps,
-    esiConfig,
-    adminConfig,
-    authTrigger,
-    loginWithCredentials,
-    loginWithESI,
-    handleESICallback,
-    registerCorporationESI,
-    logout,
-    refreshUserToken,
-    isTokenExpired,
-    updateESIConfig,
-    updateAdminConfig
-  };
-}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
