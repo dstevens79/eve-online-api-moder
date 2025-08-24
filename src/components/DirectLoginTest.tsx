@@ -1,20 +1,20 @@
 import React, { useState } from 'react';
-import { Button } from '@/components/ui/button';
+import { useCorporationAuth } from '@/lib/corp-a
 import { useCorporationAuth } from '@/lib/corp-auth';
 
-export function DirectLoginTest() {
+  const [testResults, setTestResult
   const { loginWithCredentials, user, isAuthenticated, authTrigger } = useCorporationAuth();
   const [testResults, setTestResults] = useState<string[]>([]);
   const [forceUpdate, setForceUpdate] = useState(0);
 
-  const addResult = (message: string) => {
-    setTestResults(prev => [...prev, `${new Date().toLocaleTimeString()}: ${message}`]);
-  };
+      await loginWithCredentials('admin', 
+      
+    
 
-  const handleDirectLogin = async () => {
+    }
+
     try {
-      console.log('🧪 Direct test starting...');
-      addResult('🧪 Starting direct login test');
+      
       
       await loginWithCredentials('admin', '12345');
       addResult('✅ Login with credentials completed');
@@ -34,13 +34,13 @@ export function DirectLoginTest() {
       // Create a test user object directly
       const testUser = {
         characterId: 12345,
-        characterName: 'Direct Test Admin',
+      setTimeout(() => {
         corporationId: 67890,
-        corporationName: 'Direct Test Corp',
+
         isAdmin: true,
         isCeo: false,
         isDirector: false,
-        authMethod: 'local' as const,
+      addResult(`❌ Direct state test 
         canManageESI: true,
         accessToken: 'direct-test-token',
         refreshToken: 'direct-test-refresh',
@@ -52,7 +52,7 @@ export function DirectLoginTest() {
       addResult('✅ Direct KV set completed');
 
       // Check if the useKV hook picks up the change
-      setTimeout(() => {
+          
         addResult(`After 100ms: user=${user?.characterName || 'null'}, auth=${isAuthenticated}`);
       }, 100);
 
@@ -60,9 +60,9 @@ export function DirectLoginTest() {
         addResult(`After 500ms: user=${user?.characterName || 'null'}, auth=${isAuthenticated}`);
       }, 500);
 
-    } catch (error) {
+              {testRe
       addResult(`❌ Direct state test failed: ${error}`);
-    }
+     
   };
 
   return (
@@ -80,30 +80,29 @@ export function DirectLoginTest() {
         <div className="space-y-2">
           <Button onClick={handleDirectLogin} className="w-full">
             Test Auth Service Login (admin/12345)
-          </Button>
+
           
           <Button onClick={handleDirectStateTest} variant="outline" className="w-full">
             Test Direct State Manipulation
-          </Button>
+
         </div>
-        
+
         {testResults.length > 0 && (
           <div className="mt-4 p-3 bg-muted/50 rounded-lg max-h-40 overflow-y-auto">
             <h4 className="text-sm font-semibold mb-2">Test Results:</h4>
-            <div className="space-y-1">
+
               {testResults.map((result, index) => (
                 <div key={index} className="text-xs font-mono text-muted-foreground">
                   {result}
                 </div>
               ))}
-            </div>
+
           </div>
-        )}
+
         
         <div className="text-xs text-muted-foreground">
           This tests both the auth service and direct state manipulation
         </div>
       </div>
-    </div>
+
   );
-}
