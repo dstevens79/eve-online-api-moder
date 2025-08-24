@@ -2,39 +2,38 @@ import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { useCorporationAuth } from '@/lib/corp-auth';
 
-  const [testResults, setTestResults] = useState
-  const [forceUpdate, setForceUpdate] = useState(0);
+export const DirectLoginTest: React.FC = () => {
   const [testResults, setTestResults] = useState<string[]>([]);
+  const [forceUpdate, setForceUpdate] = useState(0);
   const { directLogin, logout } = useCorporationAuth();
 
-        characterId: 99999999,
-        corporationId: 12345678,
-    
+  const addResult = (message: string) => {
+    setTestResults(prev => [...prev, `[${new Date().toLocaleTimeString()}] ${message}`]);
+  };
 
+  const handleDirectLogin = async () => {
+    try {
+      addResult('🧪 Starting direct login test...');
+      
+      const testUser = {
+        characterId: 99999999,
+        characterName: 'admin',
+        corporationId: 12345678,
+        corporationName: 'Test Corporation',
+        isAdmin: true,
+        isCeo: false,
+        isDirector: false,
+        authMethod: 'local' as const,
         canManageESI: true,
-        r
       };
       
+      directLogin(testUser);
+      addResult('✅ Direct login completed');
       
-        setForceUpdate(prev =>
-      
-      console.error('🧪 Direct t
-    }
-
-    try {
-      
+      // Force a re-render to see the effect
       setTimeout(() => {
-        addResult('🔄 Force
-      
-      console.error('🧪 Direct state 
-    }
-
-
-    addResult('✅ Logout completed'
-
-    se
-
         setForceUpdate(prev => prev + 1);
+        addResult('🔄 Force update triggered');
       }, 100);
       
     } catch (error) {
@@ -76,11 +75,11 @@ import { useCorporationAuth } from '@/lib/corp-auth';
       <div className="space-y-2 mb-4">
         <Button onClick={handleDirectLogin} className="mr-2">
           Test Login
-
-        <Button onClick={handleDirectStateTest} variant="secondary" className="mr-2">
-
         </Button>
-
+        <Button onClick={handleDirectStateTest} variant="secondary" className="mr-2">
+          Test State
+        </Button>
+        <Button onClick={handleLogout} variant="outline" className="mr-2">
           Test Logout
         </Button>
         <Button onClick={clearResults} variant="destructive" size="sm">
@@ -92,9 +91,9 @@ import { useCorporationAuth } from '@/lib/corp-auth';
         {testResults.map((result, index) => (
           <div key={index} className="text-sm font-mono bg-muted p-2 rounded">
             {result}
-
+          </div>
         ))}
       </div>
     </div>
-
+  );
 };
