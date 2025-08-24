@@ -176,7 +176,7 @@ export function Settings({ activeTab, onTabChange }: SettingsProps) {
   const [testingConnection, setTestingConnection] = useState(false);
   const [sdeStats, setSDEStats] = useState<SDEDatabaseStats | null>(null);
   const [connectionLogs, setConnectionLogs] = useState<string[]>([]);
-  const [showConnectionLogs, setShowConnectionLogs] = useState(false);
+  const [showConnectionLogs, setShowConnectionLogs] = useState(true); // Show logs by default for debugging
   
   // Database setup state
   const [setupManager, setSetupManager] = useState<DatabaseSetupManager | null>(null);
@@ -224,22 +224,23 @@ export function Settings({ activeTab, onTabChange }: SettingsProps) {
     }
   }, [settings?.database]);
 
-  // Helper function to add connection logs
+  // Helper function to add connection logs without duplicate timestamps
   const addConnectionLog = (message: string) => {
-    const timestamp = new Date().toLocaleTimeString();
-    const logEntry = `[${timestamp}] ${message}`;
-    setConnectionLogs(prev => [...prev, logEntry].slice(-50)); // Keep last 50 logs
-    console.log(logEntry);
+    setConnectionLogs(prev => [...prev, message].slice(-50)); // Keep last 50 logs
+    console.log(message);
   };
 
   // Clear connection logs
   const clearConnectionLogs = () => {
     setConnectionLogs([]);
-    addConnectionLog('Connection logs cleared');
+    const timestamp = new Date().toLocaleTimeString();
+    addConnectionLog(`[${timestamp}] Connection logs cleared`);
   };
 
-  // Database functions
+  // Database functions with proper logging and click handling
   const handleTestDbConnection = async () => {
+    console.log('🧪 Test connection button clicked');
+    
     if (!settings.database) {
       const error = 'Please configure database connection settings first';
       toast.error(error);
@@ -247,10 +248,15 @@ export function Settings({ activeTab, onTabChange }: SettingsProps) {
       return;
     }
     
-    addConnectionLog(`🔍 Starting database connection test...`);
+    // Clear previous logs to prevent timestamp spam
+    setConnectionLogs([]);
+    
+    const timestamp = new Date().toLocaleTimeString();
+    addConnectionLog(`🔍 [${timestamp}] Starting database connection test...`);
     addConnectionLog(`📍 Target: ${settings.database.username}@${settings.database.host}:${settings.database.port}/${settings.database.database}`);
     
     setTestingConnection(true);
+    
     try {
       // Create a temporary database manager for testing
       const tempManager = new DatabaseManager(settings.database);
@@ -259,10 +265,12 @@ export function Settings({ activeTab, onTabChange }: SettingsProps) {
       const originalConsoleLog = console.log;
       console.log = (...args: any[]) => {
         const message = args.join(' ');
+        // Only capture database-related logs, not all console output
         if (message.includes('🔍') || message.includes('🌐') || message.includes('🔌') || 
             message.includes('🔐') || message.includes('🗄️') || message.includes('🔑') || 
-            message.includes('✅') || message.includes('❌')) {
-          addConnectionLog(message);
+            message.includes('✅') || message.includes('❌') || message.includes('⚠️')) {
+          const logTimestamp = new Date().toLocaleTimeString();
+          addConnectionLog(`[${logTimestamp}] ${message}`);
         }
         originalConsoleLog(...args);
       };
@@ -272,30 +280,34 @@ export function Settings({ activeTab, onTabChange }: SettingsProps) {
       // Restore original console.log
       console.log = originalConsoleLog;
       
+      const finalTimestamp = new Date().toLocaleTimeString();
+      
       if (result.success && result.validated) {
-        const successMsg = `✅ Database connection validated successfully! Latency: ${result.latency}ms`;
-        toast.success(successMsg);
+        const successMsg = `✅ [${finalTimestamp}] Database connection validated successfully! Latency: ${result.latency}ms`;
+        toast.success('Database connection test passed!');
         addConnectionLog(successMsg);
         setDbStatus(prev => ({ ...prev, lastError: undefined }));
       } else if (result.success && !result.validated) {
-        const warningMsg = `⚠️ Connection established but validation incomplete. Latency: ${result.latency}ms`;
-        toast.warning(warningMsg);
+        const warningMsg = `⚠️ [${finalTimestamp}] Connection established but validation incomplete. Latency: ${result.latency}ms`;
+        toast.warning('Database connection partially successful');
         addConnectionLog(warningMsg);
       } else {
-        const errorMsg = `❌ Database connection failed: ${result.error}`;
-        toast.error(errorMsg);
+        const errorMsg = `❌ [${finalTimestamp}] Database connection failed: ${result.error}`;
+        toast.error('Database connection test failed!');
         addConnectionLog(errorMsg);
         setDbStatus(prev => ({ ...prev, lastError: result.error }));
       }
     } catch (error) {
       const errorMsg = error instanceof Error ? error.message : 'Unknown connection error';
-      const fullErrorMsg = `❌ Database connection test failed: ${errorMsg}`;
-      toast.error(fullErrorMsg);
+      const finalTimestamp = new Date().toLocaleTimeString();
+      const fullErrorMsg = `❌ [${finalTimestamp}] Database connection test failed: ${errorMsg}`;
+      toast.error('Database connection test failed!');
       addConnectionLog(fullErrorMsg);
       setDbStatus(prev => ({ ...prev, lastError: errorMsg }));
     } finally {
+      const endTimestamp = new Date().toLocaleTimeString();
+      addConnectionLog(`🏁 [${endTimestamp}] Connection test completed`);
       setTestingConnection(false);
-      addConnectionLog('🏁 Connection test completed');
     }
   };
 
@@ -986,14 +998,14 @@ export function Settings({ activeTab, onTabChange }: SettingsProps) {
                           port: 3306,
                           database: 'lmeve',
                           username: 'lmeve',
-                          password: 'testpass123'
+                          password: 'lmpassword'
                         }
                       }));
-                      toast.info('Set valid test configuration');
+                      toast.info('Set valid local test configuration');
                     }}
                     className="justify-start text-green-400 border-green-500/30"
                   >
-                    ✅ Valid Test Config
+                    ✅ Valid Local Config
                   </Button>
                   
                   <Button
@@ -1004,7 +1016,7 @@ export function Settings({ activeTab, onTabChange }: SettingsProps) {
                         ...current,
                         database: {
                           ...current.database,
-                          host: 'localhost',
+                          host: 'invalid-host-name-that-definitely-does-not-exist',
                           port: 3306,
                           database: 'nonexistent_db',
                           username: 'baduser',
@@ -1048,11 +1060,11 @@ export function Settings({ activeTab, onTabChange }: SettingsProps) {
                         ...current,
                         database: {
                           ...current.database,
-                          host: 'invalid-host',
+                          host: 'timeout-host.local',
                           port: 3306,
                           database: 'lmeve',
                           username: 'lmeve',
-                          password: 'testpass123'
+                          password: 'lmpassword'
                         }
                       }));
                       toast.info('Set network error test');
@@ -1257,14 +1269,38 @@ export function Settings({ activeTab, onTabChange }: SettingsProps) {
                       size="sm"
                       onClick={handleTestDbConnection}
                       disabled={testingConnection}
+                      className="relative"
                     >
                       {testingConnection ? (
-                        <ArrowClockwise size={16} className="mr-2 animate-spin" />
+                        <>
+                          <ArrowClockwise size={16} className="mr-2 animate-spin" />
+                          Testing...
+                        </>
                       ) : (
-                        <Play size={16} className="mr-2" />
+                        <>
+                          <Play size={16} className="mr-2" />
+                          Test Connection
+                        </>
                       )}
-                      Test Connection
                     </Button>
+                    
+                    {/* Debug button for testing clicks */}
+                    {process.env.NODE_ENV === 'development' && (
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => {
+                          console.log('🧪 Debug: Quick test button clicked');
+                          const timestamp = new Date().toLocaleTimeString();
+                          addConnectionLog(`🧪 [${timestamp}] Debug test button clicked - button functionality working`);
+                          toast.success('Debug: Button click registered!');
+                        }}
+                        className="border-purple-500/50 text-purple-400 hover:bg-purple-500/10"
+                      >
+                        <UserCheck size={16} className="mr-2" />
+                        Debug Test
+                      </Button>
+                    )}
                     {dbStatus.connected ? (
                       <Button
                         variant="outline"
@@ -1287,6 +1323,19 @@ export function Settings({ activeTab, onTabChange }: SettingsProps) {
                     )}
                   </div>
                 </div>
+
+                {/* Immediate Test Status */}
+                {testingConnection && (
+                  <div className="mb-4 p-3 border border-blue-500/20 bg-blue-500/10 rounded-lg">
+                    <div className="flex items-center gap-2 text-blue-400">
+                      <ArrowClockwise size={16} className="animate-spin" />
+                      <span className="font-medium">Testing Database Connection...</span>
+                    </div>
+                    <p className="text-sm text-muted-foreground mt-1">
+                      Validating network connectivity, authentication, and database structure
+                    </p>
+                  </div>
+                )}
 
                 {dbStatus.connected ? (
                   <div className="p-3 border border-green-500/20 bg-green-500/10 rounded-lg">
