@@ -435,12 +435,63 @@ export function useCorporationAuth() {
     });
   }, [user, authTrigger]);
 
+/**
+ * React hook for corporation-based authentication
+ */
+export function useCorporationAuth() {
+  const [user, setUser] = useKV<AuthenticatedUser | null>('corp-auth-user', null);
+  const [registeredCorps, setRegisteredCorps] = useKV<CorporationESIConfig[]>('registered-corporations', []);
+  const [esiConfig, setESIConfig] = useKV<ESIConfig>('esi-config', {
+    clientId: '',
+    secretKey: '',
+    baseUrl: 'https://login.eveonline.com'
+  });
+  const [adminConfig, setAdminConfig] = useKV<{ username: string; password: string }>('admin-config', {
+    username: 'admin',
+    password: '12345'
+  });
+  const [isLoading, setIsLoading] = React.useState(false);
+  const [authTrigger, setAuthTrigger] = React.useState(0);
+
+  const authService = React.useMemo(() => new CorporationAuthService(esiConfig), [esiConfig]);
+  const isAuthenticated = Boolean(user);
+
+  // Debug logging
+  React.useEffect(() => {
+    console.log('🔄 CORP AUTH - User state changed:', {
+      hasUser: !!user,
+      characterName: user?.characterName,
+      corporationName: user?.corporationName,
+      isAdmin: user?.isAdmin,
+      authMethod: user?.authMethod,
+      canManageESI: user?.canManageESI,
+      timestamp: Date.now()
+    });
+  }, [user, authTrigger]);
+
   const loginWithCredentials = async (username: string, password: string): Promise<void> => {
+    console.log('🧪 Starting direct login test with', username + '/' + password);
+    console.log('🔍 Before login: user=' + (user ? user.characterName : 'null') + ', authenticated=' + isAuthenticated);
+    
     setIsLoading(true);
     try {
       const authUser = await authService.loginWithCredentials(username, password, adminConfig);
-      setUser(authUser);
-      setAuthTrigger(prev => prev + 1);
+      console.log('🔍 Login service returned user:', authUser.characterName);
+      
+      // Use functional update to ensure the state is set properly
+      setUser((currentUser) => {
+        console.log('🔍 setUser functional update - current:', currentUser?.characterName || 'null', 'new:', authUser.characterName);
+        return authUser;
+      });
+      
+      setAuthTrigger((prevTrigger) => {
+        const newTrigger = prevTrigger + 1;
+        console.log('🔍 Auth trigger updated from', prevTrigger, 'to', newTrigger);
+        return newTrigger;
+      });
+      
+      console.log('✅ Login completed successfully');
+      
     } catch (error) {
       console.error('❌ Login error:', error);
       throw error;

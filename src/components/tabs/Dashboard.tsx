@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button';
 import { EVEApiStatus } from '@/components/EVEApiStatus';
 import { LoginPrompt } from '@/components/LoginPrompt';
 import { SimpleAuthStatus } from '@/components/SimpleAuthStatus';
+import { DirectLoginTest } from '@/components/DirectLoginTest';
 
 import { useLMeveData } from '@/lib/LMeveDataContext';
 import { useCorporationAuth } from '@/lib/corp-auth';
@@ -314,6 +315,11 @@ export function Dashboard({ onLoginClick }: DashboardProps) {
 
       {/* Simple corporation status display */}
       <SimpleAuthStatus />
+
+      {/* Direct Login Test for debugging */}
+      {process.env.NODE_ENV === 'development' && (
+        <DirectLoginTest />
+      )}
     </div>
   );
 }
