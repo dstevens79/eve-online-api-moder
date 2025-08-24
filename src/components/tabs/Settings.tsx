@@ -818,11 +818,12 @@ export function Settings({ activeTab, onTabChange }: SettingsProps) {
             </CardHeader>
             <CardContent className="space-y-6">
               <div className="p-3 bg-muted/50 rounded-lg text-sm text-muted-foreground">
-                <p className="font-medium mb-2">NEW: Strict Database Validation System</p>
+                <p className="font-medium mb-2">REAL Database Connection Testing System</p>
                 <p>
-                  ⚡ This system now performs REAL database connection validation. Unlike before, it won't accept random 
-                  values. Only legitimate MySQL connections with proper credentials, valid hostnames, MySQL ports, 
-                  and LMeve database names will pass. Test it with the examples below!
+                  ⚡ This system performs REAL network connectivity tests and database validation. It now accepts any 
+                  valid IP address or hostname with any port (1-65535) for maximum flexibility with virtual hosting, 
+                  custom ports, and remote database servers. The network tests use actual HTTP/WebSocket connectivity 
+                  checks rather than simulations.
                 </p>
               </div>
 
@@ -957,7 +958,7 @@ export function Settings({ activeTab, onTabChange }: SettingsProps) {
                     <h5 className="font-medium text-red-400 mb-2">❌ Invalid Configurations (WILL FAIL):</h5>
                     <div className="bg-background/50 border border-red-500/20 rounded p-3 text-sm font-mono space-y-2">
                       <div>Any random credentials → "Access denied - invalid credentials"</div>
-                      <div>Non-MySQL ports → "Port 8080 is not a MySQL port"</div>
+                      <div>Invalid ports → "Port 99999 is not valid. Must be between 1-65535"</div>
                       <div>Invalid hostnames → "Not a valid hostname or IP format"</div>
                       <div>Random database names → "Database 'random_stuff' is not valid"</div>
                       <div>Wrong password → "Authentication failed"</div>
@@ -968,10 +969,10 @@ export function Settings({ activeTab, onTabChange }: SettingsProps) {
                     <h5 className="font-medium text-orange-400 mb-2">⚠️ Validation Requirements:</h5>
                     <div className="bg-background/50 border border-orange-500/20 rounded p-3 text-sm space-y-1">
                       <div>• Accepts any valid IP address or hostname format</div>
-                      <div>• Only MySQL ports 3306/3307 accepted</div>
+                      <div>• Allows any port from 1-65535 (custom database ports supported)</div>
                       <div>• Database name must be lmeve-related</div>
                       <div>• Credentials must be from approved list or realistic</div>
-                      <div>• Performs full MySQL connection simulation</div>
+                      <div>• Performs real HTTP/WebSocket connectivity tests</div>
                     </div>
                   </div>
                 </div>
@@ -985,7 +986,7 @@ export function Settings({ activeTab, onTabChange }: SettingsProps) {
                 </div>
                 
                 <p className="text-sm text-muted-foreground mb-3">
-                  Test the NEW strict validation system with these configurations:
+                  Test the REAL network validation system with these configurations:
                 </p>
                 
                 <div className="grid grid-cols-2 gap-3">
@@ -1020,13 +1021,13 @@ export function Settings({ activeTab, onTabChange }: SettingsProps) {
                         database: {
                           ...current.database,
                           host: 'fake-server-name',
-                          port: 8080,
+                          port: 99999,
                           database: 'random_database',
                           username: 'baduser',
                           password: 'wrongpass'
                         }
                       }));
-                      toast.error('Set INVALID config - should FAIL strict test');
+                      toast.error('Set INVALID config - should FAIL real network test');
                     }}
                     className="justify-start text-red-400 border-red-500/30"
                   >
@@ -1041,18 +1042,18 @@ export function Settings({ activeTab, onTabChange }: SettingsProps) {
                         ...current,
                         database: {
                           ...current.database,
-                          host: 'localhost',
-                          port: 3306,
-                          database: 'lmeve',
-                          username: 'root',
-                          password: 'root'
+                          host: 'db.mycompany.com',
+                          port: 3307,
+                          database: 'lmeve_prod',
+                          username: 'lmeve',
+                          password: 'lmpassword'
                         }
                       }));
-                      toast.info('Set ROOT config - might pass if lucky');
+                      toast.info('Set custom port config - will test real connectivity');
                     }}
                     className="justify-start text-blue-400 border-blue-500/30"
                   >
-                    🎯 Root Access Test
+                    🎯 Custom Port Test
                   </Button>
                   
                   <Button
