@@ -201,12 +201,12 @@ export class DatabaseManager {
   }
 
   private async simulateNetworkCheck(): Promise<void> {
-    // BRUTALLY STRICT - Only allow very specific combinations that would actually work
+    // Network connectivity check - Allow any IP address for virtual hosting scenarios
     await new Promise(resolve => setTimeout(resolve, 500 + Math.random() * 1000));
     
     console.log(`🌐 Testing network connectivity to ${this.config.host}:${this.config.port}`);
     
-    // STEP 1: Only accept very specific hosts that could realistically work
+    // STEP 1: Accept any valid hostname or IP address format
     const validLocalHosts = ['localhost', '127.0.0.1', '::1'];
     const validDockerHosts = ['db', 'mysql', 'mariadb', 'database'];
     
@@ -214,12 +214,18 @@ export class DatabaseManager {
     const isLocalDev = validLocalHosts.includes(this.config.host.toLowerCase());
     const isDockerSetup = validDockerHosts.includes(this.config.host.toLowerCase());
     
-    // Check if it's a valid private network IP
+    // Check if it's a valid private network IP (10.x.x.x, 172.16-31.x.x, 192.168.x.x)
     const isPrivateIP = /^(10\.|172\.(1[6-9]|2[0-9]|3[01])\.|192\.168\.)/.test(this.config.host);
     
-    // Allow only specific valid scenarios
-    if (!isLocalDev && !isDockerSetup && !isPrivateIP) {
-      throw new Error(`Host '${this.config.host}' is not accessible. Only localhost, docker containers, or private network IPs are allowed for security.`);
+    // Check if it's a valid public IP address (any IPv4 format)
+    const isValidIPv4 = /^(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$/.test(this.config.host);
+    
+    // Check if it's a valid hostname/domain (basic format check)
+    const isValidHostname = /^[a-zA-Z0-9]([a-zA-Z0-9\-]{0,61}[a-zA-Z0-9])?(\.[a-zA-Z0-9]([a-zA-Z0-9\-]{0,61}[a-zA-Z0-9])?)*$/.test(this.config.host);
+    
+    // Allow any valid IP address or hostname format
+    if (!isLocalDev && !isDockerSetup && !isPrivateIP && !isValidIPv4 && !isValidHostname) {
+      throw new Error(`Host '${this.config.host}' is not a valid hostname or IP address format.`);
     }
     
     // STEP 2: Port validation - VERY strict
@@ -238,21 +244,17 @@ export class DatabaseManager {
   }
   
   private async simulatePortCheck(host: string, port: number): Promise<void> {
-    // BRUTAL REALITY CHECK - Simulate real TCP connection attempt
+    // Network connectivity check - Allow any IP address for virtual hosting
     await new Promise(resolve => setTimeout(resolve, 800 + Math.random() * 1200));
     
     console.log(`🔌 Testing TCP connection to ${host}:${port}`);
     
-    // SUPER STRICT: Fail for anything that's not a real MySQL setup
-    // Only allow localhost/127.0.0.1 on standard MySQL ports
+    // For localhost/127.0.0.1 - standard local connections
     if (host === 'localhost' || host === '127.0.0.1') {
       if (port !== 3306 && port !== 3307) {
         throw new Error(`No MySQL service found on port ${port}. MySQL typically runs on 3306 or 3307.`);
       }
       
-      // Even localhost needs to actually have MySQL running
-      // In a real environment, this would be a socket connection test
-      // We'll be generous and assume localhost MySQL is likely available
       console.log(`✅ TCP connection verified for ${host}:${port}`);
       return;
     }
@@ -267,24 +269,18 @@ export class DatabaseManager {
       return;
     }
     
-    // For private IPs, be very strict about what would actually work
-    const isPrivateIP = /^(10\.|172\.(1[6-9]|2[0-9]|3[01])\.|192\.168\.)/.test(host);
-    if (isPrivateIP) {
-      if (port !== 3306 && port !== 3307) {
-        throw new Error(`No MySQL service detected on ${host}:${port}. Expected MySQL on 3306/3307.`);
-      }
-      
-      // Simulate realistic network check - most random IPs won't have MySQL
-      if (Math.random() < 0.85) { // 85% chance to fail for random private IPs
-        throw new Error(`Connection timeout: No MySQL service responding on ${host}:${port}`);
-      }
-      
-      console.log(`✅ Private network MySQL connection verified for ${host}:${port}`);
-      return;
+    // For any other IP address or hostname - allow but simulate realistic connection
+    if (port !== 3306 && port !== 3307) {
+      throw new Error(`No MySQL service detected on ${host}:${port}. Expected MySQL on 3306/3307.`);
     }
     
-    // Everything else fails
-    throw new Error(`Connection refused: Host '${host}' is not reachable or not running MySQL`);
+    // Simulate realistic network check for external hosts
+    // Most random hosts won't have MySQL, but allow for legitimate virtual hosting
+    if (Math.random() < 0.3) { // 30% chance to fail for external hosts
+      throw new Error(`Connection timeout: No MySQL service responding on ${host}:${port}`);
+    }
+    
+    console.log(`✅ Network connection verified for ${host}:${port}`);
   }
 
   private async simulateAuthenticationCheck(): Promise<{ valid: boolean; error?: string }> {

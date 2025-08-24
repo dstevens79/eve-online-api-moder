@@ -937,7 +937,9 @@ export function Settings({ activeTab, onTabChange }: SettingsProps) {
                 </div>
                 
                 <p className="text-sm text-muted-foreground mb-4">
-                  The NEW strict validation system performs comprehensive database testing. Here are examples:
+                  The database validation system now accepts any valid IP address or hostname format, 
+                  making it suitable for virtual hosting, cloud databases, and remote MySQL servers. 
+                  Here are examples:
                 </p>
                 
                 <div className="space-y-4">
@@ -945,8 +947,9 @@ export function Settings({ activeTab, onTabChange }: SettingsProps) {
                     <h5 className="font-medium text-green-400 mb-2">✅ Valid Configurations (WILL PASS):</h5>
                     <div className="bg-background/50 border border-green-500/20 rounded p-3 text-sm font-mono space-y-2">
                       <div>Host: localhost, User: root, Pass: root, DB: lmeve</div>
-                      <div>Host: localhost, User: lmeve, Pass: lmpassword, DB: lmeve</div>
-                      <div>Host: 127.0.0.1, User: admin, Pass: 12345, DB: lmeve_test</div>
+                      <div>Host: 192.168.1.100, User: lmeve, Pass: lmpassword, DB: lmeve</div>
+                      <div>Host: db.example.com, User: admin, Pass: 12345, DB: lmeve_prod</div>
+                      <div>Host: 10.0.0.50, User: lmeve, Pass: lmeve, DB: lmeve_test</div>
                     </div>
                   </div>
                   
@@ -955,16 +958,16 @@ export function Settings({ activeTab, onTabChange }: SettingsProps) {
                     <div className="bg-background/50 border border-red-500/20 rounded p-3 text-sm font-mono space-y-2">
                       <div>Any random credentials → "Access denied - invalid credentials"</div>
                       <div>Non-MySQL ports → "Port 8080 is not a MySQL port"</div>
-                      <div>Invalid hosts → "Host 'fake-server' is not accessible"</div>
+                      <div>Invalid hostnames → "Not a valid hostname or IP format"</div>
                       <div>Random database names → "Database 'random_stuff' is not valid"</div>
                       <div>Wrong password → "Authentication failed"</div>
                     </div>
                   </div>
                   
                   <div>
-                    <h5 className="font-medium text-orange-400 mb-2">⚠️ Strict Requirements:</h5>
+                    <h5 className="font-medium text-orange-400 mb-2">⚠️ Validation Requirements:</h5>
                     <div className="bg-background/50 border border-orange-500/20 rounded p-3 text-sm space-y-1">
-                      <div>• Only allows localhost, docker names, or private IPs</div>
+                      <div>• Accepts any valid IP address or hostname format</div>
                       <div>• Only MySQL ports 3306/3307 accepted</div>
                       <div>• Database name must be lmeve-related</div>
                       <div>• Credentials must be from approved list or realistic</div>
