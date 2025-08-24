@@ -611,9 +611,6 @@ export class DatabaseManager {
     const readOnlyPatterns = ['read', 'select', 'view', 'report'];
     if (readOnlyPatterns.some(pattern => this.config.username.toLowerCase().includes(pattern))) {
       return { 
-    const readOnlyPatterns = ['read', 'select', 'view', 'report'];
-        error: 'Username suggests read-only access. LMeve requires full database privileges.' 
-      return { 
         valid: false, 
         error: 'Username suggests read-only access. LMeve requires full database privileges.' 
       };
