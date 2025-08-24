@@ -1,79 +1,73 @@
 import React, { useState } from 'react';
-import { useCorporationAuth } from '@/lib/corp-a
+import { useCorporationAuth } from '@/lib/corp-auth';
+import { Button } from '@/components/ui/button';
+
 export function DirectLoginTest() {
-
-
-    const timestamp = new Date().toLocaleTimeString();
-    console.log(resultMessage);
-  };
+  const [testResults, setTestResults] = useState<string[]>([]);
+  const [forceUpdate, setForceUpdate] = useState(0);
+  const { directLogin, logout } = useCorporationAuth();
 
   const addResult = (message: string) => {
     const timestamp = new Date().toLocaleTimeString();
     const resultMessage = `${timestamp}: ${message}`;
     console.log(resultMessage);
     setTestResults(prev => [...prev, resultMessage]);
-    
+  };
 
   const handleDirectLogin = async () => {
     try {
-      setTimeout(() => {
-      }, 1000);
-      
-      console.error('🧪 Direct test failed:', error
-    }
-
-    tr
+      addResult('🧪 Starting direct login test...');
       
       const testUser = {
+        characterId: 'test-123',
         characterName: 'Direct Test User',
-        corpora
-      
+        corporationId: 'corp-456',
+        corporationName: 'Test Corporation',
+        isAdmin: false,
+        isCeo: false,
+        isDirector: false,
+        authMethod: 'direct' as const,
         canManageESI: true,
-        accessToken: 
-        tokenExpiry: Date.now() + (24 * 60 * 60 * 100
+        accessToken: 'test-token',
+        refreshToken: 'test-refresh-token',
+        tokenExpiry: Date.now() + (24 * 60 * 60 * 1000)
+      };
+
+      addResult('🚪 Attempting direct login...');
+      await directLogin(testUser);
+      addResult('✅ Direct login completed');
       
+      setTimeout(() => {
+        setForceUpdate(prev => prev + 1);
+      }, 100);
+      
+    } catch (error) {
+      console.error('🧪 Direct test failed:', error);
+      addResult(`❌ Direct login failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
     }
   };
 
-      }, 100);
-      set
+  const handleDirectStateTest = async () => {
+    try {
+      addResult('🧪 Starting direct state test...');
+      
+      // Force a state update
+      setTimeout(() => {
+        setForceUpdate(prev => prev + 1);
+        addResult('🔄 Force update triggered');
       }, 500);
       
-      console.error('🧪 Direct state test f
+    } catch (error) {
+      console.error('🧪 Direct state test failed:', error);
+      addResult(`❌ Direct state test failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
     }
+  };
 
+  const handleLogout = () => {
     addResult('🚪 Logging out user');
-    addResult('✅ Logout completed
+    logout();
+    addResult('✅ Logout completed');
   };
-  const clearResults =
-  };
-  return (
-      <h3 className="text-l
-      <div className="space-y-2 mb-4
-          Test Login
-        <Button onClick={handleDirectStateTe
-        </Button>
-        
-      
-        </Button>
-      
-        {testResults.length === 0 ? (
-
-            <div key={index} className="text-foregro
-            </div>
-        )}
-    </div>
-
-
-
-
-
-
-
-
-
-
-
 
   const clearResults = () => {
     setTestResults([]);
@@ -89,6 +83,9 @@ export function DirectLoginTest() {
         </Button>
         <Button onClick={handleDirectStateTest} variant="secondary" className="mr-2">
           Test Direct State
+        </Button>
+        <Button onClick={handleLogout} variant="outline" className="mr-2">
+          Test Logout
         </Button>
         <Button onClick={clearResults} variant="outline">
           Clear Results
@@ -108,3 +105,4 @@ export function DirectLoginTest() {
       </div>
     </div>
   );
+}
