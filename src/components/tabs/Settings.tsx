@@ -62,13 +62,9 @@ interface SyncStatus {
 
 interface ESIConfig {
   clientId: string;
-  clientSecret: string;
-  callbackUrl: string;
-  scopes: string[];
-  userAgent: string;
-  serverIp: string;
-  serverPort: number;
-  useSSL: boolean;
+  secretKey: string;
+  baseUrl: string;
+  userAgent?: string;
 }
 
 interface ESIOAuthState {
@@ -141,19 +137,9 @@ export function Settings({ activeTab, onTabChange }: SettingsProps) {
 
   const [esiConfigLocal, setESIConfigLocal] = useKV<any>('esi-config-legacy', {
     clientId: '',
-    clientSecret: '',
-    callbackUrl: 'http://localhost:3000/callback',
-    scopes: [
-      'esi-corporations.read_corporation_membership.v1',
-      'esi-industry.read_corporation_jobs.v1',
-      'esi-assets.read_corporation_assets.v1',
-      'esi-universe.read_structures.v1',
-      'esi-corporations.read_structures.v1'
-    ],
-    userAgent: 'LMeve Corporation Management Tool',
-    serverIp: '127.0.0.1',
-    serverPort: 3000,
-    useSSL: false
+    secretKey: '',
+    baseUrl: 'https://login.eveonline.com',
+    userAgent: 'LMeve Corporation Management Tool'
   });
 
   const [oauthState, setOAuthState] = useKV<ESIOAuthState>('esi-oauth', {
@@ -1327,7 +1313,7 @@ export function Settings({ activeTab, onTabChange }: SettingsProps) {
                     <Input
                       id="clientId"
                       value={esiConfig.clientId}
-                      onChange={(e) => updateESIConfig({ clientId: e.target.value })}
+                      onChange={(e) => updateESIConfig({ ...esiConfig, clientId: e.target.value })}
                       placeholder="Your EVE Online application Client ID"
                     />
                   </div>
@@ -1338,7 +1324,7 @@ export function Settings({ activeTab, onTabChange }: SettingsProps) {
                         id="clientSecret"
                         type={showSecrets ? "text" : "password"}
                         value={esiConfig.secretKey}
-                        onChange={(e) => updateESIConfig({ secretKey: e.target.value })}
+                        onChange={(e) => updateESIConfig({ ...esiConfig, secretKey: e.target.value })}
                         placeholder="Your EVE Online application Client Secret"
                       />
                       <Button
@@ -1818,9 +1804,9 @@ export function Settings({ activeTab, onTabChange }: SettingsProps) {
                   <Label>ESI Configuration Status</Label>
                   <div className="p-3 border border-border rounded bg-muted/50 font-mono text-sm">
                     <div>Client ID: {esiConfig.clientId ? 'Configured' : 'Not Set'}</div>
-                    <div>Secret: {esiConfig.clientSecret ? 'Configured' : 'Not Set'}</div>
-                    <div>Callback: {esiConfig.callbackUrl || 'Default'}</div>
-                    <div>Scopes: {esiConfig.scopes?.length || 0} configured</div>
+                    <div>Secret: {esiConfig.secretKey ? 'Configured' : 'Not Set'}</div>
+                    <div>Base URL: {esiConfig.baseUrl || 'https://login.eveonline.com'}</div>
+                    <div>User Agent: {esiConfig.userAgent || 'Not Set'}</div>
                   </div>
                 </div>
               </div>

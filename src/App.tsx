@@ -62,7 +62,9 @@ function App() {
     refreshUserToken, 
     isTokenExpired, 
     authTrigger,
-    loginWithCredentials
+    loginWithCredentials,
+    loginWithESI,
+    esiConfig
   } = useCorporationAuth();
   const [isESICallback, setIsESICallback] = useState(false);
   const [forceRender, setForceRender] = useState(0);
@@ -222,6 +224,25 @@ function App() {
       toast.error('Login failed. Please check your credentials.');
     } finally {
       setIsLoggingIn(false);
+    }
+  };
+
+  // Handle ESI SSO login
+  const handleESILogin = () => {
+    try {
+      if (!esiConfig.clientId) {
+        toast.error('ESI authentication is not configured. Please contact your administrator.');
+        return;
+      }
+      
+      console.log('🚀 Starting ESI SSO login');
+      const authUrl = loginWithESI();
+      
+      // Redirect to EVE Online SSO
+      window.location.href = authUrl;
+    } catch (error) {
+      console.error('❌ ESI login error:', error);
+      toast.error('Failed to initiate ESI login. Please try again.');
     }
   };
 
@@ -447,6 +468,33 @@ function App() {
                 </div>
               </form>
               
+              {/* Divider */}
+              <div className="relative my-6">
+                <div className="absolute inset-0 flex items-center">
+                  <div className="w-full border-t border-border"></div>
+                </div>
+                <div className="relative flex justify-center text-xs uppercase">
+                  <span className="bg-card px-2 text-muted-foreground">Or</span>
+                </div>
+              </div>
+              
+              {/* ESI SSO Login */}
+              <Button 
+                onClick={handleESILogin}
+                disabled={isLoggingIn || !esiConfig.clientId}
+                className="w-full bg-blue-600 hover:bg-blue-700 text-white"
+                size="lg"
+              >
+                <Rocket size={16} className="mr-2" />
+                Sign In with EVE Online
+              </Button>
+              
+              {!esiConfig.clientId && (
+                <p className="text-xs text-muted-foreground text-center mt-2">
+                  EVE SSO login requires ESI configuration by an administrator
+                </p>
+              )}
+              
               <div className="text-xs text-muted-foreground text-center mt-4">
                 Default admin: <strong>admin</strong> / <strong>12345</strong>
               </div>
@@ -498,14 +546,26 @@ function App() {
                   </>
                 ) : (
                   // Unauthenticated user section  
-                  <Button 
-                    onClick={() => setShowQuickLogin(true)}
-                    className="bg-accent hover:bg-accent/90 text-accent-foreground"
-                    size="sm"
-                  >
-                    <SignIn size={16} className="mr-2" />
-                    Sign In
-                  </Button>
+                  <div className="flex items-center gap-2">
+                    <Button 
+                      onClick={() => setShowQuickLogin(true)}
+                      variant="outline"
+                      size="sm"
+                    >
+                      <SignIn size={16} className="mr-2" />
+                      Local Sign In
+                    </Button>
+                    {esiConfig.clientId && (
+                      <Button 
+                        onClick={handleESILogin}
+                        className="bg-blue-600 hover:bg-blue-700 text-white"
+                        size="sm"
+                      >
+                        <Rocket size={16} className="mr-2" />
+                        EVE SSO
+                      </Button>
+                    )}
+                  </div>
                 )}
               </div>
             </div>
@@ -622,13 +682,24 @@ function App() {
                           LMeve is a comprehensive corporation management tool for EVE Online. 
                           Sign in to access your corporation's data and management features.
                         </p>
-                        <Button 
-                          onClick={() => setShowQuickLogin(true)}
-                          className="bg-accent hover:bg-accent/90 text-accent-foreground"
-                        >
-                          <SignIn size={16} className="mr-2" />
-                          Sign In to Continue
-                        </Button>
+                        <div className="flex flex-col sm:flex-row gap-3 justify-center">
+                          <Button 
+                            onClick={() => setShowQuickLogin(true)}
+                            variant="outline"
+                          >
+                            <SignIn size={16} className="mr-2" />
+                            Local Sign In
+                          </Button>
+                          {esiConfig.clientId && (
+                            <Button 
+                              onClick={handleESILogin}
+                              className="bg-blue-600 hover:bg-blue-700 text-white"
+                            >
+                              <Rocket size={16} className="mr-2" />
+                              Sign In with EVE Online
+                            </Button>
+                          )}
+                        </div>
                       </div>
                     </div>
                   ) : (
@@ -639,13 +710,24 @@ function App() {
                         <p className="text-muted-foreground">
                           You need to sign in to access this section.
                         </p>
-                        <Button 
-                          onClick={() => setShowQuickLogin(true)}
-                          className="bg-accent hover:bg-accent/90 text-accent-foreground"
-                        >
-                          <SignIn size={16} className="mr-2" />
-                          Sign In
-                        </Button>
+                        <div className="flex flex-col sm:flex-row gap-3 justify-center">
+                          <Button 
+                            onClick={() => setShowQuickLogin(true)}
+                            variant="outline"
+                          >
+                            <SignIn size={16} className="mr-2" />
+                            Local Sign In
+                          </Button>
+                          {esiConfig.clientId && (
+                            <Button 
+                              onClick={handleESILogin}
+                              className="bg-blue-600 hover:bg-blue-700 text-white"
+                            >
+                              <Rocket size={16} className="mr-2" />
+                              Sign In with EVE Online
+                            </Button>
+                          )}
+                        </div>
                       </div>
                     </div>
                   )
