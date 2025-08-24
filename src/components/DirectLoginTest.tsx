@@ -2,38 +2,38 @@ import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { useCorporationAuth } from '@/lib/corp-auth';
 
-export const DirectLoginTest: React.FC = () => {
+  const [testResults, setTestResults] = useState
   const [forceUpdate, setForceUpdate] = useState(0);
   const [testResults, setTestResults] = useState<string[]>([]);
   const { directLogin, logout } = useCorporationAuth();
 
-  const addResult = (message: string) => {
-    setTestResults(prev => [...prev, `${new Date().toLocaleTimeString()}: ${message}`]);
-  };
-
-  const handleDirectLogin = async () => {
-    try {
-      addResult('🧪 Starting direct login test...');
-      
-      const testUser = {
         characterId: 99999999,
-        characterName: 'Direct Test User',
         corporationId: 12345678,
-        corporationName: 'Test Corporation',
-        isDirector: false,
-        isCeo: false,
-        isAdmin: true,
-        authMethod: 'direct' as const,
-        canManageESI: true,
-        accessToken: 'test-token',
-        refreshToken: 'test-refresh',
-        tokenExpiry: Date.now() + (24 * 60 * 60 * 1000) // 24 hours
-      };
+    
 
-      await directLogin(testUser);
-      addResult('✅ Direct login completed');
+        canManageESI: true,
+        r
+      };
+      
+      
+        setForceUpdate(prev =>
+      
+      console.error('🧪 Direct t
+    }
+
+    try {
       
       setTimeout(() => {
+        addResult('🔄 Force
+      
+      console.error('🧪 Direct state 
+    }
+
+
+    addResult('✅ Logout completed'
+
+    se
+
         setForceUpdate(prev => prev + 1);
       }, 100);
       
@@ -76,11 +76,11 @@ export const DirectLoginTest: React.FC = () => {
       <div className="space-y-2 mb-4">
         <Button onClick={handleDirectLogin} className="mr-2">
           Test Login
-        </Button>
+
         <Button onClick={handleDirectStateTest} variant="secondary" className="mr-2">
-          Test Direct State
+
         </Button>
-        <Button onClick={handleLogout} variant="outline" className="mr-2">
+
           Test Logout
         </Button>
         <Button onClick={clearResults} variant="destructive" size="sm">
@@ -92,9 +92,9 @@ export const DirectLoginTest: React.FC = () => {
         {testResults.map((result, index) => (
           <div key={index} className="text-sm font-mono bg-muted p-2 rounded">
             {result}
-          </div>
+
         ))}
       </div>
     </div>
-  );
+
 };

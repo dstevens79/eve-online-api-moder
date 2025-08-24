@@ -224,6 +224,10 @@ function App() {
       setIsLoggingIn(false);
     }
   };
+
+  // Handle failed authentication
+  const handleLoginError = () => {
+    console.log('❌ Login error - clearing ESI callback state');
     setIsESICallback(false);
     
     // Clean up ESI-related session storage
