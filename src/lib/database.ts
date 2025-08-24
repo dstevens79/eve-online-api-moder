@@ -508,6 +508,8 @@ export class DatabaseManager {
     
     if (knownInvalidDatabases.includes(this.config.database.toLowerCase())) {
       return { valid: false, error: `Unknown database '${this.config.database}'` };
+    }
+    
     const testDbPatterns = [
     
       /^fake\d*$/i,
@@ -530,9 +532,6 @@ export class DatabaseManager {
       return { valid: false, error: `Database '${this.config.database}' contains test patterns and likely does not exist` };
     }
     
-    // Specific test scenarios that should fail
-    if (this.config.database === 'empty_db') {
-      return { valid: false, error: 'Database exists but appears to be empty. No tables found.' };
     // Specific test scenarios that should fail
     if (this.config.database === 'empty_db') {
       return { valid: false, error: 'Database exists but appears to be empty. No tables found.' };
@@ -580,44 +579,6 @@ export class DatabaseManager {
     // At this point, simulate successful database access
     // The database exists and is accessible with current credentials
     console.log(`✅ Database access validated for '${this.config.database}'`);
-    return { valid: true };
-  }
-
-    // Simulate MySQL privilege checking
-    // This would normally involve "SHOW GRANTS" or attempting specific operations
-    
-    // Test specific privilege scenarios that should fail
-    if (this.config.username === 'select_only') {
-      return { valid: false, error: 'User has SELECT privileges only. LMeve requires INSERT, UPDATE, DELETE privileges' };
-    }
-    
-    if (this.config.username === 'readonly_user') {
-      return { valid: false, error: 'User has read-only access. LMeve requires write permissions.' };
-    }
-    
-    if (this.config.username === 'no_create') {
-      return { valid: false, error: 'User lacks CREATE and ALTER privileges required for schema updates' };
-    }
-    
-    if (this.config.username === 'limited_user') {
-      return { valid: false, error: 'User has insufficient privileges for LMeve operations' };
-    }
-
-    // Simulate privilege validation by testing required operations
-    const requiredPrivileges = ['SELECT', 'INSERT', 'UPDATE', 'DELETE'];
-    const optionalPrivileges = ['CREATE', 'ALTER', 'INDEX', 'DROP'];
-    
-    // Check if user appears to have appropriate privilege level based on username patterns
-    const readOnlyPatterns = ['read', 'select', 'view', 'report'];
-    if (readOnlyPatterns.some(pattern => this.config.username.toLowerCase().includes(pattern))) {
-      return { 
-        valid: false, 
-        error: 'Username suggests read-only access. LMeve requires full database privileges.' 
-      };
-    }
-    return { valid: true };
-    // At this point, simulate successful privilege validation
-    // The user appears to have sufficient privileges for LMeve operations
     return { valid: true };
   }
 
