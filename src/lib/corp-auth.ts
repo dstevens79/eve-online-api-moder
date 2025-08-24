@@ -461,7 +461,7 @@ export function useCorporationAuth() {
   }, [user, isAuthenticated, authTrigger]);
 
   const loginWithCredentials = async (username: string, password: string): Promise<void> => {
-    console.log('🧪 Starting direct login test with', username + '/' + password);
+    console.log('🧪 Starting login with credentials:', username);
     console.log('🔍 Before login: user=' + (user ? user.characterName : 'null') + ', authenticated=' + isAuthenticated);
     
     setIsLoading(true);
@@ -469,23 +469,19 @@ export function useCorporationAuth() {
       const authUser = await authService.loginWithCredentials(username, password, adminConfig);
       console.log('🔍 Login service returned user:', authUser.characterName);
       
-      // Log the user object details before setting
-      console.log('🔍 About to set user object:', JSON.stringify(authUser, null, 2));
-      
       // Use functional update to ensure the state is set properly
-      setUser((currentUser) => {
-        console.log('🔍 setUser functional update - current:', currentUser?.characterName || 'null', 'new:', authUser.characterName);
-        console.log('🔍 Full user object being set:', authUser);
+      setUser(() => {
+        console.log('🔍 Setting user object:', authUser.characterName);
         return authUser;
       });
       
-      setAuthTrigger((prevTrigger) => {
-        const newTrigger = prevTrigger + 1;
-        console.log('🔍 Auth trigger updated from', prevTrigger, 'to', newTrigger);
+      // Trigger auth state change
+      setAuthTrigger(prev => {
+        const newTrigger = prev + 1;
+        console.log('🔍 Auth trigger updated from', prev, 'to', newTrigger);
         return newTrigger;
       });
       
-      console.log('🔍 After login call: should have updated state');
       console.log('✅ Login completed successfully');
       
     } catch (error) {

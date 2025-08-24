@@ -117,11 +117,13 @@ function App() {
       timestamp: Date.now()
     });
     
-    // Reset tab to dashboard when user logs out
-    if (!currentUser && activeTab !== 'dashboard') {
-      console.log('🔄 User logged out - resetting to dashboard tab');
-      setActiveTab('dashboard');
-      setSettingsExpanded(false);
+    // Reset tab to dashboard when user logs out or on any tab that requires auth
+    if (!currentUser) {
+      if (activeTab !== 'dashboard') {
+        console.log('🔄 User not authenticated - resetting to dashboard tab');
+        setActiveTab('dashboard');
+        setSettingsExpanded(false);
+      }
     }
   }, [currentUser, currentAuth, forceRender, authTrigger, activeTab]);
 
@@ -233,8 +235,8 @@ function App() {
     console.log('🔄 Tab change request:', value, 'Current user:', currentUser?.characterName || 'null');
     console.log('🔄 Tab change - Auth state:', { hasUser: !!currentUser, isAuthenticated: currentAuth, authTrigger });
     
-    // Restrict navigation when not authenticated
-    if (!currentUser) {
+    // Restrict navigation when not authenticated - except dashboard
+    if (!currentUser && value !== 'dashboard') {
       console.log('❌ Tab change blocked - user not authenticated');
       setShowLoginModal(true);
       return;
@@ -243,6 +245,11 @@ function App() {
     console.log('🔄 Allowing tab change to:', value);
     
     if (value === 'settings') {
+      // Only allow settings access if authenticated
+      if (!currentUser) {
+        setShowLoginModal(true);
+        return;
+      }
       setSettingsExpanded(!settingsExpanded);
       if (!settingsExpanded) {
         setActiveTab('settings' as TabType);
@@ -365,8 +372,8 @@ function App() {
               {tabs.map((tab) => {
                 const IconComponent = tab.icon;
                 const isActive = activeTab === tab.id;
-                const isDisabled = !currentUser;
-                console.log(`Rendering tab button: ${tab.id}, isActive: ${isActive}, hasUser: ${!!currentUser}, isDisabled: ${isDisabled}`);
+                // Only dashboard is accessible when not authenticated
+                const isDisabled = !currentUser && tab.id !== 'dashboard';
                 return (
                   <Button
                     key={tab.id}
@@ -456,24 +463,43 @@ function App() {
             <div className="h-full overflow-y-auto">
               <div className="container mx-auto px-6 py-6">
                 {!currentUser ? (
-                  // Show login prompt when not authenticated
-                  <div className="flex items-center justify-center h-full">
-                    <div className="text-center space-y-4 max-w-md">
-                      <Rocket size={48} className="mx-auto text-accent" />
-                      <h2 className="text-2xl font-bold">Welcome to LMeve</h2>
-                      <p className="text-muted-foreground">
-                        LMeve is a comprehensive corporation management tool for EVE Online. 
-                        Sign in to access your corporation's data and management features.
-                      </p>
-                      <Button 
-                        onClick={() => setShowLoginModal(true)}
-                        className="bg-accent hover:bg-accent/90 text-accent-foreground"
-                      >
-                        <SignIn size={16} className="mr-2" />
-                        Sign In to Continue
-                      </Button>
+                  // Always show dashboard with login prompt when not authenticated
+                  activeTab === 'dashboard' ? (
+                    <div className="flex items-center justify-center h-full">
+                      <div className="text-center space-y-4 max-w-md">
+                        <Rocket size={48} className="mx-auto text-accent" />
+                        <h2 className="text-2xl font-bold">Welcome to LMeve</h2>
+                        <p className="text-muted-foreground">
+                          LMeve is a comprehensive corporation management tool for EVE Online. 
+                          Sign in to access your corporation's data and management features.
+                        </p>
+                        <Button 
+                          onClick={() => setShowLoginModal(true)}
+                          className="bg-accent hover:bg-accent/90 text-accent-foreground"
+                        >
+                          <SignIn size={16} className="mr-2" />
+                          Sign In to Continue
+                        </Button>
+                      </div>
                     </div>
-                  </div>
+                  ) : (
+                    <div className="flex items-center justify-center h-full">
+                      <div className="text-center space-y-4 max-w-md">
+                        <Shield size={48} className="mx-auto text-muted-foreground" />
+                        <h2 className="text-xl font-semibold">Authentication Required</h2>
+                        <p className="text-muted-foreground">
+                          You need to sign in to access this section.
+                        </p>
+                        <Button 
+                          onClick={() => setShowLoginModal(true)}
+                          className="bg-accent hover:bg-accent/90 text-accent-foreground"
+                        >
+                          <SignIn size={16} className="mr-2" />
+                          Sign In
+                        </Button>
+                      </div>
+                    </div>
+                  )
                 ) : activeTab === 'settings' ? (
                   <Settings activeTab={activeSettingsTab} onTabChange={handleSettingsTabChange} />
                 ) : (
