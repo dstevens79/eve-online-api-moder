@@ -129,7 +129,7 @@ export class DatabaseManager {
       }
 
       // Step 2: Perform real network connectivity check - REAL implementation
-      await this.performRealNetworkCheck();
+      await this.performNetworkConnectivityCheck();
       
       // Step 3: Simulate MySQL authentication - REQUIRES VALID CREDENTIALS
       const authCheck = await this.simulateAuthenticationCheck();
@@ -200,10 +200,8 @@ export class DatabaseManager {
     return { valid: true };
   }
 
-  private async simulateNetworkCheck(): Promise<void> {
+  private async performNetworkConnectivityCheck(): Promise<void> {
     // Real network connectivity check - Allow any IP address and any port for virtual hosting scenarios
-    await new Promise(resolve => setTimeout(resolve, 500 + Math.random() * 1000));
-    
     console.log(`🌐 Testing network connectivity to ${this.config.host}:${this.config.port}`);
     
     // STEP 1: Validate hostname/IP format only - no restrictions on values

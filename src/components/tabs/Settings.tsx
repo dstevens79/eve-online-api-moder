@@ -273,6 +273,12 @@ export function Settings({ activeTab, onTabChange }: SettingsProps) {
 
   // REAL database connection test using the strict DatabaseManager
   const handleTestDbConnection = async () => {
+    // Prevent multiple concurrent tests
+    if (testingConnection) {
+      toast.warning('Database test already in progress...');
+      return;
+    }
+    
     console.log('🧪 Starting REAL database connection test');
     
     if (!settings.database) {
@@ -318,12 +324,19 @@ export function Settings({ activeTab, onTabChange }: SettingsProps) {
       
       // Intercept console.log to capture detailed validation steps
       const originalConsoleLog = console.log;
+      const interceptedMessages = new Set<string>(); // Prevent duplicate messages
+      
       console.log = (...args: any[]) => {
         const message = args.join(' ');
         if (message.includes('🔍') || message.includes('🌐') || message.includes('🔌') || 
             message.includes('🔐') || message.includes('🗄️') || message.includes('🔑') || 
             message.includes('✅') || message.includes('❌')) {
-          addConnectionLog(message);
+          
+          // Only add unique messages to prevent duplicates
+          if (!interceptedMessages.has(message)) {
+            interceptedMessages.add(message);
+            addConnectionLog(message);
+          }
         }
         originalConsoleLog(...args);
       };
@@ -1271,9 +1284,12 @@ export function Settings({ activeTab, onTabChange }: SettingsProps) {
                     <Button
                       variant="outline"
                       size="sm"
-                      onClick={handleTestDbConnection}
+                      onClick={() => {
+                        console.log('🧪 Test connection button clicked');
+                        handleTestDbConnection();
+                      }}
                       disabled={testingConnection}
-                      className="relative"
+                      className="relative hover:bg-accent/10 active:bg-accent/20 transition-colors"
                     >
                       {testingConnection ? (
                         <>
@@ -1426,12 +1442,15 @@ export function Settings({ activeTab, onTabChange }: SettingsProps) {
                           {connectionLogs.map((log, index) => (
                             <div 
                               key={index} 
-                              className={`${
-                                log.includes('❌') ? 'text-red-300' :
+                              className={`leading-relaxed ${
+                                log.includes('❌') || log.includes('💥') ? 'text-red-300' :
                                 log.includes('⚠️') ? 'text-yellow-300' :
-                                log.includes('✅') ? 'text-green-300' :
+                                log.includes('✅') || log.includes('🎉') ? 'text-green-300' :
                                 log.includes('🔍') || log.includes('🌐') || log.includes('🔌') || 
-                                log.includes('🔐') || log.includes('🗄️') || log.includes('🔑') ? 'text-blue-300' :
+                                log.includes('🔐') || log.includes('🗄️') || log.includes('🔑') || 
+                                log.includes('🎯') ? 'text-blue-300' :
+                                log.includes('⚡') ? 'text-purple-300' :
+                                log.includes('🏁') ? 'text-gray-400' :
                                 'text-foreground'
                               }`}
                             >
@@ -1443,7 +1462,10 @@ export function Settings({ activeTab, onTabChange }: SettingsProps) {
                     </div>
                     <div className="flex items-center gap-2 text-xs text-muted-foreground">
                       <Info size={12} />
-                      <span>Logs show the complete database connection validation process including network connectivity, authentication, and database structure checks.</span>
+                      <span>
+                        Logs show the complete database connection validation process including network connectivity, 
+                        authentication, and database structure checks.
+                      </span>
                     </div>
                   </div>
                 )}
@@ -2696,9 +2718,12 @@ export function Settings({ activeTab, onTabChange }: SettingsProps) {
                 Test database connectivity using the current configuration settings.
               </p>
               <Button
-                onClick={handleTestDbConnection}
+                onClick={() => {
+                  console.log('🧪 Debug test connection button clicked');
+                  handleTestDbConnection();
+                }}
                 disabled={testingConnection}
-                className="w-full"
+                className="w-full hover:bg-accent/10 active:bg-accent/20 transition-colors"
               >
                 {testingConnection ? (
                   <>
