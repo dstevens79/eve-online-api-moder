@@ -468,12 +468,19 @@ export function useCorporationAuth() {
     try {
       const authUser = await authService.loginWithCredentials(username, password, adminConfig);
       console.log('🔍 Login service returned user:', authUser.characterName);
+      console.log('🔍 Full auth user object:', JSON.stringify(authUser, null, 2));
       
-      // Use functional update to ensure the state is set properly
-      setUser(() => {
-        console.log('🔍 Setting user object:', authUser.characterName);
-        return authUser;
-      });
+      // Set user state directly - force update by creating new object
+      const userToSet = { ...authUser, timestamp: Date.now() };
+      console.log('🔍 Setting user object with timestamp:', userToSet);
+      
+      setUser(userToSet);
+      
+      // Add small delay to ensure state is updated
+      await new Promise(resolve => setTimeout(resolve, 100));
+      
+      // Verify the user was set
+      console.log('🔍 Checking if user state was updated...');
       
       // Trigger auth state change
       setAuthTrigger(prev => {
@@ -514,7 +521,13 @@ export function useCorporationAuth() {
       const storedState = JSON.parse(storedStateData) as ESIAuthState;
       const authUser = await authService.handleESICallback(code, state, storedState, registeredCorps);
 
-      setUser(authUser);
+      // Set user state directly with timestamp to force update
+      const userToSet = { ...authUser, timestamp: Date.now() };
+      setUser(userToSet);
+      
+      // Add small delay to ensure state is updated
+      await new Promise(resolve => setTimeout(resolve, 100));
+      
       setAuthTrigger(prev => prev + 1);
 
       // Clean up session storage

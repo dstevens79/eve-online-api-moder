@@ -58,7 +58,8 @@ function App() {
     logout, 
     refreshUserToken, 
     isTokenExpired, 
-    authTrigger 
+    authTrigger,
+    loginWithCredentials
   } = useCorporationAuth();
   const [isESICallback, setIsESICallback] = useState(false);
   const [forceRender, setForceRender] = useState(0);
@@ -94,14 +95,21 @@ function App() {
       
       // Clear test marker since login was successful
       sessionStorage.removeItem('login-test-run');
+      
+      // Close login modal if open
+      setShowLoginModal(false);
     } else {
       console.log('❌ No user object - should show login');
     }
   }, [currentUser]);
 
-  // Log auth trigger changes separately  
   React.useEffect(() => {
     console.log('🔄 Auth trigger changed:', authTrigger);
+    
+    // Force component re-render when auth state changes
+    if (authTrigger > 0) {
+      setForceRender(prev => prev + 1);
+    }
   }, [authTrigger]);
 
   // Simple, clear auth state logging
@@ -295,6 +303,34 @@ function App() {
               ) : (
                 <span className="text-red-400">❌ NOT AUTHENTICATED</span>
               )}
+            </div>
+            <div className="mt-2 space-y-1">
+              <Button 
+                size="sm" 
+                variant="outline" 
+                className="w-full text-xs py-1 h-6"
+                onClick={async () => {
+                  try {
+                    await loginWithCredentials('admin', '12345');
+                    console.log('🧪 Direct login test completed');
+                  } catch (error) {
+                    console.error('🧪 Direct login test failed:', error);
+                  }
+                }}
+              >
+                Test Login
+              </Button>
+              <Button 
+                size="sm" 
+                variant="outline" 
+                className="w-full text-xs py-1 h-6"
+                onClick={() => {
+                  console.log('🧪 Force logout test');
+                  currentLogout();
+                }}
+              >
+                Force Logout
+              </Button>
             </div>
           </div>
         )}

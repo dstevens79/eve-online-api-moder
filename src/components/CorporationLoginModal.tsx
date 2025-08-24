@@ -39,11 +39,21 @@ export function CorporationLoginModal({ open, onOpenChange }: CorporationLoginMo
     }
 
     try {
+      console.log('🔐 Submitting login form with:', username.trim());
       await loginWithCredentials(username.trim(), password.trim());
-      onOpenChange(false);
+      console.log('✅ Login successful - clearing form and closing modal');
+      
+      // Clear form
       setUsername('');
       setPassword('');
+      
+      // Close modal after a brief delay to ensure state updates
+      setTimeout(() => {
+        onOpenChange(false);
+      }, 250);
+      
     } catch (error) {
+      console.error('❌ Login form error:', error);
       setError(error instanceof Error ? error.message : 'Authentication failed');
     }
   };
@@ -147,7 +157,7 @@ export function CorporationLoginModal({ open, onOpenChange }: CorporationLoginMo
 
                 <Button
                   type="submit"
-                  disabled={isLoading}
+                  disabled={isLoading || !username.trim() || !password.trim()}
                   className="w-full"
                 >
                   {isLoading ? 'Signing in...' : 'Sign In'}
