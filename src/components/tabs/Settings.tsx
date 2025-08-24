@@ -43,7 +43,7 @@ import {
   UserCheck
 } from '@phosphor-icons/react';
 import { useKV } from '@github/spark/hooks';
-import { useAuth } from '@/lib/auth';
+import { useCorporationAuth } from '@/lib/corp-auth';
 import { CorpSettings } from '@/lib/types';
 import { toast } from 'sonner';
 import { eveApi, type CharacterInfo, type CorporationInfo } from '@/lib/eveApi';
@@ -86,7 +86,14 @@ interface SettingsProps {
 }
 
 export function Settings({ activeTab, onTabChange }: SettingsProps) {
-  const { user, adminConfig, updateAdminConfig } = useAuth();
+  const { 
+    user, 
+    updateAdminConfig, 
+    adminConfig, 
+    esiConfig, 
+    updateESIConfig, 
+    registeredCorps 
+  } = useCorporationAuth();
   const { sdeStatus, checkForUpdates, downloadSDE, updateDatabase, getDatabaseStats } = useSDEManager();
   const [settings, setSettings] = useKV<CorpSettings>('corp-settings', {
     corpName: user?.corporationName || 'Test Alliance Please Ignore',
@@ -131,7 +138,7 @@ export function Settings({ activeTab, onTabChange }: SettingsProps) {
     }
   });
 
-  const [esiConfig, setESIConfig] = useKV<ESIConfig>('esi-config', {
+  const [esiConfigLocal, setESIConfigLocal] = useKV<any>('esi-config-legacy', {
     clientId: '',
     clientSecret: '',
     callbackUrl: 'http://localhost:3000/callback',
@@ -1289,47 +1296,8 @@ export function Settings({ activeTab, onTabChange }: SettingsProps) {
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-6">
-              {/* Server Configuration */}
-              <div className="space-y-4">
-                <h4 className="font-medium">Server Configuration</h4>
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="serverIp">Server IP Address</Label>
-                    <Input
-                      id="serverIp"
-                      value={esiConfig.serverIp}
-                      onChange={(e) => setESIConfig(c => ({ ...c, serverIp: e.target.value }))}
-                      placeholder="127.0.0.1"
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="serverPort">Server Port</Label>
-                    <Input
-                      id="serverPort"
-                      type="number"
-                      value={esiConfig.serverPort}
-                      onChange={(e) => setESIConfig(c => ({ ...c, serverPort: parseInt(e.target.value) || 3000 }))}
-                      placeholder="3000"
-                    />
-                  </div>
-                </div>
-                
-                <div className="flex items-center justify-between">
-                  <div className="space-y-0.5">
-                    <Label>Use SSL/HTTPS</Label>
-                    <p className="text-sm text-muted-foreground">
-                      Enable HTTPS for secure connections
-                    </p>
-                  </div>
-                  <Switch
-                    checked={esiConfig.useSSL}
-                    onCheckedChange={(checked) => setESIConfig(c => ({ ...c, useSSL: checked }))}
-                  />
-                </div>
-              </div>
-
               {/* ESI Application Settings */}
-              <div className="border-t border-border pt-6 space-y-4">
+              <div className="space-y-4">
                 <div className="flex items-center justify-between">
                   <h4 className="font-medium">ESI Application</h4>
                   <Button
@@ -1346,9 +1314,9 @@ export function Settings({ activeTab, onTabChange }: SettingsProps) {
                   <p className="font-medium mb-2">Setup Instructions:</p>
                   <ol className="list-decimal list-inside space-y-1">
                     <li>Create an application at developers.eveonline.com</li>
-                    <li>Set the callback URL to match your server configuration</li>
+                    <li>Set the callback URL to: <code className="bg-background px-1 rounded">{window.location.origin}</code></li>
                     <li>Copy the Client ID and Client Secret below</li>
-                    <li>Save configuration and authorize ESI access</li>
+                    <li>Save configuration and test login</li>
                   </ol>
                 </div>
                 
@@ -1358,7 +1326,7 @@ export function Settings({ activeTab, onTabChange }: SettingsProps) {
                     <Input
                       id="clientId"
                       value={esiConfig.clientId}
-                      onChange={(e) => setESIConfig(c => ({ ...c, clientId: e.target.value }))}
+                      onChange={(e) => updateESIConfig({ clientId: e.target.value })}
                       placeholder="Your EVE Online application Client ID"
                     />
                   </div>
@@ -1368,8 +1336,8 @@ export function Settings({ activeTab, onTabChange }: SettingsProps) {
                       <Input
                         id="clientSecret"
                         type={showSecrets ? "text" : "password"}
-                        value={esiConfig.clientSecret}
-                        onChange={(e) => setESIConfig(c => ({ ...c, clientSecret: e.target.value }))}
+                        value={esiConfig.secretKey}
+                        onChange={(e) => updateESIConfig({ secretKey: e.target.value })}
                         placeholder="Your EVE Online application Client Secret"
                       />
                       <Button
@@ -1383,14 +1351,94 @@ export function Settings({ activeTab, onTabChange }: SettingsProps) {
                       </Button>
                     </div>
                   </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="callbackUrl">Callback URL</Label>
-                    <Input
-                      id="callbackUrl"
-                      value={esiConfig.callbackUrl}
-                      onChange={(e) => setESIConfig(c => ({ ...c, callbackUrl: e.target.value }))}
-                      placeholder="http://localhost:3000/callback"
-                    />
+                </div>
+              </div>
+
+              {/* Registered Corporations */}
+              <div className="border-t border-border pt-6 space-y-4">
+                <div className="flex items-center justify-between">
+                  <h4 className="font-medium">Registered Corporations</h4>
+                  <Badge variant="outline">
+                    {registeredCorps.filter(corp => corp.isActive).length} Active
+                  </Badge>
+                </div>
+                
+                {registeredCorps.length > 0 ? (
+                  <div className="space-y-3">
+                    {registeredCorps.map((corp) => (
+                      <div key={corp.corporationId} className="p-4 border border-border rounded-lg">
+                        <div className="flex items-center justify-between">
+                          <div>
+                            <h5 className="font-medium">{corp.corporationName}</h5>
+                            <p className="text-sm text-muted-foreground">
+                              Corp ID: {corp.corporationId} • Registered: {new Date(corp.registeredAt).toLocaleDateString()}
+                            </p>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <Badge variant={corp.isActive ? "default" : "secondary"}>
+                              {corp.isActive ? "Active" : "Inactive"}
+                            </Badge>
+                            {corp.keyExpiry && (
+                              <Badge variant="outline" className="text-xs">
+                                Expires: {new Date(corp.keyExpiry).toLocaleDateString()}
+                              </Badge>
+                            )}
+                          </div>
+                        </div>
+                        
+                        <div className="mt-3 text-xs text-muted-foreground">
+                          <p>Scopes: {corp.scopes.join(', ')}</p>
+                          <p>Registered by Character ID: {corp.registeredBy}</p>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="p-4 border border-dashed border-border rounded-lg text-center">
+                    <Building size={32} className="mx-auto mb-2 text-muted-foreground" />
+                    <p className="text-sm text-muted-foreground mb-2">No corporations registered</p>
+                    <p className="text-xs text-muted-foreground">
+                      CEOs and Directors can register their corporations by logging in with EVE Online SSO
+                    </p>
+                  </div>
+                )}
+              </div>
+
+              {/* Access Control */}
+              <div className="border-t border-border pt-6 space-y-4">
+                <h4 className="font-medium">Access Control</h4>
+                
+                <div className="p-3 bg-muted/50 rounded-lg text-sm text-muted-foreground">
+                  <p className="font-medium mb-2">Who can access LMeve:</p>
+                  <ul className="list-disc list-inside space-y-1">
+                    <li><strong>Corporation Members:</strong> Must be in a registered corporation</li>
+                    <li><strong>CEOs & Directors:</strong> Can log in to register their corporation</li>
+                    <li><strong>Local Admins:</strong> Can access with username/password</li>
+                  </ul>
+                </div>
+
+                <div className="grid grid-cols-2 gap-4 p-4 bg-muted/30 rounded-lg">
+                  <div className="text-center">
+                    <div className="text-2xl font-bold text-accent">
+                      {registeredCorps.reduce((sum, corp) => sum + (corp.isActive ? 1 : 0), 0)}
+                    </div>
+                    <div className="text-xs text-muted-foreground">Active Corps</div>
+                  </div>
+                  <div className="text-center">
+                    <div className="text-2xl font-bold text-accent">
+                      {esiConfig.clientId ? '✓' : '✗'}
+                    </div>
+                    <div className="text-xs text-muted-foreground">ESI Configured</div>
+                  </div>
+                </div>
+              </div>
+
+              <div className="border-t border-border pt-6">
+                <Button onClick={handleSaveSettings}>Save ESI Configuration</Button>
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="userAgent">User Agent</Label>

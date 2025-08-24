@@ -31,11 +31,9 @@ import { useKV } from '@github/spark/hooks';
 import { TabType } from '@/lib/types';
 import { DatabaseProvider } from '@/lib/DatabaseContext';
 import { LMeveDataProvider } from '@/lib/LMeveDataContext';
-import { useAuth, ESIAuthState } from '@/lib/auth';
-import { useSimpleAuth } from '@/lib/simple-auth';
-import { ESICallback } from '@/components/ESICallback';
-import { LoginModal } from '@/components/LoginModal';
-import { SimpleLoginModal } from '@/components/SimpleLoginModal';
+import { useCorporationAuth } from '@/lib/corp-auth';
+import { CorporationESICallback } from '@/components/CorporationESICallback';
+import { CorporationLoginModal } from '@/components/CorporationLoginModal';
 
 // Tab Components (will be implemented)
 import { Dashboard } from '@/components/tabs/Dashboard';
@@ -53,33 +51,43 @@ function App() {
   const [activeTab, setActiveTab] = useKV<TabType>('active-tab', 'dashboard');
   const [activeSettingsTab, setActiveSettingsTab] = useKV<string>('active-settings-tab', 'general');
   const [settingsExpanded, setSettingsExpanded] = useKV<boolean>('settings-expanded', false);
-  const { user, isAuthenticated, logout, refreshUserToken, isTokenExpired, adminConfig, updateAdminConfig, authTrigger, login } = useAuth();
-  const { user: simpleUser, isAuthenticated: simpleAuth, logout: simpleLogout } = useSimpleAuth();
+  const { 
+    user, 
+    isAuthenticated, 
+    logout, 
+    refreshUserToken, 
+    isTokenExpired, 
+    authTrigger 
+  } = useCorporationAuth();
   const [isESICallback, setIsESICallback] = useState(false);
   const [forceRender, setForceRender] = useState(0);
   const [showLoginModal, setShowLoginModal] = useState(false);
 
-  // Use simple auth for now - it actually works!
-  const currentUser = simpleUser;
-  const currentAuth = simpleAuth;
-  const currentLogout = simpleLogout;
+  // Use corporation auth system
+  const currentUser = user;
+  const currentAuth = isAuthenticated;
+  const currentLogout = logout;
 
   // Force re-render when user changes to ensure UI updates
   React.useEffect(() => {
     console.log('🔄 User state changed:', {
       hasUser: !!currentUser,
-      characterName: currentUser?.name,
+      characterName: currentUser?.characterName,
+      corporationName: currentUser?.corporationName,
       isAdmin: currentUser?.isAdmin,
+      authMethod: currentUser?.authMethod,
+      canManageESI: currentUser?.canManageESI,
       timestamp: Date.now()
     });
     
     if (currentUser) {
       console.log('✅ User object exists - should show main app');
       console.log('👤 User details:', {
-        id: currentUser.id,
-        name: currentUser.name,
-        corp: currentUser.corp,
-        isAdmin: currentUser.isAdmin
+        id: currentUser.characterId,
+        name: currentUser.characterName,
+        corp: currentUser.corporationName,
+        isAdmin: currentUser.isAdmin,
+        authMethod: currentUser.authMethod
       });
       setForceRender(prev => prev + 1);
       
@@ -99,7 +107,8 @@ function App() {
   React.useEffect(() => {
     console.log('🏠 App render state:', { 
       hasUser: !!currentUser,
-      characterName: currentUser?.name, 
+      characterName: currentUser?.characterName, 
+      corporationName: currentUser?.corporationName,
       isAuthenticated: currentAuth, 
       shouldShowApp: !!currentUser,
       forceRender,
@@ -178,7 +187,7 @@ function App() {
   // Show ESI callback handler if this is a callback
   if (isESICallback) {
     return (
-      <ESICallback 
+      <CorporationESICallback 
         onLoginSuccess={handleLoginSuccess}
         onLoginError={handleLoginError}
       />
@@ -213,7 +222,7 @@ function App() {
   ];
 
   const handleTabChange = (value: string) => {
-    console.log('🔄 Tab change request:', value, 'Current user:', currentUser?.name || 'null');
+    console.log('🔄 Tab change request:', value, 'Current user:', currentUser?.characterName || 'null');
     console.log('🔄 Tab change - Auth state:', { hasUser: !!currentUser, isAuthenticated: currentAuth, authTrigger });
     
     // Allow all navigation when authenticated
@@ -248,9 +257,12 @@ function App() {
         {process.env.NODE_ENV === 'development' && (
           <div className="fixed top-4 right-4 z-50 bg-card border border-border rounded p-3 text-xs font-mono max-w-sm">
             <div className="text-accent font-bold mb-2">DEBUG AUTH STATE</div>
-            <div>User: {currentUser?.name || 'null'}</div>
+            <div>User: {currentUser?.characterName || 'null'}</div>
+            <div>Corporation: {currentUser?.corporationName || 'null'}</div>
             <div>Has User Object: {currentUser ? 'true' : 'false'}</div>
             <div>Is Admin: {currentUser?.isAdmin ? 'true' : 'false'}</div>
+            <div>Auth Method: {currentUser?.authMethod || 'none'}</div>
+            <div>Can Manage ESI: {currentUser?.canManageESI ? 'true' : 'false'}</div>
             <div>Is Authenticated: {currentAuth ? 'true' : 'false'}</div>
             <div>Show Login Modal: {showLoginModal ? 'true' : 'false'}</div>
             <div>Active Tab: {activeTab}</div>
@@ -267,7 +279,7 @@ function App() {
         )}
         
         {/* Login Modal */}
-        <SimpleLoginModal 
+        <CorporationLoginModal 
           open={showLoginModal} 
           onOpenChange={setShowLoginModal}
         />
@@ -286,7 +298,7 @@ function App() {
                 </div>
                 {currentUser && (
                   <Badge variant="secondary" className="text-xs bg-accent/20 text-accent border-accent/30">
-                    {currentUser.corp || 'Unknown Corporation'}
+                    {currentUser.corporationName || 'Unknown Corporation'}
                   </Badge>
                 )}
               </div>
@@ -296,9 +308,12 @@ function App() {
                   // Authenticated user section
                   <>
                     <div className="text-right">
-                      <p className="text-sm font-medium">{currentUser.name}</p>
+                      <p className="text-sm font-medium">{currentUser.characterName}</p>
                       <p className="text-xs text-muted-foreground">
-                        {currentUser.isAdmin ? 'Local Admin' : 'Member'}
+                        {currentUser.isAdmin ? 'Local Admin' : 
+                         currentUser.isCeo ? 'CEO' : 
+                         currentUser.isDirector ? 'Director' : 'Member'}
+                        {currentUser.authMethod === 'esi' && ' • ESI'}
                       </p>
                     </div>
                     <Button 
