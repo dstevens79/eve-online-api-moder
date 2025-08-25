@@ -814,6 +814,20 @@ export function Settings({ activeTab, onTabChange }: SettingsProps) {
                 </div>
               </div>
 
+              <div className="border-t border-border pt-6 space-y-4">
+                <h4 className="font-medium">Security Settings</h4>
+                
+                <div className="flex items-center justify-between">
+                  <div className="space-y-0.5">
+                    <Label>Session Timeout</Label>
+                    <p className="text-sm text-muted-foreground">
+                      Automatically log out after 2 hours of inactivity
+                    </p>
+                  </div>
+                  <Switch defaultChecked />
+                </div>
+              </div>
+
               <div className="pt-4">
                 <Button onClick={handleSaveSettings}>Save Settings</Button>
               </div>
