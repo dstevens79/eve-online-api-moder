@@ -1,16 +1,11 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { EVEApiStatus } from '@/components/EVEApiStatus';
-import { LoginPrompt } from '@/components/LoginPrompt';
-import { SimpleAuthStatus } from '@/components/SimpleAuthStatus';
-import { DirectLoginTest } from '@/components/DirectLoginTest';
-import { AuthDebugPanel } from '@/components/AuthDebugPanel';
-import { SimpleKVTest } from '@/components/SimpleKVTest';
 
 import { useLMeveData } from '@/lib/LMeveDataContext';
 import { useCorporationAuth } from '@/lib/corp-auth';
+import { useDatabase } from '@/lib/DatabaseContext';
 import { 
   Users, 
   Package, 
@@ -23,7 +18,10 @@ import {
   MapPin,
   ArrowClockwise,
   Download,
-  UserCheck
+  Database,
+  Globe,
+  CheckCircle,
+  XCircle
 } from '@phosphor-icons/react';
 
 interface DashboardProps {
@@ -31,32 +29,58 @@ interface DashboardProps {
 }
 
 export function Dashboard({ onLoginClick }: DashboardProps) {
-  const { user, loginWithCredentials } = useCorporationAuth();
+  const { user } = useCorporationAuth();
   const { 
     dashboardStats, 
-    syncStatus, 
-    syncData, 
     refreshDashboard,
     loading 
   } = useLMeveData();
+  const { isConnected } = useDatabase();
+  
+  // System status state
+  const [systemStatus, setSystemStatus] = useState({
+    eveOnline: false,
+    database: false,
+    uptime: Date.now(),
+    overallStatus: 'offline' as 'online' | 'offline'
+  });
 
-  // Simple direct test function
-  const testDirectLogin = async () => {
-    console.log('🧪 Direct test button clicked');
+  // Check EVE Online status
+  const checkEVEStatus = async () => {
     try {
-      console.log('🔍 About to call loginWithCredentials');
-      await loginWithCredentials('admin', '12345');
-      console.log('✅ Test login completed - checking state in 100ms');
-      
-      // Check state after a short delay
-      setTimeout(() => {
-        console.log('🔍 State check after 100ms');
-        window.location.reload(); // Force a reload to see if state persists
-      }, 100);
+      const response = await fetch('https://esi.evetech.net/status');
+      setSystemStatus(prev => ({ 
+        ...prev, 
+        eveOnline: response.ok 
+      }));
     } catch (error) {
-      console.error('❌ Test login failed:', error);
+      setSystemStatus(prev => ({ 
+        ...prev, 
+        eveOnline: false 
+      }));
     }
   };
+
+  // Update overall status based on components
+  useEffect(() => {
+    const overall = systemStatus.eveOnline && systemStatus.database ? 'online' : 'offline';
+    setSystemStatus(prev => ({ ...prev, overallStatus: overall }));
+  }, [systemStatus.eveOnline, systemStatus.database]);
+
+  // Update database status from context
+  useEffect(() => {
+    setSystemStatus(prev => ({ 
+      ...prev, 
+      database: isConnected 
+    }));
+  }, [isConnected]);
+
+  // Check EVE status on mount
+  useEffect(() => {
+    checkEVEStatus();
+    const interval = setInterval(checkEVEStatus, 60000); // Check every minute
+    return () => clearInterval(interval);
+  }, []);
 
   // Load dashboard data on component mount
   useEffect(() => {
@@ -87,6 +111,17 @@ export function Dashboard({ onLoginClick }: DashboardProps) {
     return `${amount} ISK`;
   };
 
+  const formatUptime = (startTime: number): string => {
+    const uptimeMs = Date.now() - startTime;
+    const days = Math.floor(uptimeMs / (24 * 60 * 60 * 1000));
+    const hours = Math.floor((uptimeMs % (24 * 60 * 60 * 1000)) / (60 * 60 * 1000));
+    const minutes = Math.floor((uptimeMs % (60 * 60 * 1000)) / (60 * 1000));
+    
+    if (days > 0) return `${days}d ${hours}h ${minutes}m`;
+    if (hours > 0) return `${hours}h ${minutes}m`;
+    return `${minutes}m`;
+  };
+
   const getActivityIcon = (type: string) => {
     switch (type) {
       case 'manufacturing': return <Factory size={16} className="text-blue-400" />;
@@ -110,25 +145,7 @@ export function Dashboard({ onLoginClick }: DashboardProps) {
           </p>
         </div>
         
-        <div className="flex items-center gap-3">
-          {process.env.NODE_ENV === 'development' && (
-            <Button
-              onClick={testDirectLogin}
-              variant="secondary"
-              size="sm"
-              className="bg-purple-600 hover:bg-purple-700 text-white"
-            >
-              <UserCheck size={16} className="mr-2" />
-              Test Admin Login
-            </Button>
-          )}
-          
-          {syncStatus.lastSync && (
-            <p className="text-xs text-muted-foreground">
-              Last sync: {new Date(syncStatus.lastSync).toLocaleTimeString()}
-            </p>
-          )}
-          
+        <div className="flex items-center gap-3">          
           <Button
             onClick={refreshDashboard}
             variant="outline"
@@ -136,55 +153,10 @@ export function Dashboard({ onLoginClick }: DashboardProps) {
             disabled={loading.members || loading.assets}
           >
             <ArrowClockwise size={16} className={`mr-2 ${loading.members || loading.assets ? 'animate-spin' : ''}`} />
-            Refresh
-          </Button>
-          
-          <Button
-            onClick={syncData}
-            disabled={syncStatus.isRunning}
-            size="sm"
-            className="bg-accent hover:bg-accent/90"
-          >
-            {syncStatus.isRunning ? (
-              <ArrowClockwise size={16} className="mr-2 animate-spin" />
-            ) : (
-              <Download size={16} className="mr-2" />
-            )}
-            {syncStatus.isRunning ? 'Syncing...' : 'Sync All Data'}
+            Refresh Data
           </Button>
         </div>
       </div>
-
-      {/* Sync Progress */}
-      {syncStatus.isRunning && (
-        <Card className="border-accent/50 bg-accent/10">
-          <CardContent className="pt-6">
-            <div className="space-y-2">
-              <div className="flex justify-between text-sm">
-                <span>{syncStatus.stage}</span>
-                <span>{Math.round(syncStatus.progress)}%</span>
-              </div>
-              <div className="w-full bg-muted rounded-full h-2">
-                <div 
-                  className="bg-accent h-2 rounded-full transition-all duration-300" 
-                  style={{ width: `${syncStatus.progress}%` }}
-                />
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-      )}
-
-      {/* Sync Error */}
-      {syncStatus.error && (
-        <Card className="border-destructive/50 bg-destructive/10">
-          <CardContent className="pt-6">
-            <p className="text-sm text-destructive">
-              Sync failed: {syncStatus.error}
-            </p>
-          </CardContent>
-        </Card>
-      )}
 
       {/* Key Metrics */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
@@ -313,50 +285,83 @@ export function Dashboard({ onLoginClick }: DashboardProps) {
           </Card>
         </div>
 
-        {/* EVE Online Status */}
+        {/* System Status */}
         <div>
-          <EVEApiStatus />
+          <Card className="bg-card border-border">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Globe size={20} />
+                System Status
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              {/* Overall Status */}
+              <div className="flex items-center justify-between p-3 rounded-lg bg-muted/30">
+                <span className="font-medium">Overall Status</span>
+                <div className="flex items-center gap-2">
+                  {systemStatus.overallStatus === 'online' ? (
+                    <CheckCircle size={16} className="text-green-400" />
+                  ) : (
+                    <XCircle size={16} className="text-red-400" />
+                  )}
+                  <Badge 
+                    variant={systemStatus.overallStatus === 'online' ? 'default' : 'destructive'}
+                    className={systemStatus.overallStatus === 'online' ? 'bg-green-500' : ''}
+                  >
+                    {systemStatus.overallStatus.toUpperCase()}
+                  </Badge>
+                </div>
+              </div>
+
+              {/* EVE Online Status */}
+              <div className="flex items-center justify-between">
+                <span className="text-sm">EVE Online</span>
+                <div className="flex items-center gap-2">
+                  {systemStatus.eveOnline ? (
+                    <CheckCircle size={14} className="text-green-400" />
+                  ) : (
+                    <XCircle size={14} className="text-red-400" />
+                  )}
+                  <span className={`text-xs font-medium ${
+                    systemStatus.eveOnline ? 'text-green-400' : 'text-red-400'
+                  }`}>
+                    {systemStatus.eveOnline ? 'ONLINE' : 'OFFLINE'}
+                  </span>
+                </div>
+              </div>
+
+              {/* Database Status */}
+              <div className="flex items-center justify-between">
+                <span className="text-sm">Database</span>
+                <div className="flex items-center gap-2">
+                  {systemStatus.database ? (
+                    <CheckCircle size={14} className="text-green-400" />
+                  ) : (
+                    <XCircle size={14} className="text-red-400" />
+                  )}
+                  <span className={`text-xs font-medium ${
+                    systemStatus.database ? 'text-green-400' : 'text-red-400'
+                  }`}>
+                    {systemStatus.database ? 'CONNECTED' : 'DISCONNECTED'}
+                  </span>
+                </div>
+              </div>
+
+              {/* Uptime */}
+              <div className="flex items-center justify-between">
+                <span className="text-sm">Uptime</span>
+                <div className="flex items-center gap-2">
+                  <Clock size={14} className="text-muted-foreground" />
+                  <span className="text-xs font-medium text-muted-foreground">
+                    {formatUptime(systemStatus.uptime)}
+                  </span>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
         </div>
       </div>
 
-      {/* Quick Actions */}
-      <Card className="bg-card border-border">
-        <CardHeader>
-          <CardTitle>Quick Actions</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-            <Button variant="outline" className="h-auto flex-col gap-2 p-4">
-              <Users size={20} />
-              <span className="text-xs">Recruit Members</span>
-            </Button>
-            <Button variant="outline" className="h-auto flex-col gap-2 p-4">
-              <Factory size={20} />
-              <span className="text-xs">Start Production</span>
-            </Button>
-            <Button variant="outline" className="h-auto flex-col gap-2 p-4">
-              <HardHat size={20} />
-              <span className="text-xs">Plan Mining Op</span>
-            </Button>
-            <Button variant="outline" className="h-auto flex-col gap-2 p-4">
-              <Package size={20} />
-              <span className="text-xs">Asset Audit</span>
-            </Button>
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* Simple corporation status display */}
-      <SimpleAuthStatus />
-
-      {/* Direct Login Test for debugging */}
-      {process.env.NODE_ENV === 'development' && (
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          <DirectLoginTest />
-          <AuthDebugPanel />
-          <SimpleKVTest />
-        </div>
-      )}
     </div>
   );
 }
