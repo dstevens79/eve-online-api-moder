@@ -693,31 +693,7 @@ export function Settings({ activeTab, onTabChange }: SettingsProps) {
     console.log('Table info loading not implemented yet');
   };
 
-  const updateDatabaseConfig = (field: keyof CorpSettings['database'], value: any) => {
-    setSettings(current => {
-      if (!current) return current;
-      return {
-        ...current,
-        database: {
-          ...current.database,
-          [field]: value
-        }
-      };
-    });
-  };
 
-  const updateSudoDatabaseConfig = (field: keyof CorpSettings['sudoDatabase'], value: any) => {
-    setSettings(current => {
-      if (!current) return current;
-      return {
-        ...current,
-        sudoDatabase: {
-          ...current.sudoDatabase,
-          [field]: value
-        }
-      };
-    });
-  };
 
   // Database setup handlers
   const handleRunDatabaseSetup = async () => {
