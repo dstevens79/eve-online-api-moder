@@ -8,7 +8,9 @@
 import { useKV } from '@github/spark/hooks';
 
 export interface GeneralSettings {
-  sessionTimeout: number;
+  corpId: number;
+  sessionTimeout: boolean;
+  sessionTimeoutMinutes: number;
   maxLogRetentionDays: number;
   theme: 'dark' | 'light' | 'system';
   language: string;
@@ -202,7 +204,9 @@ export interface ApplicationData {
 
 // Default values for all settings
 export const defaultGeneralSettings: GeneralSettings = {
-  sessionTimeout: 3600, // 1 hour
+  corpId: 0,
+  sessionTimeout: true,
+  sessionTimeoutMinutes: 60,
   maxLogRetentionDays: 30,
   theme: 'dark',
   language: 'en',

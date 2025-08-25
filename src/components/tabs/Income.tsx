@@ -143,7 +143,7 @@ export function Income({ onLoginClick }: TabComponentProps) {
 
     // Filter by pilot
     if (selectedPilot !== 'all') {
-      filtered = filtered.filter(record => record.pilotId.toString() === selectedPilot);
+      filtered = filtered.filter(record => record.pilotId?.toString() === selectedPilot);
     }
 
     // Filter by job type
@@ -316,7 +316,7 @@ export function Income({ onLoginClick }: TabComponentProps) {
                 <SelectContent>
                   <SelectItem value="all">All Pilots</SelectItem>
                   {uniquePilots.map((pilot) => (
-                    <SelectItem key={pilot.id} value={pilot.id.toString()}>
+                    <SelectItem key={pilot.id} value={pilot.id?.toString() || '0'}>
                       {pilot.name}
                     </SelectItem>
                   ))}
@@ -626,7 +626,7 @@ export function Income({ onLoginClick }: TabComponentProps) {
                       </label>
                       <Input
                         type="number"
-                        value={rate.toString()}
+                        value={rate?.toString() || '0'}
                         onChange={(e) => {
                           const newRate = parseInt(e.target.value) || 0;
                           setIncomeSettings(prev => ({
@@ -654,7 +654,7 @@ export function Income({ onLoginClick }: TabComponentProps) {
                     <Input
                       type="number"
                       step="0.1"
-                      value={incomeSettings.bonusRates.weekendMultiplier.toString()}
+                      value={incomeSettings.bonusRates?.weekendMultiplier?.toString() || '1.0'}
                       onChange={(e) => {
                         const value = parseFloat(e.target.value) || 1.0;
                         setIncomeSettings(prev => ({
@@ -670,7 +670,7 @@ export function Income({ onLoginClick }: TabComponentProps) {
                     <Input
                       type="number"
                       step="0.1"
-                      value={incomeSettings.bonusRates.nightShiftMultiplier.toString()}
+                      value={incomeSettings.bonusRates?.nightShiftMultiplier?.toString() || '1.0'}
                       onChange={(e) => {
                         const value = parseFloat(e.target.value) || 1.0;
                         setIncomeSettings(prev => ({
@@ -686,7 +686,7 @@ export function Income({ onLoginClick }: TabComponentProps) {
                     <Input
                       type="number"
                       step="0.1"
-                      value={incomeSettings.bonusRates.holidayMultiplier.toString()}
+                      value={incomeSettings.bonusRates?.holidayMultiplier?.toString() || '1.0'}
                       onChange={(e) => {
                         const value = parseFloat(e.target.value) || 1.0;
                         setIncomeSettings(prev => ({
@@ -751,7 +751,7 @@ export function Income({ onLoginClick }: TabComponentProps) {
                     <label className="text-sm font-medium">Minimum Payout (ISK)</label>
                     <Input
                       type="number"
-                      value={incomeSettings.paymentSettings.minimumPayout.toString()}
+                      value={incomeSettings.paymentSettings?.minimumPayout?.toString() || '0'}
                       onChange={(e) => {
                         const value = parseInt(e.target.value) || 0;
                         setIncomeSettings(prev => ({
@@ -773,7 +773,7 @@ export function Income({ onLoginClick }: TabComponentProps) {
                       step="0.01"
                       min="0"
                       max="1"
-                      value={(incomeSettings.paymentSettings.taxRate * 100).toString()}
+                      value={((incomeSettings.paymentSettings?.taxRate || 0) * 100).toString()}
                       onChange={(e) => {
                         const value = (parseFloat(e.target.value) || 0) / 100;
                         setIncomeSettings(prev => ({

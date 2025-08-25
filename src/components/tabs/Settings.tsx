@@ -1136,7 +1136,7 @@ export function Settings({ activeTab, onTabChange }: SettingsProps) {
                   <Input
                     id="corpId"
                     type="number"
-                    value={generalSettings.corpId.toString()}
+                    value={generalSettings.corpId?.toString() || '0'}
                     onChange={(e) => updateGeneralSetting('corpId', parseInt(e.target.value) || 0)}
                     placeholder="98000001"
                   />
@@ -1191,7 +1191,7 @@ export function Settings({ activeTab, onTabChange }: SettingsProps) {
                     <Input
                       id="sessionTimeoutMinutes"
                       type="number"
-                      value={generalSettings.sessionTimeoutMinutes.toString()}
+                      value={generalSettings.sessionTimeoutMinutes?.toString() || '30'}
                       onChange={(e) => updateGeneralSetting('sessionTimeoutMinutes', parseInt(e.target.value) || 30)}
                       min="5"
                       max="480"
@@ -1254,7 +1254,7 @@ export function Settings({ activeTab, onTabChange }: SettingsProps) {
                     <Input
                       id="maxLogRetentionDays"
                       type="number"
-                      value={generalSettings.maxLogRetentionDays.toString()}
+                      value={generalSettings.maxLogRetentionDays?.toString() || '30'}
                       onChange={(e) => updateGeneralSetting('maxLogRetentionDays', parseInt(e.target.value) || 30)}
                       min="1"
                       max="365"
