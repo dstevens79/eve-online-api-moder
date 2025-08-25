@@ -804,7 +804,7 @@ export function Settings({ activeTab, onTabChange }: SettingsProps) {
             <TabsTrigger value="database">Database</TabsTrigger>
             <TabsTrigger value="eve">EVE Online</TabsTrigger>
             <TabsTrigger value="sde">EVE SDE</TabsTrigger>
-            <TabsTrigger value="esi">ESI Config</TabsTrigger>
+            <TabsTrigger value="esi">Corporations</TabsTrigger>
             <TabsTrigger value="sync">Data Sync</TabsTrigger>
             <TabsTrigger value="notifications">Notifications</TabsTrigger>
             <TabsTrigger value="security">Security</TabsTrigger>
@@ -1725,71 +1725,13 @@ export function Settings({ activeTab, onTabChange }: SettingsProps) {
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
-                <Key size={20} />
-                ESI Configuration
+                <Building size={20} />
+                Corporations
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-6">
-              {/* ESI Application Settings */}
-              <div className="space-y-4">
-                <div className="flex items-center justify-between">
-                  <h4 className="font-medium">ESI Application</h4>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => window.open('https://developers.eveonline.com/applications', '_blank')}
-                  >
-                    <Globe size={16} className="mr-2" />
-                    Manage Apps
-                  </Button>
-                </div>
-                
-                <div className="p-3 bg-muted/50 rounded-lg text-sm text-muted-foreground">
-                  <p className="font-medium mb-2">Setup Instructions:</p>
-                  <ol className="list-decimal list-inside space-y-1">
-                    <li>Create an application at developers.eveonline.com</li>
-                    <li>Set the callback URL to: <code className="bg-background px-1 rounded">{window.location.origin}</code></li>
-                    <li>Copy the Client ID and Client Secret below</li>
-                    <li>Save configuration and test login</li>
-                  </ol>
-                </div>
-                
-                <div className="grid grid-cols-1 gap-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="clientId">Client ID</Label>
-                    <Input
-                      id="clientId"
-                      value={esiConfig.clientId}
-                      onChange={(e) => updateESIConfig({ ...esiConfig, clientId: e.target.value })}
-                      placeholder="Your EVE Online application Client ID"
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="clientSecret">Client Secret</Label>
-                    <div className="relative">
-                      <Input
-                        id="clientSecret"
-                        type={showSecrets ? "text" : "password"}
-                        value={esiConfig.secretKey}
-                        onChange={(e) => updateESIConfig({ ...esiConfig, secretKey: e.target.value })}
-                        placeholder="Your EVE Online application Client Secret"
-                      />
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        size="sm"
-                        className="absolute right-0 top-0 h-full px-3"
-                        onClick={() => setShowSecrets(!showSecrets)}
-                      >
-                        {showSecrets ? <EyeSlash size={16} /> : <Eye size={16} />}
-                      </Button>
-                    </div>
-                  </div>
-                </div>
-              </div>
-
               {/* Registered Corporations */}
-              <div className="border-t border-border pt-6 space-y-4">
+              <div className="space-y-4">
                 <div className="flex items-center justify-between">
                   <h4 className="font-medium">Registered Corporations</h4>
                   <Badge variant="outline">
@@ -1838,37 +1780,19 @@ export function Settings({ activeTab, onTabChange }: SettingsProps) {
                 )}
               </div>
 
-              {/* Access Control */}
-              <div className="border-t border-border pt-6 space-y-4">
-                <h4 className="font-medium">Access Control</h4>
-                
-                <div className="p-3 bg-muted/50 rounded-lg text-sm text-muted-foreground">
-                  <p className="font-medium mb-2">Who can access LMeve:</p>
-                  <ul className="list-disc list-inside space-y-1">
-                    <li><strong>Corporation Members:</strong> Must be in a registered corporation</li>
-                    <li><strong>CEOs & Directors:</strong> Can log in to register their corporation</li>
-                    <li><strong>Local Admins:</strong> Can access with username/password</li>
-                  </ul>
-                </div>
-
-                <div className="grid grid-cols-2 gap-4 p-4 bg-muted/30 rounded-lg">
-                  <div className="text-center">
-                    <div className="text-2xl font-bold text-accent">
-                      {registeredCorps.reduce((sum, corp) => sum + (corp.isActive ? 1 : 0), 0)}
-                    </div>
-                    <div className="text-xs text-muted-foreground">Active Corps</div>
+              <div className="grid grid-cols-2 gap-4 p-4 bg-muted/30 rounded-lg">
+                <div className="text-center">
+                  <div className="text-2xl font-bold text-accent">
+                    {registeredCorps.reduce((sum, corp) => sum + (corp.isActive ? 1 : 0), 0)}
                   </div>
-                  <div className="text-center">
-                    <div className="text-2xl font-bold text-accent">
-                      {esiConfig.clientId ? '✓' : '✗'}
-                    </div>
-                    <div className="text-xs text-muted-foreground">ESI Configured</div>
-                  </div>
+                  <div className="text-xs text-muted-foreground">Active Corps</div>
                 </div>
-              </div>
-
-              <div className="border-t border-border pt-6">
-                <Button onClick={handleSaveSettings}>Save ESI Configuration</Button>
+                <div className="text-center">
+                  <div className="text-2xl font-bold text-accent">
+                    {esiConfig.clientId ? '✓' : '✗'}
+                  </div>
+                  <div className="text-xs text-muted-foreground">ESI Configured</div>
+                </div>
               </div>
             </CardContent>
           </Card>
