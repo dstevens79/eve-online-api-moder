@@ -189,8 +189,10 @@ export interface IncomeAnalytics {
 export interface CorpSettings {
   corpName: string;
   corpTicker: string;
+  corpId?: number;
   timezone: string;
-  currency: string;
+  language: string;
+  sessionTimeout: boolean;
   notifications: {
     manufacturing: boolean;
     mining: boolean;
@@ -222,15 +224,16 @@ export interface CorpSettings {
     password: string;
     ssl: boolean;
     connectionPoolSize: number;
-    connectionTimeout: number;
     queryTimeout: number;
+    autoReconnect: boolean;
+    charset: string;
   };
-  incomeRates: {
-    manufacturing: number;
-    mining: number;
-    research: number;
-    invention: number;
-    reactions: number;
+  sudoDatabase: {
+    host: string;
+    port: number;
+    username: string;
+    password: string;
+    ssl: boolean;
   };
 }
 

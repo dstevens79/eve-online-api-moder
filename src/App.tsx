@@ -289,12 +289,11 @@ function App() {
   const settingsTabs = [
     { id: 'general', label: 'General', icon: Globe },
     { id: 'database', label: 'Database', icon: Database },
-    { id: 'eve', label: 'EVE Online', icon: Rocket },
     { id: 'sde', label: 'EVE SDE', icon: Archive },
     { id: 'esi', label: 'ESI Config', icon: Key },
     { id: 'sync', label: 'Data Sync', icon: Clock },
     { id: 'notifications', label: 'Notifications', icon: Bell },
-    { id: 'security', label: 'Security', icon: Shield },
+    { id: 'users', label: 'Users', icon: Users },
     { id: 'debug', label: 'Debug', icon: UserCheck },
   ];
 

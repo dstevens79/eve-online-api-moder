@@ -97,6 +97,7 @@ export function Settings({ activeTab, onTabChange }: SettingsProps) {
     corpId: user?.corporationId || 498125261,
     timezone: 'UTC',
     language: 'en',
+    sessionTimeout: true,
     notifications: {
       manufacturing: true,
       mining: true,
@@ -131,6 +132,13 @@ export function Settings({ activeTab, onTabChange }: SettingsProps) {
       queryTimeout: 30,
       autoReconnect: true,
       charset: 'utf8mb4'
+    },
+    sudoDatabase: {
+      host: 'localhost',
+      port: 3306,
+      username: 'root',
+      password: '',
+      ssl: false
     }
   });
 
@@ -249,6 +257,26 @@ export function Settings({ activeTab, onTabChange }: SettingsProps) {
   
   // Admin configuration state
   const [tempAdminConfig, setTempAdminConfig] = useState(adminConfig);
+
+  // Manual users management state
+  const [manualUsers, setManualUsers] = useKV<Array<{
+    id: string;
+    username: string; 
+    characterName: string;
+    corporationName: string;
+    roles: string[];
+    createdAt: string;
+    lastLogin?: string;
+    isActive: boolean;
+  }>>('manual-users', []);
+  const [showAddUser, setShowAddUser] = useState(false);
+  const [newUser, setNewUser] = useState({
+    username: '',
+    password: '',
+    characterName: '',
+    corporationName: '',
+    roles: [] as string[],
+  });
 
   // Ensure safe access to settings
   const eveOnlineSync = settings?.eveOnlineSync || {
@@ -398,6 +426,19 @@ export function Settings({ activeTab, onTabChange }: SettingsProps) {
         ...current,
         database: {
           ...current.database,
+          [field]: value
+        }
+      };
+    });
+  };
+
+  const updateSudoDatabaseConfig = (field: keyof CorpSettings['sudoDatabase'], value: any) => {
+    setSettings(current => {
+      if (!current) return current;
+      return {
+        ...current,
+        sudoDatabase: {
+          ...current.sudoDatabase,
           [field]: value
         }
       };
@@ -761,12 +802,12 @@ export function Settings({ activeTab, onTabChange }: SettingsProps) {
           <TabsList>
             <TabsTrigger value="general">General</TabsTrigger>
             <TabsTrigger value="database">Database</TabsTrigger>
-            <TabsTrigger value="eve">EVE Online</TabsTrigger>
             <TabsTrigger value="sde">EVE SDE</TabsTrigger>
             <TabsTrigger value="esi">ESI Config</TabsTrigger>
             <TabsTrigger value="sync">Data Sync</TabsTrigger>
             <TabsTrigger value="notifications">Notifications</TabsTrigger>
-            <TabsTrigger value="security">Security</TabsTrigger>
+            <TabsTrigger value="users">Users</TabsTrigger>
+            <TabsTrigger value="debug">Debug</TabsTrigger>
           </TabsList>
         </div>
 
@@ -815,7 +856,7 @@ export function Settings({ activeTab, onTabChange }: SettingsProps) {
               </div>
 
               <div className="border-t border-border pt-6 space-y-4">
-                <h4 className="font-medium">Security Settings</h4>
+                <h4 className="font-medium">Application Settings</h4>
                 
                 <div className="flex items-center justify-between">
                   <div className="space-y-0.5">
@@ -824,7 +865,10 @@ export function Settings({ activeTab, onTabChange }: SettingsProps) {
                       Automatically log out after 2 hours of inactivity
                     </p>
                   </div>
-                  <Switch defaultChecked />
+                  <Switch 
+                    checked={settings.sessionTimeout}
+                    onCheckedChange={(checked) => setSettings(s => ({ ...s, sessionTimeout: checked }))}
+                  />
                 </div>
               </div>
 
@@ -852,10 +896,129 @@ export function Settings({ activeTab, onTabChange }: SettingsProps) {
                 </p>
               </div>
 
-              {/* Connection Settings */}
+              {/* ESI Configuration */}
               <div className="border border-border rounded-lg p-4">
                 <div className="flex items-center justify-between mb-4">
-                  <h4 className="font-medium">Connection Settings</h4>
+                  <h4 className="font-medium">ESI Application Credentials</h4>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => window.open('https://developers.eveonline.com/applications', '_blank')}
+                  >
+                    <Globe size={16} className="mr-2" />
+                    Manage Apps
+                  </Button>
+                </div>
+                
+                <div className="space-y-4">
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="clientId">EVE Online Client ID</Label>
+                      <Input
+                        id="clientId"
+                        value={esiConfig.clientId}
+                        onChange={(e) => updateESIConfig({ ...esiConfig, clientId: e.target.value })}
+                        placeholder="Your EVE Online application Client ID"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="clientSecret">EVE Online Client Secret</Label>
+                      <div className="relative">
+                        <Input
+                          id="clientSecret"
+                          type={showSecrets ? "text" : "password"}
+                          value={esiConfig.secretKey}
+                          onChange={(e) => updateESIConfig({ ...esiConfig, secretKey: e.target.value })}
+                          placeholder="Your EVE Online application Client Secret"
+                        />
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          className="absolute right-0 top-0 h-full px-3"
+                          onClick={() => setShowSecrets(!showSecrets)}
+                        >
+                          {showSecrets ? <EyeSlash size={16} /> : <Eye size={16} />}
+                        </Button>
+                      </div>
+                    </div>
+                  </div>
+                  <p className="text-xs text-muted-foreground">
+                    Create an application at developers.eveonline.com with callback URL: <code className="bg-background px-1 rounded">{window.location.origin}</code>
+                  </p>
+                </div>
+              </div>
+
+              {/* Sudo Database Connection */}
+              <div className="border border-border rounded-lg p-4">
+                <div className="flex items-center justify-between mb-4">
+                  <h4 className="font-medium">Sudo Database User (Administrative)</h4>
+                  <Badge variant="outline" className="text-xs">Root/Admin Access</Badge>
+                </div>
+                
+                <div className="space-y-4">
+                  <div className="grid grid-cols-3 gap-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="sudoHost">Host</Label>
+                      <Input
+                        id="sudoHost"
+                        value={settings.sudoDatabase?.host || ''}
+                        onChange={(e) => updateSudoDatabaseConfig('host', e.target.value)}
+                        placeholder="localhost"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="sudoPort">Port</Label>
+                      <Input
+                        id="sudoPort"
+                        type="number"
+                        value={settings.sudoDatabase?.port || ''}
+                        onChange={(e) => updateSudoDatabaseConfig('port', parseInt(e.target.value) || 3306)}
+                        placeholder="3306"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="sudoUsername">Username</Label>
+                      <Input
+                        id="sudoUsername"
+                        value={settings.sudoDatabase?.username || ''}
+                        onChange={(e) => updateSudoDatabaseConfig('username', e.target.value)}
+                        placeholder="root"
+                      />
+                    </div>
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="sudoPassword">Password</Label>
+                    <div className="relative">
+                      <Input
+                        id="sudoPassword"
+                        type={showDbPassword ? "text" : "password"}
+                        value={settings.sudoDatabase?.password || ''}
+                        onChange={(e) => updateSudoDatabaseConfig('password', e.target.value)}
+                        placeholder="Root/admin database password"
+                      />
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        className="absolute right-0 top-0 h-full px-3"
+                        onClick={() => setShowDbPassword(!showDbPassword)}
+                      >
+                        {showDbPassword ? <EyeSlash size={16} /> : <Eye size={16} />}
+                      </Button>
+                    </div>
+                  </div>
+                  <p className="text-xs text-muted-foreground">
+                    Used for database creation, schema setup, and administrative tasks. Typically 'root' user.
+                  </p>
+                </div>
+              </div>
+
+              {/* LMeve Database Connection */}
+              <div className="border border-border rounded-lg p-4">
+                <div className="flex items-center justify-between mb-4">
+                  <h4 className="font-medium">LMeve Database User (Application)</h4>
+                  <Badge variant="outline" className="text-xs">Application Access</Badge>
                 </div>
                 
                 <div className="space-y-4">
@@ -908,7 +1071,7 @@ export function Settings({ activeTab, onTabChange }: SettingsProps) {
                           type={showDbPassword ? "text" : "password"}
                           value={settings.database?.password || ''}
                           onChange={(e) => updateDatabaseConfig('password', e.target.value)}
-                          placeholder="Database password"
+                          placeholder="Application database password"
                         />
                         <Button
                           type="button"
@@ -922,53 +1085,56 @@ export function Settings({ activeTab, onTabChange }: SettingsProps) {
                       </div>
                     </div>
                   </div>
-
-                  <div className="flex gap-2 pt-2">
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => {
-                        console.log('🧪 Test connection button clicked');
-                        handleTestDbConnection();
-                      }}
-                      disabled={testingConnection}
-                      className="relative hover:bg-accent/10 active:bg-accent/20 transition-colors"
-                    >
-                      {testingConnection ? (
-                        <>
-                          <ArrowClockwise size={16} className="mr-2 animate-spin" />
-                          Testing...
-                        </>
-                      ) : (
-                        <>
-                          <Play size={16} className="mr-2" />
-                          Test Connection
-                        </>
-                      )}
-                    </Button>
-                    
-                    {dbStatus.connected ? (
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={handleDisconnectDb}
-                        className="border-red-500/50 text-red-400 hover:bg-red-500/10"
-                      >
-                        <Stop size={16} className="mr-2" />
-                        Disconnect
-                      </Button>
-                    ) : (
-                      <Button
-                        size="sm"
-                        onClick={handleConnectDb}
-                        className="bg-accent hover:bg-accent/90"
-                      >
-                        <Play size={16} className="mr-2" />
-                        Connect
-                      </Button>
-                    )}
-                  </div>
+                  <p className="text-xs text-muted-foreground">
+                    Used for day-to-day application operations. Should have limited privileges for security.
+                  </p>
                 </div>
+              </div>
+
+              <div className="flex gap-2 pt-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => {
+                    console.log('🧪 Test connection button clicked');
+                    handleTestDbConnection();
+                  }}
+                  disabled={testingConnection}
+                  className="relative hover:bg-accent/10 active:bg-accent/20 transition-colors"
+                >
+                  {testingConnection ? (
+                    <>
+                      <ArrowClockwise size={16} className="mr-2 animate-spin" />
+                      Testing...
+                    </>
+                  ) : (
+                    <>
+                      <Play size={16} className="mr-2" />
+                      Test Connection
+                    </>
+                  )}
+                </Button>
+                
+                {dbStatus.connected ? (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={handleDisconnectDb}
+                    className="border-red-500/50 text-red-400 hover:bg-red-500/10"
+                  >
+                    <Stop size={16} className="mr-2" />
+                    Disconnect
+                  </Button>
+                ) : (
+                  <Button
+                    size="sm"
+                    onClick={handleConnectDb}
+                    className="bg-accent hover:bg-accent/90"
+                  >
+                    <Play size={16} className="mr-2" />
+                    Connect
+                  </Button>
+                )}
               </div>
 
               {/* Connection Status */}
@@ -1214,194 +1380,6 @@ export function Settings({ activeTab, onTabChange }: SettingsProps) {
               <div className="border-t border-border pt-6">
                 <Button onClick={handleSaveSettings}>Save Database Configuration</Button>
               </div>
-            </CardContent>
-          </Card>
-        </TabsContent>
-
-        <TabsContent value="eve" className="space-y-6">
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Rocket size={20} />
-                EVE Online Integration
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-6">
-              <div className="flex items-center justify-between">
-                <div className="space-y-0.5">
-                  <Label>Enable EVE Online Sync</Label>
-                  <p className="text-sm text-muted-foreground">
-                    Connect to EVE Online ESI API for real-time data
-                  </p>
-                </div>
-                <Switch
-                  checked={eveOnlineSync.enabled}
-                  onCheckedChange={handleToggleEVESync}
-                />
-              </div>
-
-              {eveOnlineSync.enabled && (
-                <>
-                  <div className="border-t border-border pt-6 space-y-4">
-                    <h4 className="font-medium">Corporation Information</h4>
-                    
-                    {corpInfo ? (
-                      <div className="p-4 border border-border rounded-lg space-y-3">
-                        <div className="flex items-center justify-between">
-                          <div>
-                            <h5 className="font-medium">{corpInfo.name} [{corpInfo.ticker}]</h5>
-                            <p className="text-sm text-muted-foreground">
-                              {corpInfo.member_count} members • {corpInfo.tax_rate * 100}% tax rate
-                            </p>
-                            {corpInfo.date_founded && (
-                              <p className="text-xs text-muted-foreground">
-                                Founded: {new Date(corpInfo.date_founded).toLocaleDateString()}
-                              </p>
-                            )}
-                          </div>
-                          <Badge variant="outline" className="text-green-400 border-green-500/50">
-                            <CheckCircle size={14} className="mr-1" />
-                            Connected
-                          </Badge>
-                        </div>
-                        {corpInfo.description && (
-                          <p className="text-sm text-muted-foreground border-t border-border pt-3">
-                            {corpInfo.description}
-                          </p>
-                        )}
-                      </div>
-                    ) : (
-                      <div className="p-4 border border-border rounded-lg">
-                        <p className="text-sm text-muted-foreground">
-                          No corporation data available. Check your configuration or sync data.
-                        </p>
-                      </div>
-                    )}
-                  </div>
-
-                  <div className="border-t border-border pt-6 space-y-4">
-                    <h4 className="font-medium">Data Synchronization</h4>
-                    
-                    <div className="grid grid-cols-2 gap-4">
-                      <div className="space-y-2">
-                        <Label htmlFor="corpId">Corporation ID</Label>
-                        <Input
-                          id="corpId"
-                          type="number"
-                          value={eveOnlineSync.corporationId || ''}
-                          onChange={(e) => setSettings(s => ({
-                            ...s,
-                            eveOnlineSync: {
-                              ...s.eveOnlineSync,
-                              corporationId: parseInt(e.target.value) || undefined
-                            }
-                          }))}
-                          placeholder="e.g., 498125261"
-                        />
-                      </div>
-                      <div className="space-y-2">
-                        <Label htmlFor="charId">Character ID (optional)</Label>
-                        <Input
-                          id="charId"
-                          type="number"
-                          value={eveOnlineSync.characterId || ''}
-                          onChange={(e) => setSettings(s => ({
-                            ...s,
-                            eveOnlineSync: {
-                              ...s.eveOnlineSync,
-                              characterId: parseInt(e.target.value) || undefined
-                            }
-                          }))}
-                          placeholder="e.g., 91316135"
-                        />
-                      </div>
-                    </div>
-
-                    <div className="flex items-center justify-between">
-                      <div className="space-y-0.5">
-                        <Label>Auto-sync Data</Label>
-                        <p className="text-sm text-muted-foreground">
-                          Automatically sync data every {eveOnlineSync.syncInterval} minutes
-                        </p>
-                      </div>
-                      <Switch
-                        checked={eveOnlineSync.autoSync}
-                        onCheckedChange={handleToggleAutoSync}
-                      />
-                    </div>
-
-                    {eveOnlineSync.autoSync && (
-                      <div className="space-y-2">
-                        <Label htmlFor="syncInterval">Sync Interval (minutes)</Label>
-                        <Input
-                          id="syncInterval"
-                          type="number"
-                          min="5"
-                          max="1440"
-                          value={eveOnlineSync.syncInterval}
-                          onChange={(e) => setSettings(s => ({
-                            ...s,
-                            eveOnlineSync: {
-                              ...s.eveOnlineSync,
-                              syncInterval: parseInt(e.target.value) || 30
-                            }
-                          }))}
-                        />
-                      </div>
-                    )}
-
-                    <div className="space-y-4">
-                      <div className="flex items-center justify-between">
-                        <div>
-                          <p className="text-sm font-medium">Last Sync</p>
-                          <p className="text-xs text-muted-foreground">
-                            {eveOnlineSync.lastSync 
-                              ? new Date(eveOnlineSync.lastSync).toLocaleString()
-                              : 'Never'
-                            }
-                          </p>
-                        </div>
-                        <Button 
-                          onClick={handleSyncData} 
-                          disabled={syncStatus.isRunning}
-                          size="sm"
-                        >
-                          {syncStatus.isRunning ? (
-                            <ArrowClockwise size={16} className="mr-2 animate-spin" />
-                          ) : (
-                            <Download size={16} className="mr-2" />
-                          )}
-                          {syncStatus.isRunning ? 'Syncing...' : 'Sync Now'}
-                        </Button>
-                      </div>
-
-                      {syncStatus.isRunning && (
-                        <div className="space-y-2">
-                          <div className="flex justify-between text-sm">
-                            <span>{syncStatus.stage}</span>
-                            <span>{Math.round(syncStatus.progress)}%</span>
-                          </div>
-                          <Progress value={syncStatus.progress} className="h-2" />
-                        </div>
-                      )}
-
-                      {syncStatus.error && (
-                        <div className="p-3 border border-red-500/20 bg-red-500/10 rounded-lg">
-                          <div className="flex items-center gap-2 text-red-400">
-                            <Warning size={16} />
-                            <span className="text-sm font-medium">Sync Error</span>
-                          </div>
-                          <p className="text-xs text-red-300 mt-1">{syncStatus.error}</p>
-                        </div>
-                      )}
-                    </div>
-                  </div>
-
-                  <div className="border-t border-border pt-6">
-                    <Button onClick={handleSaveSettings}>Save EVE Online Settings</Button>
-                  </div>
-                </>
-              )}
             </CardContent>
           </Card>
         </TabsContent>
@@ -1945,66 +1923,16 @@ export function Settings({ activeTab, onTabChange }: SettingsProps) {
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-6">
-              {/* ESI Application Settings */}
-              <div className="space-y-4">
-                <div className="flex items-center justify-between">
-                  <h4 className="font-medium">ESI Application</h4>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => window.open('https://developers.eveonline.com/applications', '_blank')}
-                  >
-                    <Globe size={16} className="mr-2" />
-                    Manage Apps
-                  </Button>
-                </div>
-                
-                <div className="p-3 bg-muted/50 rounded-lg text-sm text-muted-foreground">
-                  <p className="font-medium mb-2">Setup Instructions:</p>
-                  <ol className="list-decimal list-inside space-y-1">
-                    <li>Create an application at developers.eveonline.com</li>
-                    <li>Set the callback URL to: <code className="bg-background px-1 rounded">{window.location.origin}</code></li>
-                    <li>Copy the Client ID and Client Secret below</li>
-                    <li>Save configuration and test login</li>
-                  </ol>
-                </div>
-                
-                <div className="grid grid-cols-1 gap-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="clientId">Client ID</Label>
-                    <Input
-                      id="clientId"
-                      value={esiConfig.clientId}
-                      onChange={(e) => updateESIConfig({ ...esiConfig, clientId: e.target.value })}
-                      placeholder="Your EVE Online application Client ID"
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="clientSecret">Client Secret</Label>
-                    <div className="relative">
-                      <Input
-                        id="clientSecret"
-                        type={showSecrets ? "text" : "password"}
-                        value={esiConfig.secretKey}
-                        onChange={(e) => updateESIConfig({ ...esiConfig, secretKey: e.target.value })}
-                        placeholder="Your EVE Online application Client Secret"
-                      />
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        size="sm"
-                        className="absolute right-0 top-0 h-full px-3"
-                        onClick={() => setShowSecrets(!showSecrets)}
-                      >
-                        {showSecrets ? <EyeSlash size={16} /> : <Eye size={16} />}
-                      </Button>
-                    </div>
-                  </div>
-                </div>
+              <div className="p-3 bg-muted/50 rounded-lg text-sm text-muted-foreground">
+                <p className="font-medium mb-2">EVE ESI Integration Status:</p>
+                <p>
+                  ESI credentials are now configured in the Database tab. This section shows registered 
+                  corporations and access control settings.
+                </p>
               </div>
 
               {/* Registered Corporations */}
-              <div className="border-t border-border pt-6 space-y-4">
+              <div className="space-y-4">
                 <div className="flex items-center justify-between">
                   <h4 className="font-medium">Registered Corporations</h4>
                   <Badge variant="outline">
@@ -2298,15 +2226,90 @@ export function Settings({ activeTab, onTabChange }: SettingsProps) {
           </Card>
         </TabsContent>
 
-        <TabsContent value="security" className="space-y-6">
+        <TabsContent value="users" className="space-y-6">
           <Card>
             <CardHeader>
-              <CardTitle>Security Settings</CardTitle>
+              <CardTitle className="flex items-center gap-2">
+                <Users size={20} />
+                User Management
+              </CardTitle>
             </CardHeader>
-            <CardContent className="space-y-4">
+            <CardContent className="space-y-6">
+              <div className="p-3 bg-muted/50 rounded-lg text-sm text-muted-foreground">
+                <p className="font-medium mb-2">Manual User Accounts:</p>
+                <p>
+                  Create and manage local user accounts that can access LMeve without ESI authentication.
+                  These accounts are useful for service accounts, external tools, or users without EVE Online access.
+                </p>
+              </div>
+
+              {/* Add User Button */}
+              <div className="flex items-center justify-between">
+                <h4 className="font-medium">Manual Users</h4>
+                <Button 
+                  onClick={() => setShowAddUser(true)}
+                  className="bg-accent hover:bg-accent/90"
+                >
+                  <Users size={16} className="mr-2" />
+                  Add User
+                </Button>
+              </div>
+
+              {/* Users List */}
+              {manualUsers.length > 0 ? (
+                <div className="space-y-3">
+                  {manualUsers.map((user) => (
+                    <div key={user.id} className="p-4 border border-border rounded-lg">
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <h5 className="font-medium">{user.characterName}</h5>
+                          <p className="text-sm text-muted-foreground">
+                            Username: {user.username} • Corp: {user.corporationName}
+                          </p>
+                          <p className="text-xs text-muted-foreground">
+                            Created: {new Date(user.createdAt).toLocaleDateString()}
+                            {user.lastLogin && ` • Last login: ${new Date(user.lastLogin).toLocaleDateString()}`}
+                          </p>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <Badge variant={user.isActive ? "default" : "secondary"}>
+                            {user.isActive ? "Active" : "Inactive"}
+                          </Badge>
+                          <div className="flex gap-1">
+                            {user.roles.map(role => (
+                              <Badge key={role} variant="outline" className="text-xs">
+                                {role}
+                              </Badge>
+                            ))}
+                          </div>
+                          <Button
+                            variant="outline" 
+                            size="sm"
+                            onClick={() => {
+                              setManualUsers(users => users.filter(u => u.id !== user.id));
+                              toast.success('User removed');
+                            }}
+                          >
+                            <X size={14} />
+                          </Button>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="p-8 border border-dashed border-border rounded-lg text-center">
+                  <Users size={32} className="mx-auto mb-3 text-muted-foreground" />
+                  <p className="text-sm text-muted-foreground mb-2">No manual users created</p>
+                  <p className="text-xs text-muted-foreground">
+                    Click "Add User" to create a local account
+                  </p>
+                </div>
+              )}
+
               {/* Admin Configuration - Only show to admins */}
               {user?.isAdmin && (
-                <div className="space-y-4">
+                <div className="border-t border-border pt-6">
                   <div className="p-4 border border-accent/20 bg-accent/5 rounded-lg space-y-4">
                     <div className="flex items-center gap-2">
                       <UserCheck size={16} className="text-accent" />
@@ -2347,45 +2350,128 @@ export function Settings({ activeTab, onTabChange }: SettingsProps) {
                       </Badge>
                     </div>
                   </div>
-                  
-                  <div className="border-t border-border pt-4"></div>
                 </div>
               )}
 
-              <div className="space-y-4">
-                <div className="p-4 border border-border rounded-lg space-y-2">
-                  <div className="flex items-center gap-2">
-                    <Clock size={16} />
-                    <span className="font-medium">Session Timeout</span>
+              {/* Add User Modal */}
+              {showAddUser && (
+                <div className="fixed inset-0 bg-background/80 backdrop-blur-sm z-50 flex items-center justify-center">
+                  <div className="bg-card border border-border rounded-lg p-6 w-full max-w-md mx-4 shadow-lg">
+                    <div className="flex items-center justify-between mb-4">
+                      <h3 className="text-lg font-semibold">Add Manual User</h3>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => {
+                          setShowAddUser(false);
+                          setNewUser({
+                            username: '',
+                            password: '',
+                            characterName: '',
+                            corporationName: '',
+                            roles: [],
+                          });
+                        }}
+                      >
+                        <X size={16} />
+                      </Button>
+                    </div>
+
+                    <div className="space-y-4">
+                      <div className="space-y-2">
+                        <Label htmlFor="newUsername">Username</Label>
+                        <Input
+                          id="newUsername"
+                          value={newUser.username}
+                          onChange={(e) => setNewUser(u => ({ ...u, username: e.target.value }))}
+                          placeholder="Login username"
+                        />
+                      </div>
+                      
+                      <div className="space-y-2">
+                        <Label htmlFor="newPassword">Password</Label>
+                        <Input
+                          id="newPassword"
+                          type="password"
+                          value={newUser.password}
+                          onChange={(e) => setNewUser(u => ({ ...u, password: e.target.value }))}
+                          placeholder="User password"
+                        />
+                      </div>
+                      
+                      <div className="space-y-2">
+                        <Label htmlFor="newCharacterName">Character Name</Label>
+                        <Input
+                          id="newCharacterName"
+                          value={newUser.characterName}
+                          onChange={(e) => setNewUser(u => ({ ...u, characterName: e.target.value }))}
+                          placeholder="Display name"
+                        />
+                      </div>
+                      
+                      <div className="space-y-2">
+                        <Label htmlFor="newCorporationName">Corporation Name</Label>
+                        <Input
+                          id="newCorporationName"
+                          value={newUser.corporationName}
+                          onChange={(e) => setNewUser(u => ({ ...u, corporationName: e.target.value }))}
+                          placeholder="Corporation or organization"
+                        />
+                      </div>
+                    </div>
+
+                    <div className="flex gap-3 pt-6">
+                      <Button
+                        onClick={() => {
+                          setShowAddUser(false);
+                          setNewUser({
+                            username: '',
+                            password: '',
+                            characterName: '',
+                            corporationName: '',
+                            roles: [],
+                          });
+                        }}
+                        variant="outline"
+                        className="flex-1"
+                      >
+                        Cancel
+                      </Button>
+                      <Button
+                        onClick={() => {
+                          if (!newUser.username || !newUser.password || !newUser.characterName) {
+                            toast.error('Please fill in all required fields');
+                            return;
+                          }
+                          
+                          const userToAdd = {
+                            id: Math.random().toString(36).substring(2),
+                            ...newUser,
+                            roles: ['member'],
+                            createdAt: new Date().toISOString(),
+                            isActive: true
+                          };
+                          
+                          setManualUsers(users => [...users, userToAdd]);
+                          setShowAddUser(false);
+                          setNewUser({
+                            username: '',
+                            password: '',
+                            characterName: '',
+                            corporationName: '',
+                            roles: [],
+                          });
+                          toast.success('User added successfully');
+                        }}
+                        disabled={!newUser.username || !newUser.password || !newUser.characterName}
+                        className="flex-1 bg-accent hover:bg-accent/90"
+                      >
+                        Add User
+                      </Button>
+                    </div>
                   </div>
-                  <p className="text-sm text-muted-foreground">
-                    Automatically log out after 2 hours of inactivity
-                  </p>
-                  <Switch defaultChecked />
                 </div>
-                
-                <div className="p-4 border border-border rounded-lg space-y-2">
-                  <div className="flex items-center gap-2">
-                    <Users size={16} />
-                    <span className="font-medium">Role-Based Access</span>
-                  </div>
-                  <p className="text-sm text-muted-foreground">
-                    Restrict access to sensitive data based on user roles
-                  </p>
-                  <Switch defaultChecked />
-                </div>
-                
-                <div className="p-4 border border-border rounded-lg space-y-2">
-                  <div className="flex items-center gap-2">
-                    <Database size={16} />
-                    <span className="font-medium">Data Encryption</span>
-                  </div>
-                  <p className="text-sm text-muted-foreground">
-                    Encrypt sensitive corporation data at rest
-                  </p>
-                  <Switch defaultChecked />
-                </div>
-              </div>
+              )}
             </CardContent>
           </Card>
         </TabsContent>
