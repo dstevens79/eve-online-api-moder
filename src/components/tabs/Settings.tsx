@@ -196,6 +196,7 @@ export function Settings({ activeTab, onTabChange }: SettingsProps) {
   
   // UI state management for modals and forms
   const [showDbPassword, setShowDbPassword] = useState(false);
+  const [showSudoPassword, setShowSudoPassword] = useState(false);
   const [testingConnection, setTestingConnection] = useState(false);
   const [connectionLogs, setConnectionLogs] = useState<string[]>([]);
   const [showConnectionLogs, setShowConnectionLogs] = useState(true);
@@ -1000,53 +1001,119 @@ export function Settings({ activeTab, onTabChange }: SettingsProps) {
                 </div>
               </div>
 
-              {/* Sudo Database Connection */}
-              <div className="border border-border rounded-lg p-4">
+              {/* Database Connection Settings */}
+              <div className="border border-border rounded-lg p-4 mb-4">
+                <h4 className="font-medium mb-4">Database Connection</h4>
+                
+                <div className="grid grid-cols-3 gap-4 mb-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="dbHost">Host</Label>
+                    <Input
+                      id="dbHost"
+                      value={settings.database?.host || ''}
+                      onChange={(e) => {
+                        updateDatabaseConfig('host', e.target.value);
+                        updateSudoDatabaseConfig('host', e.target.value);
+                      }}
+                      placeholder="localhost"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="dbPort">Port</Label>
+                    <Input
+                      id="dbPort"
+                      type="number"
+                      value={settings.database?.port || ''}
+                      onChange={(e) => {
+                        const port = parseInt(e.target.value) || 3306;
+                        updateDatabaseConfig('port', port);
+                        updateSudoDatabaseConfig('port', port);
+                      }}
+                      placeholder="3306"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="dbName">Database Name</Label>
+                    <Input
+                      id="dbName"
+                      value={settings.database?.database || ''}
+                      onChange={(e) => updateDatabaseConfig('database', e.target.value)}
+                      placeholder="lmeve"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* Sudo Database User */}
+              <div className="border border-border rounded-lg p-4 mb-4">
                 <div className="flex items-center justify-between mb-4">
                   <h4 className="font-medium">Sudo Database User (Administrative)</h4>
                   <Badge variant="outline" className="text-xs">Root/Admin Access</Badge>
                 </div>
                 
-                <div className="space-y-4">
-                  <div className="grid grid-cols-3 gap-4">
-                    <div className="space-y-2">
-                      <Label htmlFor="sudoHost">Host</Label>
-                      <Input
-                        id="sudoHost"
-                        value={settings.sudoDatabase?.host || ''}
-                        onChange={(e) => updateSudoDatabaseConfig('host', e.target.value)}
-                        placeholder="localhost"
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="sudoPort">Port</Label>
-                      <Input
-                        id="sudoPort"
-                        type="number"
-                        value={settings.sudoDatabase?.port || ''}
-                        onChange={(e) => updateSudoDatabaseConfig('port', parseInt(e.target.value) || 3306)}
-                        placeholder="3306"
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="sudoUsername">Username</Label>
-                      <Input
-                        id="sudoUsername"
-                        value={settings.sudoDatabase?.username || ''}
-                        onChange={(e) => updateSudoDatabaseConfig('username', e.target.value)}
-                        placeholder="root"
-                      />
-                    </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="sudoUsername">Username</Label>
+                    <Input
+                      id="sudoUsername"
+                      value={settings.sudoDatabase?.username || ''}
+                      onChange={(e) => updateSudoDatabaseConfig('username', e.target.value)}
+                      placeholder="root"
+                    />
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="sudoPassword">Password</Label>
                     <div className="relative">
                       <Input
                         id="sudoPassword"
-                        type={showDbPassword ? "text" : "password"}
+                        type={showSudoPassword ? "text" : "password"}
                         value={settings.sudoDatabase?.password || ''}
                         onChange={(e) => updateSudoDatabaseConfig('password', e.target.value)}
                         placeholder="Root/admin database password"
+                      />
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        className="absolute right-0 top-0 h-full px-3"
+                        onClick={() => setShowSudoPassword(!showSudoPassword)}
+                      >
+                        {showSudoPassword ? <EyeSlash size={16} /> : <Eye size={16} />}
+                      </Button>
+                    </div>
+                  </div>
+                </div>
+                <p className="text-xs text-muted-foreground mt-2">
+                  Used for database creation, schema setup, and administrative tasks. Typically 'root' user.
+                </p>
+              </div>
+
+              {/* LMeve Database User */}
+              <div className="border border-border rounded-lg p-4">
+                <div className="flex items-center justify-between mb-4">
+                  <h4 className="font-medium">LMeve Database User (Application)</h4>
+                  <Badge variant="outline" className="text-xs">Application Access</Badge>
+                </div>
+                
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="dbUsername">Username</Label>
+                    <Input
+                      id="dbUsername"
+                      value={settings.database?.username || ''}
+                      onChange={(e) => updateDatabaseConfig('username', e.target.value)}
+                      placeholder="lmeve_user"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="dbPassword">Password</Label>
+                    <div className="relative">
+                      <Input
+                        id="dbPassword"
+                        type={showDbPassword ? "text" : "password"}
+                        value={settings.database?.password || ''}
+                        onChange={(e) => updateDatabaseConfig('password', e.target.value)}
+                        placeholder="Application database password"
                       />
                       <Button
                         type="button"
@@ -1059,87 +1126,10 @@ export function Settings({ activeTab, onTabChange }: SettingsProps) {
                       </Button>
                     </div>
                   </div>
-                  <p className="text-xs text-muted-foreground">
-                    Used for database creation, schema setup, and administrative tasks. Typically 'root' user.
-                  </p>
                 </div>
-              </div>
-
-              {/* LMeve Database Connection */}
-              <div className="border border-border rounded-lg p-4">
-                <div className="flex items-center justify-between mb-4">
-                  <h4 className="font-medium">LMeve Database User (Application)</h4>
-                  <Badge variant="outline" className="text-xs">Application Access</Badge>
-                </div>
-                
-                <div className="space-y-4">
-                  <div className="grid grid-cols-2 gap-4">
-                    <div className="space-y-2">
-                      <Label htmlFor="dbHost">Host</Label>
-                      <Input
-                        id="dbHost"
-                        value={settings.database?.host || ''}
-                        onChange={(e) => updateDatabaseConfig('host', e.target.value)}
-                        placeholder="localhost"
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="dbPort">Port</Label>
-                      <Input
-                        id="dbPort"
-                        type="number"
-                        value={settings.database?.port || ''}
-                        onChange={(e) => updateDatabaseConfig('port', parseInt(e.target.value) || 3306)}
-                        placeholder="3306"
-                      />
-                    </div>
-                  </div>
-
-                  <div className="grid grid-cols-3 gap-4">
-                    <div className="space-y-2">
-                      <Label htmlFor="dbName">Database Name</Label>
-                      <Input
-                        id="dbName"
-                        value={settings.database?.database || ''}
-                        onChange={(e) => updateDatabaseConfig('database', e.target.value)}
-                        placeholder="lmeve"
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="dbUsername">Username</Label>
-                      <Input
-                        id="dbUsername"
-                        value={settings.database?.username || ''}
-                        onChange={(e) => updateDatabaseConfig('username', e.target.value)}
-                        placeholder="lmeve_user"
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="dbPassword">Password</Label>
-                      <div className="relative">
-                        <Input
-                          id="dbPassword"
-                          type={showDbPassword ? "text" : "password"}
-                          value={settings.database?.password || ''}
-                          onChange={(e) => updateDatabaseConfig('password', e.target.value)}
-                          placeholder="Application database password"
-                        />
-                        <Button
-                          type="button"
-                          variant="ghost"
-                          size="sm"
-                          className="absolute right-0 top-0 h-full px-3"
-                          onClick={() => setShowDbPassword(!showDbPassword)}
-                        >
-                          {showDbPassword ? <EyeSlash size={16} /> : <Eye size={16} />}
-                        </Button>
-                      </div>
-                    </div>
-                  </div>
-                  <p className="text-xs text-muted-foreground">
-                    Used for day-to-day application operations. Should have limited privileges for security.
-                  </p>
-                </div>
+                <p className="text-xs text-muted-foreground mt-2">
+                  Used for day-to-day application operations. Should have limited privileges for security.
+                </p>
               </div>
 
               <div className="flex gap-2 pt-2">
