@@ -831,308 +831,85 @@ export function Settings({ activeTab, onTabChange }: SettingsProps) {
             </CardHeader>
             <CardContent className="space-y-6">
               <div className="p-3 bg-muted/50 rounded-lg text-sm text-muted-foreground">
-                <p className="font-medium mb-2">REAL Database Connection Testing System</p>
+                <p className="font-medium mb-2">Database Connection Settings</p>
                 <p>
-                  ⚡ This system performs REAL network connectivity tests and database validation. It now accepts any 
-                  valid IP address or hostname with any port (1-65535) for maximum flexibility with virtual hosting, 
-                  custom ports, and remote database servers. The network tests use actual HTTP/WebSocket connectivity 
-                  checks rather than simulations.
+                  Configure your MySQL/MariaDB database connection. This system performs real network connectivity 
+                  tests and accepts any valid IP address or hostname with custom ports for maximum flexibility.
                 </p>
               </div>
 
-              {/* One-Button Complete Setup */}
-              <div className="border border-green-500/20 rounded-lg p-4 bg-green-500/5">
-                <div className="flex items-center justify-between mb-4">
-                  <div className="flex items-center gap-2">
-                    <Wrench size={20} className="text-green-400" />
-                    <h4 className="font-medium">Complete Database Setup</h4>
-                  </div>
-                  <Button
-                    onClick={handleStartSetup}
-                    className="bg-green-600 hover:bg-green-700 text-white"
-                    size="sm"
-                    disabled={setupProgress.isRunning}
-                  >
-                    {setupProgress.isRunning ? (
-                      <>
-                        <ArrowClockwise size={16} className="mr-2 animate-spin" />
-                        Setting Up...
-                      </>
-                    ) : (
-                      <>
-                        <Play size={16} className="mr-2" />
-                        One-Click Setup
-                      </>
-                    )}
-                  </Button>
-                </div>
-                
-                <p className="text-sm text-muted-foreground mb-3">
-                  <strong>Complete automated setup:</strong> Creates databases, downloads EVE SDE data, 
-                  imports schema, and configures everything in one step. Requires MySQL root access.
-                </p>
-                
-                <div className="space-y-3">
-                  <div className="space-y-2">
-                    <Label htmlFor="setup-password">LMeve Database Password</Label>
-                    <Input
-                      id="setup-password"
-                      type="password"
-                      placeholder="Enter secure password (8+ characters)"
-                      value={setupConfig.lmevePassword}
-                      onChange={(e) => setSetupConfig(prev => ({ ...prev, lmevePassword: e.target.value }))}
-                      disabled={setupProgress.isRunning}
-                    />
-                    <p className="text-xs text-muted-foreground">
-                      This password will be used for the 'lmeve' database user
-                    </p>
-                  </div>
-                  
-                  {setupProgress.isRunning && (
-                    <div className="space-y-2">
-                      <div className="flex justify-between text-sm">
-                        <span>{setupProgress.currentStage || 'Initializing...'}</span>
-                        <span>{Math.round(setupProgress.progress)}%</span>
-                      </div>
-                      <Progress value={setupProgress.progress} className="h-2" />
-                    </div>
-                  )}
-                </div>
-                
-                <div className="flex gap-2 mt-4">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={handleGenerateCommands}
-                    disabled={setupProgress.isRunning}
-                  >
-                    <Terminal size={16} className="mr-2" />
-                    Manual Commands
-                  </Button>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => window.open('https://github.com/dstevens79/lmeve', '_blank')}
-                  >
-                    <FileText size={16} className="mr-2" />
-                    LMeve Guide
-                  </Button>
-                </div>
-              </div>
-
-              {/* Advanced Manual Setup */}
-              <div className="border border-accent/20 rounded-lg p-4 bg-accent/5">
-                <div className="flex items-center justify-between mb-4">
-                  <div className="flex items-center gap-2">
-                    <Gear size={20} className="text-accent" />
-                    <h4 className="font-medium">Manual Database Setup</h4>
-                  </div>
-                  <Button
-                    onClick={() => setShowSetupWizard(true)}
-                    className="bg-accent hover:bg-accent/90"
-                    size="sm"
-                  >
-                    <Gear size={16} className="mr-2" />
-                    Manual Setup
-                  </Button>
-                </div>
-                
-                <p className="text-sm text-muted-foreground mb-3">
-                  Configure an existing database or use custom setup parameters. 
-                  Use this option if you need specific database configurations.
-                </p>
-              </div>
-
-
-
-              {/* Setup Wizard Modal */}
-              {showSetupWizard && (
-                <div className="fixed inset-0 bg-background/80 backdrop-blur-sm z-50 flex items-center justify-center">
-                  <div className="bg-card border border-border rounded-lg p-6 w-full max-w-2xl mx-4 shadow-lg max-h-[90vh] overflow-y-auto">
-                    <div className="flex items-center justify-between mb-4">
-                      <h3 className="text-lg font-semibold">Database Setup Wizard</h3>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => setShowSetupWizard(false)}
-                        disabled={setupProgress?.isRunning}
-                      >
-                        <X size={16} />
-                      </Button>
-                    </div>
-
-                    {!setupProgress?.isRunning ? (
-                      <div className="space-y-4">
-                        <Alert>
-                          <Info size={16} />
-                          <AlertDescription>
-                            This wizard will create a new LMeve database and optionally download EVE SDE data. 
-                            Make sure you have MySQL/MariaDB running and root access.
-                          </AlertDescription>
-                        </Alert>
-
-                        <div className="space-y-4">
-                          <div className="space-y-2">
-                            <Label htmlFor="setupPassword">Database Password for 'lmeve' user</Label>
-                            <Input
-                              id="setupPassword"
-                              type="password"
-                              value={setupConfig.lmevePassword}
-                              onChange={(e) => setSetupConfig(c => ({ ...c, lmevePassword: e.target.value }))}
-                              placeholder="Enter a secure password (min 8 characters)"
-                            />
-                          </div>
-
-                          <div className="space-y-2">
-                            <Label htmlFor="allowedHosts">Allowed Hosts</Label>
-                            <Input
-                              id="allowedHosts"
-                              value={setupConfig.allowedHosts}
-                              onChange={(e) => setSetupConfig(c => ({ ...c, allowedHosts: e.target.value }))}
-                              placeholder="% (any host) or specific IP range like 192.168.1.%"
-                            />
-                            <p className="text-xs text-muted-foreground">
-                              Use '%' for any host or specify IP range for security
-                            </p>
-                          </div>
-
-                          <div className="flex items-center justify-between">
-                            <div className="space-y-0.5">
-                              <Label>Download EVE SDE Data</Label>
-                              <p className="text-sm text-muted-foreground">
-                                Download and import EVE Static Data Export (~500MB)
-                              </p>
-                            </div>
-                            <Switch
-                              checked={setupConfig.downloadSDE}
-                              onCheckedChange={(checked) => setSetupConfig(c => ({ ...c, downloadSDE: checked }))}
-                            />
-                          </div>
-                        </div>
-
-                        <div className="flex gap-3 pt-4">
-                          <Button
-                            onClick={() => setShowSetupWizard(false)}
-                            variant="outline"
-                            className="flex-1"
-                          >
-                            Cancel
-                          </Button>
-                          <Button
-                            onClick={handleStartSetup}
-                            disabled={!setupConfig.lmevePassword}
-                            className="flex-1 bg-accent hover:bg-accent/90"
-                          >
-                            <Play size={16} className="mr-2" />
-                            Start Setup
-                          </Button>
-                        </div>
-                      </div>
-                    ) : (
-                      <div className="space-y-4">
-                        <div className="text-center">
-                          <h4 className="font-medium mb-2">Setting up database...</h4>
-                          <p className="text-sm text-muted-foreground">
-                            Step {setupProgress.currentStep} of {setupProgress.totalSteps}
-                          </p>
-                        </div>
-
-                        <Progress 
-                          value={(setupProgress.currentStep / setupProgress.totalSteps) * 100} 
-                          className="h-2" 
-                        />
-
-                        <div className="space-y-2 max-h-64 overflow-y-auto">
-                          {setupProgress.steps.map((step, index) => (
-                            <div key={step.id} className={`p-3 border rounded-lg ${
-                              step.status === 'completed' ? 'border-green-500/20 bg-green-500/10' :
-                              step.status === 'running' ? 'border-accent/20 bg-accent/10' :
-                              step.status === 'failed' ? 'border-red-500/20 bg-red-500/10' :
-                              'border-border bg-muted/50'
-                            }`}>
-                              <div className="flex items-center gap-2 mb-1">
-                                {step.status === 'completed' && <CheckCircle size={16} className="text-green-400" />}
-                                {step.status === 'running' && <ArrowClockwise size={16} className="text-accent animate-spin" />}
-                                {step.status === 'failed' && <X size={16} className="text-red-400" />}
-                                {step.status === 'pending' && <div className="w-4 h-4 rounded-full border-2 border-muted-foreground/30" />}
-                                <span className="font-medium text-sm">{step.name}</span>
-                              </div>
-                              <p className="text-xs text-muted-foreground">{step.description}</p>
-                              {step.output && (
-                                <p className="text-xs font-mono bg-background/50 p-2 rounded mt-2">{step.output}</p>
-                              )}
-                              {step.error && (
-                                <p className="text-xs text-red-300 bg-red-900/20 p-2 rounded mt-2">{step.error}</p>
-                              )}
-                            </div>
-                          ))}
-                        </div>
-
-                        {setupProgress.completed && (
-                          <div className="flex gap-3 pt-4">
-                            <Button
-                              onClick={() => setShowSetupWizard(false)}
-                              className="flex-1"
-                            >
-                              Close
-                            </Button>
-                          </div>
-                        )}
-                      </div>
-                    )}
-                  </div>
-                </div>
-              )}
-
-              {/* Generated Commands Modal */}
-              {showSetupCommands && (
-                <div className="fixed inset-0 bg-background/80 backdrop-blur-sm z-50 flex items-center justify-center">
-                  <div className="bg-card border border-border rounded-lg p-6 w-full max-w-4xl mx-4 shadow-lg max-h-[90vh] overflow-y-auto">
-                    <div className="flex items-center justify-between mb-4">
-                      <h3 className="text-lg font-semibold">Database Setup Commands</h3>
-                      <div className="flex gap-2">
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={handleCopyCommands}
-                        >
-                          <Copy size={16} className="mr-2" />
-                          Copy All
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => setShowSetupCommands(false)}
-                        >
-                          <X size={16} />
-                        </Button>
-                      </div>
-                    </div>
-
-                    <Alert className="mb-4">
-                      <Terminal size={16} />
-                      <AlertDescription>
-                        Run these commands on your server with root privileges. Make sure to review and 
-                        customize the commands before execution.
-                      </AlertDescription>
-                    </Alert>
-
-                    <div className="bg-background border rounded-lg p-4 font-mono text-sm overflow-x-auto">
-                      <pre className="whitespace-pre-wrap">
-                        {generateSetupCommands(setupConfig).join('\n')}
-                      </pre>
-                    </div>
-                  </div>
-                </div>
-              )}
-
-              <Separator />
-
-              {/* Connection Status */}
+              {/* Connection Settings */}
               <div className="border border-border rounded-lg p-4">
                 <div className="flex items-center justify-between mb-4">
-                  <h4 className="font-medium">Connection Status</h4>
-                  <div className="flex gap-2">
+                  <h4 className="font-medium">Connection Settings</h4>
+                </div>
+                
+                <div className="space-y-4">
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="dbHost">Host</Label>
+                      <Input
+                        id="dbHost"
+                        value={settings.database?.host || ''}
+                        onChange={(e) => updateDatabaseConfig('host', e.target.value)}
+                        placeholder="localhost"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="dbPort">Port</Label>
+                      <Input
+                        id="dbPort"
+                        type="number"
+                        value={settings.database?.port || ''}
+                        onChange={(e) => updateDatabaseConfig('port', parseInt(e.target.value) || 3306)}
+                        placeholder="3306"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-3 gap-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="dbName">Database Name</Label>
+                      <Input
+                        id="dbName"
+                        value={settings.database?.database || ''}
+                        onChange={(e) => updateDatabaseConfig('database', e.target.value)}
+                        placeholder="lmeve"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="dbUsername">Username</Label>
+                      <Input
+                        id="dbUsername"
+                        value={settings.database?.username || ''}
+                        onChange={(e) => updateDatabaseConfig('username', e.target.value)}
+                        placeholder="lmeve_user"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="dbPassword">Password</Label>
+                      <div className="relative">
+                        <Input
+                          id="dbPassword"
+                          type={showDbPassword ? "text" : "password"}
+                          value={settings.database?.password || ''}
+                          onChange={(e) => updateDatabaseConfig('password', e.target.value)}
+                          placeholder="Database password"
+                        />
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          className="absolute right-0 top-0 h-full px-3"
+                          onClick={() => setShowDbPassword(!showDbPassword)}
+                        >
+                          {showDbPassword ? <EyeSlash size={16} /> : <Eye size={16} />}
+                        </Button>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="flex gap-2 pt-2">
                     <Button
                       variant="outline"
                       size="sm"
@@ -1156,23 +933,6 @@ export function Settings({ activeTab, onTabChange }: SettingsProps) {
                       )}
                     </Button>
                     
-                    {/* Debug button for testing clicks */}
-                    {process.env.NODE_ENV === 'development' && (
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => {
-                          console.log('🧪 Debug: Quick test button clicked');
-                          const timestamp = new Date().toLocaleTimeString();
-                          setConnectionLogs(prev => [...prev, `🧪 [${timestamp}] Debug test button clicked - button functionality working`]);
-                          toast.success('Debug: Button click registered!');
-                        }}
-                        className="border-purple-500/50 text-purple-400 hover:bg-purple-500/10"
-                      >
-                        <UserCheck size={16} className="mr-2" />
-                        Debug Test
-                      </Button>
-                    )}
                     {dbStatus.connected ? (
                       <Button
                         variant="outline"
@@ -1195,10 +955,13 @@ export function Settings({ activeTab, onTabChange }: SettingsProps) {
                     )}
                   </div>
                 </div>
+              </div>
 
+              {/* Connection Status */}
+              <div className="space-y-4">
                 {/* Immediate Test Status */}
                 {testingConnection && (
-                  <div className="mb-4 p-3 border border-blue-500/20 bg-blue-500/10 rounded-lg">
+                  <div className="p-3 border border-blue-500/20 bg-blue-500/10 rounded-lg">
                     <div className="flex items-center gap-2 text-blue-400">
                       <ArrowClockwise size={16} className="animate-spin" />
                       <span className="font-medium">Testing Database Connection...</span>
@@ -1321,229 +1084,6 @@ export function Settings({ activeTab, onTabChange }: SettingsProps) {
                     </div>
                   </div>
                 )}
-              </div>
-
-              {/* Database Setup */}
-              <div className="border border-border rounded-lg p-4">
-                <div className="flex items-center justify-between mb-4">
-                  <h4 className="font-medium">Database Setup</h4>
-                  <Badge variant="outline" className="text-xs">
-                    New Installation
-                  </Badge>
-                </div>
-                
-                <div className="space-y-4">
-                  <div className="p-3 border border-blue-500/20 bg-blue-500/10 rounded-lg">
-                    <div className="flex items-center gap-2 text-blue-400 mb-2">
-                      <Info size={16} />
-                      <span className="font-medium">One-Click Database Setup</span>
-                    </div>
-                    <p className="text-sm text-muted-foreground">
-                      This will create the LMeve database structure and download the EVE Static Data Export (SDE) 
-                      using the commands from the original LMeve documentation.
-                    </p>
-                  </div>
-
-                  <div className="space-y-3">
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <p className="font-medium text-sm">Download & Install EVE SDE</p>
-                        <p className="text-xs text-muted-foreground">Downloads the latest EVE universe data (~1GB)</p>
-                      </div>
-                      <Switch
-                        checked={setupConfig.downloadSDE}
-                        onCheckedChange={(checked) => setSetupConfig(prev => ({ ...prev, downloadSDE: checked }))}
-                      />
-                    </div>
-                    
-                    <div className="space-y-2">
-                      <Label htmlFor="setupPassword">LMeve Database Password</Label>
-                      <Input
-                        id="setupPassword"
-                        type="password"
-                        value={setupConfig.lmevePassword}
-                        onChange={(e) => setSetupConfig(prev => ({ ...prev, lmevePassword: e.target.value }))}
-                        placeholder="Enter password for lmeve user"
-                      />
-                    </div>
-                    
-                    <div className="space-y-2">
-                      <Label htmlFor="allowedHosts">Allowed Hosts</Label>
-                      <Input
-                        id="allowedHosts"
-                        value={setupConfig.allowedHosts}
-                        onChange={(e) => setSetupConfig(prev => ({ ...prev, allowedHosts: e.target.value }))}
-                        placeholder="% for any host, or specific IP/hostname"
-                      />
-                      <p className="text-xs text-muted-foreground">
-                        Use '%' to allow connections from any host, or specify specific IPs/hostnames
-                      </p>
-                    </div>
-                  </div>
-
-                  <div className="flex gap-3">
-                    <Button
-                      onClick={handleRunDatabaseSetup}
-                      disabled={setupProgress.isRunning || !setupConfig.lmevePassword}
-                      className="flex-1 bg-accent hover:bg-accent/90"
-                    >
-                      {setupProgress.isRunning ? (
-                        <ArrowClockwise size={16} className="mr-2 animate-spin" />
-                      ) : (
-                        <Wrench size={16} className="mr-2" />
-                      )}
-                      {setupProgress.isRunning ? 'Setting Up...' : 'Run Database Setup'}
-                    </Button>
-                    
-                    <Button
-                      variant="outline"
-                      onClick={handleShowSetupCommands}
-                      size="sm"
-                    >
-                      <Terminal size={16} className="mr-2" />
-                      Show Commands
-                    </Button>
-                  </div>
-
-                  {/* Setup Progress */}
-                  {setupProgress.isRunning && (
-                    <div className="space-y-3">
-                      <div className="space-y-2">
-                        <div className="flex items-center justify-between text-sm">
-                          <span>Progress</span>
-                          <span>{setupProgress.currentStep}/{setupProgress.totalSteps}</span>
-                        </div>
-                        <Progress value={(setupProgress.currentStep / setupProgress.totalSteps) * 100} />
-                      </div>
-                      
-                      <div className="space-y-2 max-h-48 overflow-y-auto">
-                        {setupProgress.steps.map((step, index) => (
-                          <div key={step.id} className="flex items-center gap-2 text-sm">
-                            {step.status === 'completed' && <CheckCircle size={14} className="text-green-400" />}
-                            {step.status === 'running' && <ArrowClockwise size={14} className="text-blue-400 animate-spin" />}
-                            {step.status === 'failed' && <X size={14} className="text-red-400" />}
-                            {step.status === 'pending' && <div className="w-3.5 h-3.5 rounded-full border border-muted-foreground" />}
-                            <span className={step.status === 'completed' ? 'text-green-400' : step.status === 'failed' ? 'text-red-400' : ''}>{step.name}</span>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  )}
-
-                  {/* Setup Commands Modal */}
-                  {showSetupCommands && (
-                    <div className="fixed inset-0 bg-background/80 backdrop-blur-sm z-50 flex items-center justify-center">
-                      <div className="bg-card border border-border rounded-lg p-6 w-full max-w-4xl mx-4 max-h-[80vh] overflow-hidden flex flex-col">
-                        <div className="flex items-center justify-between mb-4">
-                          <h3 className="text-lg font-semibold">Database Setup Commands</h3>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => setShowSetupCommands(false)}
-                          >
-                            <X size={16} />
-                          </Button>
-                        </div>
-                        
-                        <div className="flex-1 overflow-y-auto">
-                          <div className="bg-secondary/20 border border-border rounded p-4 font-mono text-sm">
-                            <pre className="whitespace-pre-wrap">{generateSetupCommands(setupConfig).join('\n')}</pre>
-                          </div>
-                        </div>
-                        
-                        <div className="flex gap-3 mt-4">
-                          <Button
-                            variant="outline"
-                            onClick={() => {
-                              navigator.clipboard.writeText(generateSetupCommands(setupConfig).join('\n'));
-                              toast.success('Commands copied to clipboard');
-                            }}
-                            className="flex-1"
-                          >
-                            <Copy size={16} className="mr-2" />
-                            Copy Commands
-                          </Button>
-                          <Button
-                            onClick={() => setShowSetupCommands(false)}
-                            className="flex-1"
-                          >
-                            Close
-                          </Button>
-                        </div>
-                      </div>
-                    </div>
-                  )}
-                </div>
-              </div>
-
-              {/* Connection Settings */}
-              <div className="space-y-4">
-                <h4 className="font-medium">Connection Settings</h4>
-                
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="dbHost">Host</Label>
-                    <Input
-                      id="dbHost"
-                      value={settings.database?.host || ''}
-                      onChange={(e) => updateDatabaseConfig('host', e.target.value)}
-                      placeholder="localhost"
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="dbPort">Port</Label>
-                    <Input
-                      id="dbPort"
-                      type="number"
-                      value={settings.database?.port || ''}
-                      onChange={(e) => updateDatabaseConfig('port', parseInt(e.target.value) || 3306)}
-                      placeholder="3306"
-                    />
-                  </div>
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="dbName">Database Name</Label>
-                  <Input
-                    id="dbName"
-                    value={settings.database?.database || ''}
-                    onChange={(e) => updateDatabaseConfig('database', e.target.value)}
-                    placeholder="lmeve"
-                  />
-                </div>
-
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="dbUsername">Username</Label>
-                    <Input
-                      id="dbUsername"
-                      value={settings.database?.username || ''}
-                      onChange={(e) => updateDatabaseConfig('username', e.target.value)}
-                      placeholder="lmeve_user"
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="dbPassword">Password</Label>
-                    <div className="relative">
-                      <Input
-                        id="dbPassword"
-                        type={showDbPassword ? "text" : "password"}
-                        value={settings.database?.password || ''}
-                        onChange={(e) => updateDatabaseConfig('password', e.target.value)}
-                        placeholder="Database password"
-                      />
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        size="sm"
-                        className="absolute right-0 top-0 h-full px-3"
-                        onClick={() => setShowDbPassword(!showDbPassword)}
-                      >
-                        {showDbPassword ? <EyeSlash size={16} /> : <Eye size={16} />}
-                      </Button>
-                    </div>
-                  </div>
-                </div>
               </div>
 
               {/* Advanced Settings */}
@@ -2053,6 +1593,306 @@ export function Settings({ activeTab, onTabChange }: SettingsProps) {
                   )}
                 </div>
               </div>
+
+              {/* Database Setup */}
+              <div className="border-t border-border pt-6 space-y-4">
+                <h4 className="font-medium">Complete Database Setup</h4>
+                
+                <div className="p-3 bg-muted/50 rounded-lg text-sm text-muted-foreground">
+                  <p className="font-medium mb-2">LMeve Database Initialization</p>
+                  <p>
+                    This section provides tools for setting up a new LMeve database installation including
+                    creating the database schema, user accounts, and importing the EVE SDE data. This is 
+                    typically only needed for new installations.
+                  </p>
+                </div>
+
+                <div className="space-y-4">
+                  {/* One-Button Complete Setup */}
+                  <div className="border border-green-500/20 rounded-lg p-4 bg-green-500/5">
+                    <div className="flex items-center justify-between mb-4">
+                      <div className="flex items-center gap-2">
+                        <Wrench size={20} className="text-green-400" />
+                        <h5 className="font-medium">Complete Database Setup</h5>
+                      </div>
+                      <Button
+                        onClick={handleStartSetup}
+                        className="bg-green-600 hover:bg-green-700 text-white"
+                        size="sm"
+                        disabled={setupProgress.isRunning}
+                      >
+                        {setupProgress.isRunning ? (
+                          <>
+                            <ArrowClockwise size={16} className="mr-2 animate-spin" />
+                            Setting Up...
+                          </>
+                        ) : (
+                          <>
+                            <Play size={16} className="mr-2" />
+                            One-Click Setup
+                          </>
+                        )}
+                      </Button>
+                    </div>
+                    
+                    <p className="text-sm text-muted-foreground mb-3">
+                      <strong>Complete automated setup:</strong> Creates databases, downloads EVE SDE data, 
+                      imports schema, and configures everything in one step. Requires MySQL root access.
+                    </p>
+                    
+                    <div className="space-y-3">
+                      <div className="space-y-2">
+                        <Label htmlFor="setup-password">LMeve Database Password</Label>
+                        <Input
+                          id="setup-password"
+                          type="password"
+                          placeholder="Enter secure password (8+ characters)"
+                          value={setupConfig.lmevePassword}
+                          onChange={(e) => setSetupConfig(prev => ({ ...prev, lmevePassword: e.target.value }))}
+                          disabled={setupProgress.isRunning}
+                        />
+                        <p className="text-xs text-muted-foreground">
+                          This password will be used for the 'lmeve' database user
+                        </p>
+                      </div>
+                      
+                      {setupProgress.isRunning && (
+                        <div className="space-y-2">
+                          <div className="flex justify-between text-sm">
+                            <span>{setupProgress.currentStage || 'Initializing...'}</span>
+                            <span>{Math.round(setupProgress.progress)}%</span>
+                          </div>
+                          <Progress value={setupProgress.progress} className="h-2" />
+                        </div>
+                      )}
+                    </div>
+                    
+                    <div className="flex gap-2 mt-4">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={handleGenerateCommands}
+                        disabled={setupProgress.isRunning}
+                      >
+                        <Terminal size={16} className="mr-2" />
+                        Manual Commands
+                      </Button>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => window.open('https://github.com/dstevens79/lmeve', '_blank')}
+                      >
+                        <FileText size={16} className="mr-2" />
+                        LMeve Guide
+                      </Button>
+                    </div>
+                  </div>
+
+                  {/* Advanced Manual Setup */}
+                  <div className="border border-accent/20 rounded-lg p-4 bg-accent/5">
+                    <div className="flex items-center justify-between mb-4">
+                      <div className="flex items-center gap-2">
+                        <Gear size={20} className="text-accent" />
+                        <h5 className="font-medium">Manual Database Setup</h5>
+                      </div>
+                      <Button
+                        onClick={() => setShowSetupWizard(true)}
+                        className="bg-accent hover:bg-accent/90"
+                        size="sm"
+                      >
+                        <Gear size={16} className="mr-2" />
+                        Manual Setup
+                      </Button>
+                    </div>
+                    
+                    <p className="text-sm text-muted-foreground">
+                      Configure an existing database or use custom setup parameters. 
+                      Use this option if you need specific database configurations.
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Setup Wizard Modal */}
+              {showSetupWizard && (
+                <div className="fixed inset-0 bg-background/80 backdrop-blur-sm z-50 flex items-center justify-center">
+                  <div className="bg-card border border-border rounded-lg p-6 w-full max-w-2xl mx-4 shadow-lg max-h-[90vh] overflow-y-auto">
+                    <div className="flex items-center justify-between mb-4">
+                      <h3 className="text-lg font-semibold">Database Setup Wizard</h3>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => setShowSetupWizard(false)}
+                        disabled={setupProgress?.isRunning}
+                      >
+                        <X size={16} />
+                      </Button>
+                    </div>
+
+                    {!setupProgress?.isRunning ? (
+                      <div className="space-y-4">
+                        <Alert>
+                          <Info size={16} />
+                          <AlertDescription>
+                            This wizard will create a new LMeve database and optionally download EVE SDE data. 
+                            Make sure you have MySQL/MariaDB running and root access.
+                          </AlertDescription>
+                        </Alert>
+
+                        <div className="space-y-4">
+                          <div className="space-y-2">
+                            <Label htmlFor="setupPassword">Database Password for 'lmeve' user</Label>
+                            <Input
+                              id="setupPassword"
+                              type="password"
+                              value={setupConfig.lmevePassword}
+                              onChange={(e) => setSetupConfig(c => ({ ...c, lmevePassword: e.target.value }))}
+                              placeholder="Enter a secure password (min 8 characters)"
+                            />
+                          </div>
+
+                          <div className="space-y-2">
+                            <Label htmlFor="allowedHosts">Allowed Hosts</Label>
+                            <Input
+                              id="allowedHosts"
+                              value={setupConfig.allowedHosts}
+                              onChange={(e) => setSetupConfig(c => ({ ...c, allowedHosts: e.target.value }))}
+                              placeholder="% (any host) or specific IP range like 192.168.1.%"
+                            />
+                            <p className="text-xs text-muted-foreground">
+                              Use '%' for any host or specify IP range for security
+                            </p>
+                          </div>
+
+                          <div className="flex items-center justify-between">
+                            <div className="space-y-0.5">
+                              <Label>Download EVE SDE Data</Label>
+                              <p className="text-sm text-muted-foreground">
+                                Download and import EVE Static Data Export (~500MB)
+                              </p>
+                            </div>
+                            <Switch
+                              checked={setupConfig.downloadSDE}
+                              onCheckedChange={(checked) => setSetupConfig(c => ({ ...c, downloadSDE: checked }))}
+                            />
+                          </div>
+                        </div>
+
+                        <div className="flex gap-3 pt-4">
+                          <Button
+                            onClick={() => setShowSetupWizard(false)}
+                            variant="outline"
+                            className="flex-1"
+                          >
+                            Cancel
+                          </Button>
+                          <Button
+                            onClick={handleStartSetup}
+                            disabled={!setupConfig.lmevePassword}
+                            className="flex-1 bg-accent hover:bg-accent/90"
+                          >
+                            <Play size={16} className="mr-2" />
+                            Start Setup
+                          </Button>
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="space-y-4">
+                        <div className="text-center">
+                          <h4 className="font-medium mb-2">Setting up database...</h4>
+                          <p className="text-sm text-muted-foreground">
+                            Step {setupProgress.currentStep} of {setupProgress.totalSteps}
+                          </p>
+                        </div>
+
+                        <Progress 
+                          value={(setupProgress.currentStep / setupProgress.totalSteps) * 100} 
+                          className="h-2" 
+                        />
+
+                        <div className="space-y-2 max-h-64 overflow-y-auto">
+                          {setupProgress.steps.map((step, index) => (
+                            <div key={step.id} className={`p-3 border rounded-lg ${
+                              step.status === 'completed' ? 'border-green-500/20 bg-green-500/10' :
+                              step.status === 'running' ? 'border-accent/20 bg-accent/10' :
+                              step.status === 'failed' ? 'border-red-500/20 bg-red-500/10' :
+                              'border-border bg-muted/50'
+                            }`}>
+                              <div className="flex items-center gap-2 mb-1">
+                                {step.status === 'completed' && <CheckCircle size={16} className="text-green-400" />}
+                                {step.status === 'running' && <ArrowClockwise size={16} className="text-accent animate-spin" />}
+                                {step.status === 'failed' && <X size={16} className="text-red-400" />}
+                                {step.status === 'pending' && <div className="w-4 h-4 rounded-full border-2 border-muted-foreground/30" />}
+                                <span className="font-medium text-sm">{step.name}</span>
+                              </div>
+                              <p className="text-xs text-muted-foreground">{step.description}</p>
+                              {step.output && (
+                                <p className="text-xs font-mono bg-background/50 p-2 rounded mt-2">{step.output}</p>
+                              )}
+                              {step.error && (
+                                <p className="text-xs text-red-300 bg-red-900/20 p-2 rounded mt-2">{step.error}</p>
+                              )}
+                            </div>
+                          ))}
+                        </div>
+
+                        {setupProgress.completed && (
+                          <div className="flex gap-3 pt-4">
+                            <Button
+                              onClick={() => setShowSetupWizard(false)}
+                              className="flex-1"
+                            >
+                              Close
+                            </Button>
+                          </div>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
+
+              {/* Generated Commands Modal */}
+              {showSetupCommands && (
+                <div className="fixed inset-0 bg-background/80 backdrop-blur-sm z-50 flex items-center justify-center">
+                  <div className="bg-card border border-border rounded-lg p-6 w-full max-w-4xl mx-4 shadow-lg max-h-[90vh] overflow-y-auto">
+                    <div className="flex items-center justify-between mb-4">
+                      <h3 className="text-lg font-semibold">Database Setup Commands</h3>
+                      <div className="flex gap-2">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={handleCopyCommands}
+                        >
+                          <Copy size={16} className="mr-2" />
+                          Copy All
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => setShowSetupCommands(false)}
+                        >
+                          <X size={16} />
+                        </Button>
+                      </div>
+                    </div>
+
+                    <Alert className="mb-4">
+                      <Terminal size={16} />
+                      <AlertDescription>
+                        Run these commands on your server with root privileges. Make sure to review and 
+                        customize the commands before execution.
+                      </AlertDescription>
+                    </Alert>
+
+                    <div className="bg-background border rounded-lg p-4 font-mono text-sm overflow-x-auto">
+                      <pre className="whitespace-pre-wrap">
+                        {generateSetupCommands(setupConfig).join('\n')}
+                      </pre>
+                    </div>
+                  </div>
+                </div>
+              )}
 
               {/* Source Information */}
               <div className="border-t border-border pt-6 space-y-4">
