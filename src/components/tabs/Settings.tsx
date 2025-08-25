@@ -1286,15 +1286,6 @@ export function Settings({ activeTab, onTabChange }: SettingsProps) {
             </CardContent>
           </Card>
         </TabsContent>
-                </div>
-              </div>
-
-              <div className="pt-4">
-                <Button onClick={handleSaveSettings}>Save Settings</Button>
-              </div>
-            </CardContent>
-          </Card>
-        </TabsContent>
 
         <TabsContent value="database" className="space-y-6">
           <Card>

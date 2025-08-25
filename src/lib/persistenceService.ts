@@ -7,15 +7,11 @@
 
 import { useKV } from '@github/spark/hooks';
 
-  maintenanceMode: boolean;
-  logLevel: 'error' | 'warn' | 'in
-}
-export interface Data
-  port: number;
-  username: string;
-  ssl: boolean;
-  queryTimeout: number;
-  charset: string;
+export interface GeneralSettings {
+  siteName: string;
+  serverName: string;
+  timezone: string;
+  sessionTimeout: number;
   maintenanceMode: boolean;
   debugMode: boolean;
   logLevel: 'error' | 'warn' | 'info' | 'debug';
@@ -34,11 +30,10 @@ export interface DatabaseSettings {
   autoReconnect: boolean;
   charset: string;
   // Sudo database settings for admin operations
-
+  sudoHost: string;
   sudoPort: number;
   sudoUsername: string;
   sudoPassword: string;
-  updateSchedule: s
 }
 
 export interface ESISettings {
@@ -46,7 +41,6 @@ export interface ESISettings {
   clientSecret: string;
   callbackUrl: string;
   userAgent: string;
-    assets: number
   scopes: string[];
   rateLimitBuffer: number;
   maxRetries: number;
@@ -60,7 +54,6 @@ export interface SDESettings {
   autoUpdate: boolean;
   updateSchedule: string; // cron format
   downloadUrl: string;
-    members: number;
   backupBeforeUpdate: boolean;
   cleanupAfterUpdate: boolean;
 }
@@ -68,502 +61,410 @@ export interface SDESettings {
 export interface SyncSettings {
   enabled: boolean;
   autoSync: boolean;
-    email: boolean
+  syncIntervals: {
+    assets: number;
     members: number;
-  };
     manufacturing: number;
-    mining: boolean
+    mining: number;
     market: number;
-    memberChanges: boo
+    killmails: number;
     income: number;
-    incomeUpdates: bool
     wallets: number;
-    
+  };
   lastSyncTimes: {
     members: string;
     assets: string;
     manufacturing: string;
     mining: string;
-  quietHours: {
+    market: string;
     killmails: string;
-    endTime: string
+    income: string;
     structures: string;
-}
   };
-  id: string;
+  batchSizes: {
+    assets: number;
     members: number;
-  characterName: st
     manufacturing: number;
     mining: number;
     market: number;
     killmails: number;
   };
- 
-
-export interface NotificationSettings {
-  enabled: boolean;
-  id: number;
-    email: boolean;
-    inApp: boolean;
-    webhook: boolean;
-  };
-  events: {
-  isActive: boolean;
-    mining: boolean;
-  syncErrors: number;
-    markets: boolean;
-    memberChanges: boolean;
-    structureEvents: boolean;
-    assetMovements: boolean;
-    incomeUpdates: boolean;
-expo
-  emailSettings: {
-    mining: number;
-    smtpPort: number;
-    invention: number
-    smtpPassword: string;
-    smtpSecure: boolean;
-    fromEmail: string;
-    holidayMultiplier
-  };
-    currency: 'ISK' |
   quietHours: {
     enabled: boolean;
     startTime: string;
     endTime: string;
     timezone: string;
-    
+  };
+}
+
+export interface NotificationSettings {
+  enabled: boolean;
+  channels: {
+    email: boolean;
+    inApp: boolean;
+    webhook: boolean;
+  };
+  events: {
+    syncErrors: boolean;
+    manufacturing: boolean;
+    mining: boolean;
+    markets: boolean;
+    memberChanges: boolean;
+    structureEvents: boolean;
+    assetMovements: boolean;
+    incomeUpdates: boolean;
+  };
+  emailSettings: {
+    smtpHost: string;
+    smtpPort: number;
+    smtpUser: string;
+    smtpPassword: string;
+    smtpSecure: boolean;
+    fromEmail: string;
+  };
+  webhookUrl: string;
+  quietHours: {
+    enabled: boolean;
+    startTime: string;
+    endTime: string;
+    timezone: string;
+  };
+}
+
+export interface IncomeSettings {
+  enabled: boolean;
+  hourlyRates: {
+    mining: number;
+    manufacturing: number;
+    invention: number;
+    copying: number;
+    research: number;
+    reaction: number;
+  };
+  bonusRates: {
+    weekendMultiplier: number;
+    holidayMultiplier: number;
+  };
+  paymentSettings: {
+    currency: 'ISK' | 'USD' | 'EUR';
+    minimumPayout: number;
+    paymentSchedule: string;
+  };
 }
 
 export interface ManualUser {
-  // Global a
+  id: string;
   username: string;
   passwordHash: string;
   characterName: string;
   corporationName: string;
   corporationId: number;
-      'esi-industr
-      'esi-markets.read_
-      'esi-universe.
-    rateLimitBuffer:
-    requestTimeout: 
+  isActive: boolean;
+  permissions: string[];
+  createdAt: string;
+  lastLogin: string;
+}
 
-    currentVersion: '',
-    lastUpdateDate: '',
-    updateSchedu
- 
+export interface ApplicationData {
+  version: string;
+  installDate: string;
+  lastStartup: string;
+  features: {
+    manufacturing: boolean;
+    mining: boolean;
+    market: boolean;
+    structures: boolean;
+  };
+  metrics: {
+    totalApiCalls: number;
+    averageResponseTime: number;
+    errorRate: number;
+  };
+  maintenance: {
+    autoBackup: boolean;
+    cleanupSchedule: string;
+    logRotation: boolean;
+  };
+}
 
+// Default settings
+export const defaultGeneralSettings: GeneralSettings = {
+  siteName: 'LMeve Corporation Management',
+  serverName: 'LMeve Server',
+  timezone: 'UTC',
+  sessionTimeout: 3600,
+  maintenanceMode: false,
+  debugMode: false,
+  logLevel: 'info',
+  maxLogRetentionDays: 30,
+};
 
-    enabled: 
-    syncInterva
-      assets: 30,
-      mining: 
-      killmails: 120,
-      structures: 180,
-    },
-      members: '',
-    
-      market: '',
-      income: '',
-      wallets: '',
-    batchSizes: {
-      assets: 500,
-      mining: 100,
-      killmails: 25,
-  } as SyncSettings,
-  notifications: {
-    channels: {
- 
+export const defaultDatabaseSettings: DatabaseSettings = {
+  host: 'localhost',
+  port: 3306,
+  database: 'lmeve',
+  username: 'lmeve',
+  password: '',
+  ssl: false,
+  connectionPoolSize: 10,
+  queryTimeout: 30000,
+  autoReconnect: true,
+  charset: 'utf8mb4',
+  sudoHost: 'localhost',
+  sudoPort: 3306,
+  sudoUsername: 'root',
+  sudoPassword: '',
+};
 
-      manufacturing: true,
-      killmails:
-      memberChanges: true,
-      assetMovement
-    },
-      smtpHost: '',
-      smtpUser: '',
-      smtpSecure: tru
-    
-    webhookUrl:
-      enabled: false,
-      endTime: '08:00',
-    },
+export const defaultESISettings: ESISettings = {
+  clientId: '',
+  clientSecret: '',
+  callbackUrl: `${window.location.origin}/auth/callback`,
+  userAgent: 'LMeve Corporation Management Tool',
+  scopes: [
+    'esi-corporations.read_corporation_membership.v1',
+    'esi-industry.read_corporation_jobs.v1',
+    'esi-markets.read_corporation_orders.v1',
+    'esi-universe.read_structures.v1',
+  ],
+  rateLimitBuffer: 50,
+  maxRetries: 3,
+  requestTimeout: 10000,
+};
 
-    hourlyRates: {
-      mining: 30000000,        // 30
-      copying: 20000000,       // 20M ISK/hour
-      reaction: 40000000, 
-    bonusRates: {
-    
-    },
-      currency:
-      minimumPayo
-    },
-      { id: '1', name: 
-      { id: '3', name:
-      
- 
+export const defaultSDESettings: SDESettings = {
+  currentVersion: '',
+  lastUpdateCheck: '',
+  lastUpdateDate: '',
+  autoUpdate: false,
+  updateSchedule: '0 2 * * 0', // Weekly at 2 AM on Sunday
+  downloadUrl: 'https://www.fuzzwork.co.uk/dump/mysql-latest.tar.bz2',
+  backupBeforeUpdate: true,
+  cleanupAfterUpdate: true,
+};
 
-    version: '2.0.0',
-    lastStartup: new Date().t
-    features: {
-      mining: true,
-      market: true,
-      structures: true,
-  
-    metrics: {
-      totalAp
-      averageResponseTime: 
-    },
-      autoBackup: true,
-      cleanupSchedul
-  } as ApplicationDa
+export const defaultSyncSettings: SyncSettings = {
+  enabled: true,
+  autoSync: true,
+  syncIntervals: {
+    assets: 60,
+    members: 30,
+    manufacturing: 15,
+    mining: 30,
+    market: 45,
+    killmails: 120,
+    income: 60,
+    wallets: 180,
+  },
+  lastSyncTimes: {
+    members: '',
+    assets: '',
+    manufacturing: '',
+    mining: '',
+    market: '',
+    killmails: '',
+    income: '',
+    structures: '',
+  },
+  batchSizes: {
+    assets: 500,
+    members: 100,
+    manufacturing: 50,
+    mining: 100,
+    market: 200,
+    killmails: 25,
+  },
+  quietHours: {
+    enabled: false,
+    startTime: '22:00',
+    endTime: '08:00',
+    timezone: 'UTC',
+  },
+};
 
-export const useGene
-export const useESISe
-expo
-ex
+export const defaultNotificationSettings: NotificationSettings = {
+  enabled: true,
+  channels: {
+    email: false,
+    inApp: true,
+    webhook: false,
+  },
+  events: {
+    syncErrors: true,
+    manufacturing: true,
+    mining: false,
+    markets: false,
+    memberChanges: true,
+    structureEvents: false,
+    assetMovements: false,
+    incomeUpdates: false,
+  },
+  emailSettings: {
+    smtpHost: '',
+    smtpPort: 587,
+    smtpUser: '',
+    smtpPassword: '',
+    smtpSecure: true,
+    fromEmail: '',
+  },
+  webhookUrl: '',
+  quietHours: {
+    enabled: false,
+    startTime: '22:00',
+    endTime: '08:00',
+    timezone: 'UTC',
+  },
+};
 
-export const
+export const defaultIncomeSettings: IncomeSettings = {
+  enabled: true,
+  hourlyRates: {
+    mining: 30000000,        // 30M ISK/hour
+    manufacturing: 25000000, // 25M ISK/hour
+    invention: 35000000,     // 35M ISK/hour
+    copying: 20000000,       // 20M ISK/hour
+    research: 30000000,      // 30M ISK/hour
+    reaction: 40000000,      // 40M ISK/hour
+  },
+  bonusRates: {
+    weekendMultiplier: 1.2,
+    holidayMultiplier: 1.5,
+  },
+  paymentSettings: {
+    currency: 'ISK',
+    minimumPayout: 100000000, // 100M ISK
+    paymentSchedule: 'weekly',
+  },
+};
 
-export const exportAllSett
-    general: await spark.kv.
-    esi: await spark.kv.get<ESIS
-    sync: await spark.k
-    income: await spark.k
-    
+export const defaultApplicationData: ApplicationData = {
+  version: '2.0.0',
+  installDate: new Date().toISOString(),
+  lastStartup: new Date().toISOString(),
+  features: {
+    manufacturing: true,
+    mining: true,
+    market: true,
+    structures: true,
+  },
+  metrics: {
+    totalApiCalls: 0,
+    averageResponseTime: 0,
+    errorRate: 0,
+  },
+  maintenance: {
+    autoBackup: true,
+    cleanupSchedule: '0 1 * * *', // Daily at 1 AM
+    logRotation: true,
+  },
+};
+
+// Hook exports for React components
+export const useGeneralSettings = () => useKV<GeneralSettings>('lmeve-settings-general', defaultGeneralSettings);
+export const useDatabaseSettings = () => useKV<DatabaseSettings>('lmeve-settings-database', defaultDatabaseSettings);
+export const useESISettings = () => useKV<ESISettings>('lmeve-settings-esi', defaultESISettings);
+export const useSDESettings = () => useKV<SDESettings>('lmeve-settings-sde', defaultSDESettings);
+export const useSyncSettings = () => useKV<SyncSettings>('lmeve-settings-sync', defaultSyncSettings);
+export const useNotificationSettings = () => useKV<NotificationSettings>('lmeve-settings-notifications', defaultNotificationSettings);
+export const useIncomeSettings = () => useKV<IncomeSettings>('lmeve-settings-income', defaultIncomeSettings);
+export const useManualUsers = () => useKV<ManualUser[]>('lmeve-manual-users', []);
+export const useApplicationData = () => useKV<ApplicationData>('lmeve-application-data', defaultApplicationData);
+
+// Utility functions for data export/import
+export const exportAllSettings = async () => {
+  const settings = {
+    general: await spark.kv.get<GeneralSettings>('lmeve-settings-general'),
+    database: await spark.kv.get<DatabaseSettings>('lmeve-settings-database'),
+    esi: await spark.kv.get<ESISettings>('lmeve-settings-esi'),
+    sde: await spark.kv.get<SDESettings>('lmeve-settings-sde'),
+    sync: await spark.kv.get<SyncSettings>('lmeve-settings-sync'),
+    notifications: await spark.kv.get<NotificationSettings>('lmeve-settings-notifications'),
+    income: await spark.kv.get<IncomeSettings>('lmeve-settings-income'),
+    users: await spark.kv.get<ManualUser[]>('lmeve-manual-users'),
+    application: await spark.kv.get<ApplicationData>('lmeve-application-data'),
+  };
   
   return {
-    version: '2.
+    version: '2.0.0',
+    exportDate: new Date().toISOString(),
+    settings,
   };
-
-export const importAllSe
-    throw new Error('Invali
-
-
- 
-
-  if (settings.sync) await spark.k
-  if (settings.income) await spar
-  if (settin
-
 };
-// Reset all s
-  await spark.kv.set
-  await spark.kv.se
-  await spark.kv.set('lme
-  await spark.kv.set('lmeve-se
-  // Don't reset applicatio
+
+export const importAllSettings = async (importData: any) => {
+  if (!importData.settings) {
+    throw new Error('Invalid import data format');
+  }
+
+  const { settings } = importData;
+
+  if (settings.general) await spark.kv.set('lmeve-settings-general', settings.general);
+  if (settings.database) await spark.kv.set('lmeve-settings-database', settings.database);
+  if (settings.esi) await spark.kv.set('lmeve-settings-esi', settings.esi);
+  if (settings.sde) await spark.kv.set('lmeve-settings-sde', settings.sde);
+  if (settings.sync) await spark.kv.set('lmeve-settings-sync', settings.sync);
+  if (settings.notifications) await spark.kv.set('lmeve-settings-notifications', settings.notifications);
+  if (settings.income) await spark.kv.set('lmeve-settings-income', settings.income);
+  if (settings.users) await spark.kv.set('lmeve-manual-users', settings.users);
+  if (settings.application) await spark.kv.set('lmeve-application-data', settings.application);
 };
+
+// Reset all settings to defaults
+export const resetAllSettings = async () => {
+  await spark.kv.set('lmeve-settings-general', defaultGeneralSettings);
+  await spark.kv.set('lmeve-settings-database', defaultDatabaseSettings);
+  await spark.kv.set('lmeve-settings-esi', defaultESISettings);
+  await spark.kv.set('lmeve-settings-sde', defaultSDESettings);
+  await spark.kv.set('lmeve-settings-sync', defaultSyncSettings);
+  await spark.kv.set('lmeve-settings-notifications', defaultNotificationSettings);
+  await spark.kv.set('lmeve-settings-income', defaultIncomeSettings);
+  await spark.kv.set('lmeve-manual-users', []);
+  // Don't reset application data as it contains version info
+};
+
 // Backup to downloadable file
-  const backup = await expor
-  const dataBlob = new 
-
-  link.href =
-  document.body.append
-  document.body
+export const backupSettings = async () => {
+  const backup = await exportAllSettings();
+  const dataBlob = new Blob([JSON.stringify(backup, null, 2)], { type: 'application/json' });
   
+  const link = document.createElement('a');
+  link.href = URL.createObjectURL(dataBlob);
+  link.download = `lmeve-backup-${new Date().toISOString().split('T')[0]}.json`;
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
 };
-// Configuration 
-  const errors:
+
+// Configuration validation
+export const validateSettings = (category: string, settings: any): string[] => {
+  const errors: string[] = [];
+  
   switch (category) {
-      if (!settings.h
-      if (!settings.data
+    case 'database':
+      if (!settings.host) errors.push('Database host is required');
+      if (!settings.database) errors.push('Database name is required');
+      if (!settings.username) errors.push('Database username is required');
       break;
     case 'esi':
-      if (!settings
+      if (!settings.clientId) errors.push('ESI Client ID is required');
+      if (!settings.clientSecret) errors.push('ESI Client Secret is required');
       break;
-    case 'notificatio
-        errors.push
-      if (settings.chann
-
-
-      Object.entr
-          errors.push
+    case 'notifications':
+      if (settings.channels.email && !settings.emailSettings.smtpHost) {
+        errors.push('SMTP host is required for email notifications');
+      }
+      if (settings.channels.webhook && !settings.webhookUrl) {
+        errors.push('Webhook URL is required for webhook notifications');
+      }
+      break;
+    case 'income':
+      Object.entries(settings.hourlyRates).forEach(([key, value]) => {
+        if (typeof value !== 'number' || value < 0) {
+          errors.push(`Invalid hourly rate for ${key}`);
+        }
       });
+      break;
   }
+  
   return errors;
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+};
