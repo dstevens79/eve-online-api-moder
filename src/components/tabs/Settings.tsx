@@ -58,6 +58,23 @@ import { AdminLoginTest } from '@/components/AdminLoginTest';
 import { SimpleLoginTest } from '@/components/SimpleLoginTest';
 import { runDatabaseValidationTests } from '@/lib/databaseTestCases';
 import { DatabaseManager, DatabaseSetupManager, DatabaseSetupProgress, generateSetupCommands } from '@/lib/database';
+import { 
+  useGeneralSettings, 
+  useDatabaseSettings, 
+  useESISettings, 
+  useSDESettings, 
+  useSyncSettings, 
+  useNotificationSettings, 
+  useIncomeSettings, 
+  useApplicationData,
+  useManualUsers,
+  useCorporationData,
+  downloadBackup,
+  exportAllSettings,
+  importAllSettings,
+  resetAllSettings,
+  validateSettings
+} from '@/lib/persistenceService';
 
 interface SyncStatus {
   isRunning: boolean;
@@ -91,56 +108,51 @@ export function Settings({ activeTab, onTabChange }: SettingsProps) {
     registeredCorps 
   } = useCorporationAuth();
   const { sdeStatus, checkForUpdates, downloadSDE, updateDatabase, getDatabaseStats } = useSDEManager();
-  const [settings, setSettings] = useKV<CorpSettings>('corp-settings', {
-    corpName: user?.corporationName || 'Test Alliance Please Ignore',
-    corpTicker: 'TEST',
-    corpId: user?.corporationId || 498125261,
-    timezone: 'UTC',
-    language: 'en',
-    sessionTimeout: true,
+  
+  // Use the new persistence system
+  const [generalSettings, setGeneralSettings] = useGeneralSettings();
+  const [databaseSettings, setDatabaseSettings] = useDatabaseSettings();
+  const [esiSettings, setESISettings] = useESISettings();
+  const [sdeSettings, setSDESettings] = useSDESettings();
+  const [syncSettings, setSyncSettings] = useSyncSettings();
+  const [notificationSettings, setNotificationSettings] = useNotificationSettings();
+  const [incomeSettings, setIncomeSettings] = useIncomeSettings();
+  const [applicationData, setApplicationData] = useApplicationData();
+  const [manualUsers, setManualUsers] = useManualUsers();
+  const [corporationData, setCorporationData] = useCorporationData();
+
+  // Backward compatibility - gradually migrate away from this
+  const settings = {
+    corpName: generalSettings.corpName,
+    corpTicker: generalSettings.corpTicker,
+    corpId: generalSettings.corpId,
+    timezone: generalSettings.timezone,
+    language: generalSettings.language,
+    sessionTimeout: generalSettings.sessionTimeout,
     notifications: {
-      manufacturing: true,
-      mining: true,
-      killmails: false,
-      markets: true,
+      manufacturing: notificationSettings.events.manufacturing,
+      mining: notificationSettings.events.mining,
+      killmails: notificationSettings.events.killmails,
+      markets: notificationSettings.events.markets,
     },
     eveOnlineSync: {
-      enabled: true,
-      autoSync: false,
+      enabled: syncSettings.enabled,
+      autoSync: syncSettings.autoSync,
       syncInterval: 30,
       lastSync: new Date().toISOString(),
-      characterId: 91316135,
-      corporationId: 498125261
+      characterId: generalSettings.corpId || 91316135,
+      corporationId: generalSettings.corpId || 498125261
     },
-    dataSyncTimers: {
-      members: 60,
-      assets: 30,
-      manufacturing: 15,
-      mining: 45,
-      market: 10,
-      killmails: 120,
-      income: 30
-    },
-    database: {
-      host: 'localhost',
-      port: 3306,
-      database: 'lmeve',
-      username: 'lmeve_user',
-      password: '',
-      ssl: false,
-      connectionPoolSize: 10,
-      queryTimeout: 30,
-      autoReconnect: true,
-      charset: 'utf8mb4'
-    },
+    dataSyncTimers: syncSettings.syncIntervals,
+    database: databaseSettings,
     sudoDatabase: {
-      host: 'localhost',
-      port: 3306,
-      username: 'root',
-      password: '',
-      ssl: false
+      host: databaseSettings.sudoHost,
+      port: databaseSettings.sudoPort,
+      username: databaseSettings.sudoUsername,
+      password: databaseSettings.sudoPassword,
+      ssl: databaseSettings.sudoSsl
     }
-  });
+  };
 
   const [esiConfigLocal, setESIConfigLocal] = useKV<any>('esi-config-legacy', {
     clientId: '',
@@ -231,17 +243,203 @@ export function Settings({ activeTab, onTabChange }: SettingsProps) {
   // Admin configuration state
   const [tempAdminConfig, setTempAdminConfig] = useState(adminConfig);
 
-  // Manual users management state
-  const [manualUsers, setManualUsers] = useKV<Array<{
-    id: string;
-    username: string; 
-    characterName: string;
-    corporationName: string;
-    roles: string[];
-    createdAt: string;
-    lastLogin?: string;
-    isActive: boolean;
-  }>>('manual-users', []);
+  // Save handlers for each settings category
+  const saveGeneralSettings = async () => {
+    try {
+      const errors = validateSettings('general', generalSettings);
+      if (errors.length > 0) {
+        toast.error(`Validation failed: ${errors.join(', ')}`);
+        return;
+      }
+      
+      setGeneralSettings({ ...generalSettings });
+      toast.success('General settings saved successfully');
+    } catch (error) {
+      console.error('Failed to save general settings:', error);
+      toast.error('Failed to save general settings');
+    }
+  };
+
+  const saveDatabaseSettings = async () => {
+    try {
+      const errors = validateSettings('database', databaseSettings);
+      if (errors.length > 0) {
+        toast.error(`Validation failed: ${errors.join(', ')}`);
+        return;
+      }
+      
+      setDatabaseSettings({ ...databaseSettings });
+      toast.success('Database settings saved successfully');
+    } catch (error) {
+      console.error('Failed to save database settings:', error);
+      toast.error('Failed to save database settings');
+    }
+  };
+
+  const saveESISettings = async () => {
+    try {
+      const errors = validateSettings('esi', esiSettings);
+      if (errors.length > 0) {
+        toast.error(`Validation failed: ${errors.join(', ')}`);
+        return;
+      }
+      
+      setESISettings({ ...esiSettings });
+      toast.success('ESI settings saved successfully');
+    } catch (error) {
+      console.error('Failed to save ESI settings:', error);
+      toast.error('Failed to save ESI settings');
+    }
+  };
+
+  const saveSDESettings = async () => {
+    try {
+      setSDESettings({ ...sdeSettings });
+      toast.success('SDE settings saved successfully');
+    } catch (error) {
+      console.error('Failed to save SDE settings:', error);
+      toast.error('Failed to save SDE settings');
+    }
+  };
+
+  const saveSyncSettings = async () => {
+    try {
+      setSyncSettings({ ...syncSettings });
+      toast.success('Sync settings saved successfully');
+    } catch (error) {
+      console.error('Failed to save sync settings:', error);
+      toast.error('Failed to save sync settings');
+    }
+  };
+
+  const saveNotificationSettings = async () => {
+    try {
+      const errors = validateSettings('notifications', notificationSettings);
+      if (errors.length > 0) {
+        toast.error(`Validation failed: ${errors.join(', ')}`);
+        return;
+      }
+      
+      setNotificationSettings({ ...notificationSettings });
+      toast.success('Notification settings saved successfully');
+    } catch (error) {
+      console.error('Failed to save notification settings:', error);
+      toast.error('Failed to save notification settings');
+    }
+  };
+
+  const saveIncomeSettings = async () => {
+    try {
+      const errors = validateSettings('income', incomeSettings);
+      if (errors.length > 0) {
+        toast.error(`Validation failed: ${errors.join(', ')}`);
+        return;
+      }
+      
+      setIncomeSettings({ ...incomeSettings });
+      toast.success('Income settings saved successfully');
+    } catch (error) {
+      console.error('Failed to save income settings:', error);
+      toast.error('Failed to save income settings');
+    }
+  };
+
+  // Export/Import handlers
+  const handleExportSettings = async () => {
+    try {
+      await downloadBackup();
+      toast.success('Settings exported successfully');
+    } catch (error) {
+      console.error('Failed to export settings:', error);
+      toast.error('Failed to export settings');
+    }
+  };
+
+  const handleImportSettings = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    try {
+      const text = await file.text();
+      const data = JSON.parse(text);
+      await importAllSettings(data);
+      toast.success('Settings imported successfully');
+      
+      // Refresh the page to load new settings
+      window.location.reload();
+    } catch (error) {
+      console.error('Failed to import settings:', error);
+      toast.error('Failed to import settings: Invalid file format');
+    }
+  };
+
+  const handleResetSettings = async () => {
+    if (!confirm('Are you sure you want to reset all settings to defaults? This cannot be undone.')) {
+      return;
+    }
+
+    try {
+      await resetAllSettings();
+      toast.success('Settings reset to defaults');
+      
+      // Refresh the page to load default settings
+      window.location.reload();
+    } catch (error) {
+      console.error('Failed to reset settings:', error);
+      toast.error('Failed to reset settings');
+    }
+  };
+
+  // Helper functions for updating settings
+  const updateGeneralSetting = (key: keyof typeof generalSettings, value: any) => {
+    setGeneralSettings(prev => ({ ...prev, [key]: value }));
+  };
+
+  const updateDatabaseSetting = (key: keyof typeof databaseSettings, value: any) => {
+    setDatabaseSettings(prev => ({ ...prev, [key]: value }));
+  };
+
+  const updateESISetting = (key: keyof typeof esiSettings, value: any) => {
+    setESISettings(prev => ({ ...prev, [key]: value }));
+  };
+
+  const updateSDESetting = (key: keyof typeof sdeSettings, value: any) => {
+    setSDESettings(prev => ({ ...prev, [key]: value }));
+  };
+
+  const updateSyncSetting = (key: keyof typeof syncSettings, value: any) => {
+    setSyncSettings(prev => ({ ...prev, [key]: value }));
+  };
+
+  const updateNotificationSetting = (key: keyof typeof notificationSettings, value: any) => {
+    setNotificationSettings(prev => ({ ...prev, [key]: value }));
+  };
+
+  const updateIncomeSetting = (key: keyof typeof incomeSettings, value: any) => {
+    setIncomeSettings(prev => ({ ...prev, [key]: value }));
+  };
+
+  // Nested setting updates
+  const updateSyncInterval = (category: string, minutes: number) => {
+    setSyncSettings(prev => ({
+      ...prev,
+      syncIntervals: { ...prev.syncIntervals, [category]: minutes }
+    }));
+  };
+
+  const updateNotificationEvent = (event: string, enabled: boolean) => {
+    setNotificationSettings(prev => ({
+      ...prev,
+      events: { ...prev.events, [event]: enabled }
+    }));
+  };
+
+  const updateIncomeRate = (category: string, rate: number) => {
+    setIncomeSettings(prev => ({
+      ...prev,
+      hourlyRates: { ...prev.hourlyRates, [category]: rate }
+    }));
+  };
   const [showAddUser, setShowAddUser] = useState(false);
   const [newUser, setNewUser] = useState({
     username: '',
@@ -250,6 +448,16 @@ export function Settings({ activeTab, onTabChange }: SettingsProps) {
     corporationName: '',
     roles: [] as string[],
   });
+
+  // Backward compatibility functions for existing code
+  const updateDatabaseConfig = (key: string, value: any) => {
+    updateDatabaseSetting(key as any, value);
+  };
+
+  const updateSudoDatabaseConfig = (key: string, value: any) => {
+    const sudoKey = `sudo${key.charAt(0).toUpperCase() + key.slice(1)}`;
+    updateDatabaseSetting(sudoKey as any, value);
+  };
 
   // Ensure safe access to settings
   const eveOnlineSync = settings?.eveOnlineSync || {
@@ -916,61 +1124,192 @@ export function Settings({ activeTab, onTabChange }: SettingsProps) {
         <TabsContent value="general" className="space-y-6">
           <Card>
             <CardHeader>
-              <CardTitle>Corporation Information</CardTitle>
+              <CardTitle className="flex items-center gap-2">
+                <Globe size={20} />
+                General Settings
+              </CardTitle>
             </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="corpName">Corporation Name</Label>
-                  <Input
-                    id="corpName"
-                    value={settings.corpName}
-                    onChange={(e) => setSettings(s => ({ ...s, corpName: e.target.value }))}
-                  />
+            <CardContent className="space-y-6">
+              {/* Corporation Information */}
+              <div className="space-y-4">
+                <h4 className="font-medium">Corporation Information</h4>
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="corpName">Corporation Name</Label>
+                    <Input
+                      id="corpName"
+                      value={generalSettings.corpName}
+                      onChange={(e) => updateGeneralSetting('corpName', e.target.value)}
+                      placeholder="Your Corporation Name"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="corpTicker">Corporation Ticker</Label>
+                    <Input
+                      id="corpTicker"
+                      value={generalSettings.corpTicker}
+                      onChange={(e) => updateGeneralSetting('corpTicker', e.target.value)}
+                      placeholder="CORP"
+                      maxLength={5}
+                    />
+                  </div>
                 </div>
+                
                 <div className="space-y-2">
-                  <Label htmlFor="corpTicker">Corporation Ticker</Label>
+                  <Label htmlFor="corpId">Corporation ID</Label>
                   <Input
-                    id="corpTicker"
-                    value={settings.corpTicker}
-                    onChange={(e) => setSettings(s => ({ ...s, corpTicker: e.target.value }))}
-                  />
-                </div>
-              </div>
-              
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="timezone">Timezone</Label>
-                  <Input
-                    id="timezone"
-                    value={settings.timezone}
-                    onChange={(e) => setSettings(s => ({ ...s, timezone: e.target.value }))}
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="language">Language</Label>
-                  <Input
-                    id="language"
-                    value={settings.language}
-                    onChange={(e) => setSettings(s => ({ ...s, language: e.target.value }))}
+                    id="corpId"
+                    type="number"
+                    value={generalSettings.corpId.toString()}
+                    onChange={(e) => updateGeneralSetting('corpId', parseInt(e.target.value) || 0)}
+                    placeholder="98000001"
                   />
                 </div>
               </div>
 
-              <div className="border-t border-border pt-6 space-y-4">
-                <h4 className="font-medium">Application Settings</h4>
+              {/* Regional Settings */}
+              <div className="space-y-4">
+                <h4 className="font-medium">Regional Settings</h4>
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="timezone">Timezone</Label>
+                    <Input
+                      id="timezone"
+                      value={generalSettings.timezone}
+                      onChange={(e) => updateGeneralSetting('timezone', e.target.value)}
+                      placeholder="UTC"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="language">Language</Label>
+                    <Input
+                      id="language"
+                      value={generalSettings.language}
+                      onChange={(e) => updateGeneralSetting('language', e.target.value)}
+                      placeholder="en"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* Session Settings */}
+              <div className="space-y-4">
+                <h4 className="font-medium">Session Settings</h4>
                 
                 <div className="flex items-center justify-between">
                   <div className="space-y-0.5">
                     <Label>Session Timeout</Label>
                     <p className="text-sm text-muted-foreground">
-                      Automatically log out after 2 hours of inactivity
+                      Automatically log out users after period of inactivity
                     </p>
                   </div>
                   <Switch 
-                    checked={settings.sessionTimeout}
-                    onCheckedChange={(checked) => setSettings(s => ({ ...s, sessionTimeout: checked }))}
+                    checked={generalSettings.sessionTimeout}
+                    onCheckedChange={(checked) => updateGeneralSetting('sessionTimeout', checked)}
                   />
+                </div>
+
+                {generalSettings.sessionTimeout && (
+                  <div className="space-y-2">
+                    <Label htmlFor="sessionTimeoutMinutes">Session Timeout (minutes)</Label>
+                    <Input
+                      id="sessionTimeoutMinutes"
+                      type="number"
+                      value={generalSettings.sessionTimeoutMinutes.toString()}
+                      onChange={(e) => updateGeneralSetting('sessionTimeoutMinutes', parseInt(e.target.value) || 30)}
+                      min="5"
+                      max="480"
+                      placeholder="30"
+                    />
+                    <p className="text-xs text-muted-foreground">
+                      Range: 5-480 minutes (8 hours max)
+                    </p>
+                  </div>
+                )}
+              </div>
+
+              {/* Application Settings */}
+              <div className="space-y-4">
+                <h4 className="font-medium">Application Settings</h4>
+                
+                <div className="flex items-center justify-between">
+                  <div className="space-y-0.5">
+                    <Label>Maintenance Mode</Label>
+                    <p className="text-sm text-muted-foreground">
+                      Block all non-admin access for maintenance
+                    </p>
+                  </div>
+                  <Switch 
+                    checked={generalSettings.maintenanceMode}
+                    onCheckedChange={(checked) => updateGeneralSetting('maintenanceMode', checked)}
+                  />
+                </div>
+
+                <div className="flex items-center justify-between">
+                  <div className="space-y-0.5">
+                    <Label>Debug Mode</Label>
+                    <p className="text-sm text-muted-foreground">
+                      Enable detailed logging and debug information
+                    </p>
+                  </div>
+                  <Switch 
+                    checked={generalSettings.debugMode}
+                    onCheckedChange={(checked) => updateGeneralSetting('debugMode', checked)}
+                  />
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="logLevel">Log Level</Label>
+                    <select
+                      id="logLevel"
+                      value={generalSettings.logLevel}
+                      onChange={(e) => updateGeneralSetting('logLevel', e.target.value)}
+                      className="w-full h-10 px-3 rounded-md border border-input bg-background text-sm"
+                    >
+                      <option value="error">Error</option>
+                      <option value="warn">Warning</option>
+                      <option value="info">Info</option>
+                      <option value="debug">Debug</option>
+                    </select>
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="maxLogRetentionDays">Log Retention (days)</Label>
+                    <Input
+                      id="maxLogRetentionDays"
+                      type="number"
+                      value={generalSettings.maxLogRetentionDays.toString()}
+                      onChange={(e) => updateGeneralSetting('maxLogRetentionDays', parseInt(e.target.value) || 30)}
+                      min="1"
+                      max="365"
+                      placeholder="30"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* Save Actions */}
+              <div className="flex justify-end gap-2 pt-4 border-t border-border">
+                <Button
+                  variant="outline"
+                  onClick={() => {
+                    // Reset to current saved values
+                    window.location.reload();
+                  }}
+                >
+                  Reset Changes
+                </Button>
+                <Button
+                  onClick={saveGeneralSettings}
+                  className="bg-accent hover:bg-accent/90 text-accent-foreground"
+                >
+                  <CheckCircle size={16} className="mr-2" />
+                  Save General Settings
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
                 </div>
               </div>
 
@@ -1067,10 +1406,10 @@ export function Settings({ activeTab, onTabChange }: SettingsProps) {
                           <Label htmlFor="dbHost">Host</Label>
                           <Input
                             id="dbHost"
-                            value={settings.database?.host || ''}
+                            value={databaseSettings.host || ''}
                             onChange={(e) => {
-                              updateDatabaseConfig('host', e.target.value);
-                              updateSudoDatabaseConfig('host', e.target.value);
+                              updateDatabaseSetting('host', e.target.value);
+                              updateDatabaseSetting('sudoHost', e.target.value);
                             }}
                             placeholder="localhost"
                           />
@@ -1080,11 +1419,11 @@ export function Settings({ activeTab, onTabChange }: SettingsProps) {
                           <Input
                             id="dbPort"
                             type="number"
-                            value={settings.database?.port || ''}
+                            value={databaseSettings.port || ''}
                             onChange={(e) => {
                               const port = parseInt(e.target.value) || 3306;
-                              updateDatabaseConfig('port', port);
-                              updateSudoDatabaseConfig('port', port);
+                              updateDatabaseSetting('port', port);
+                              updateDatabaseSetting('sudoPort', port);
                             }}
                             placeholder="3306"
                           />
@@ -1094,8 +1433,8 @@ export function Settings({ activeTab, onTabChange }: SettingsProps) {
                         <Label htmlFor="dbName">Database Name</Label>
                         <Input
                           id="dbName"
-                          value={settings.database?.database || ''}
-                          onChange={(e) => updateDatabaseConfig('database', e.target.value)}
+                          value={databaseSettings.database || ''}
+                          onChange={(e) => updateDatabaseSetting('database', e.target.value)}
                           placeholder="lmeve"
                         />
                       </div>
@@ -1114,8 +1453,8 @@ export function Settings({ activeTab, onTabChange }: SettingsProps) {
                         <Label htmlFor="sudoUsername">Username</Label>
                         <Input
                           id="sudoUsername"
-                          value={settings.sudoDatabase?.username || ''}
-                          onChange={(e) => updateSudoDatabaseConfig('username', e.target.value)}
+                          value={databaseSettings.sudoUsername || ''}
+                          onChange={(e) => updateDatabaseSetting('sudoUsername', e.target.value)}
                           placeholder="root"
                         />
                       </div>
@@ -1125,8 +1464,8 @@ export function Settings({ activeTab, onTabChange }: SettingsProps) {
                           <Input
                             id="sudoPassword"
                             type={showSudoPassword ? "text" : "password"}
-                            value={settings.sudoDatabase?.password || ''}
-                            onChange={(e) => updateSudoDatabaseConfig('password', e.target.value)}
+                            value={databaseSettings.sudoPassword || ''}
+                            onChange={(e) => updateDatabaseSetting('sudoPassword', e.target.value)}
                             placeholder="Root/admin database password"
                           />
                           <Button
@@ -1158,8 +1497,8 @@ export function Settings({ activeTab, onTabChange }: SettingsProps) {
                         <Label htmlFor="dbUsername">Username</Label>
                         <Input
                           id="dbUsername"
-                          value={settings.database?.username || ''}
-                          onChange={(e) => updateDatabaseConfig('username', e.target.value)}
+                          value={databaseSettings.username || ''}
+                          onChange={(e) => updateDatabaseSetting('username', e.target.value)}
                           placeholder="lmeve_user"
                         />
                       </div>
@@ -1169,8 +1508,8 @@ export function Settings({ activeTab, onTabChange }: SettingsProps) {
                           <Input
                             id="dbPassword"
                             type={showDbPassword ? "text" : "password"}
-                            value={settings.database?.password || ''}
-                            onChange={(e) => updateDatabaseConfig('password', e.target.value)}
+                            value={databaseSettings.password || ''}
+                            onChange={(e) => updateDatabaseSetting('password', e.target.value)}
                             placeholder="Application database password"
                           />
                           <Button
@@ -1626,6 +1965,26 @@ export function Settings({ activeTab, onTabChange }: SettingsProps) {
                   </div>
                 </div>
               )}
+
+              {/* Save Database Settings */}
+              <div className="flex justify-end gap-2 pt-4 border-t border-border">
+                <Button
+                  variant="outline"
+                  onClick={() => {
+                    // Reset to current saved values
+                    window.location.reload();
+                  }}
+                >
+                  Reset Changes
+                </Button>
+                <Button
+                  onClick={saveDatabaseSettings}
+                  className="bg-accent hover:bg-accent/90 text-accent-foreground"
+                >
+                  <CheckCircle size={16} className="mr-2" />
+                  Save Database Settings
+                </Button>
+              </div>
             </CardContent>
           </Card>
         </TabsContent>
@@ -2712,6 +3071,58 @@ export function Settings({ activeTab, onTabChange }: SettingsProps) {
                   <Database size={16} className="mr-2" />
                   Run Database Validation Test Suite
                 </Button>
+              </div>
+              
+              <Separator />
+              
+              {/* Data Management */}
+              <div className="space-y-4">
+                <h4 className="font-medium">Data Management</h4>
+                <p className="text-sm text-muted-foreground">
+                  Export and import all LMeve configuration data including settings, users, and corporation data.
+                </p>
+                
+                <div className="grid grid-cols-3 gap-4">
+                  <Button
+                    variant="outline"
+                    onClick={handleExportSettings}
+                    className="flex items-center justify-center"
+                  >
+                    <Download size={16} className="mr-2" />
+                    Export All Data
+                  </Button>
+                  
+                  <div className="relative">
+                    <input
+                      type="file"
+                      accept=".json"
+                      onChange={handleImportSettings}
+                      className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                    />
+                    <Button
+                      variant="outline"
+                      className="w-full flex items-center justify-center"
+                    >
+                      <Upload size={16} className="mr-2" />
+                      Import Data
+                    </Button>
+                  </div>
+                  
+                  <Button
+                    variant="destructive"
+                    onClick={handleResetSettings}
+                    className="flex items-center justify-center"
+                  >
+                    <ArrowClockwise size={16} className="mr-2" />
+                    Reset All
+                  </Button>
+                </div>
+                
+                <div className="text-xs text-muted-foreground space-y-1">
+                  <p>• Export creates a downloadable backup file with all settings</p>
+                  <p>• Import restores settings from a previously exported file</p>
+                  <p>• Reset restores all settings to default values (requires confirmation)</p>
+                </div>
               </div>
             </CardContent>
           </Card>

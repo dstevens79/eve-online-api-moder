@@ -24,10 +24,12 @@ import {
 } from '@phosphor-icons/react';
 import { useKV } from '@github/spark/hooks';
 import { toast } from 'sonner';
+import { useIncomeSettings } from '@/lib/persistenceService';
 
 export function Income({ onLoginClick }: TabComponentProps) {
   const { user } = useCorporationAuth();
   const [incomeRecords] = useKV<IncomeRecord[]>('income-records', []);
+  const [incomeSettings, setIncomeSettings] = useIncomeSettings();
   const [selectedPeriod, setSelectedPeriod] = useState('30d');
   const [selectedPilot, setSelectedPilot] = useState('all');
   const [selectedJobType, setSelectedJobType] = useState('all');
@@ -411,6 +413,7 @@ export function Income({ onLoginClick }: TabComponentProps) {
           <TabsTrigger value="pilots">Top Pilots</TabsTrigger>
           <TabsTrigger value="products">Top Products</TabsTrigger>
           <TabsTrigger value="details">Job Details</TabsTrigger>
+          <TabsTrigger value="settings">Settings</TabsTrigger>
         </TabsList>
 
         <TabsContent value="overview" className="space-y-6">
@@ -598,6 +601,218 @@ export function Income({ onLoginClick }: TabComponentProps) {
                     ))}
                   </tbody>
                 </table>
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="settings" className="space-y-6">
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Gear size={20} />
+                Income & Payment Settings
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-6">
+              {/* Hourly Rates */}
+              <div className="space-y-4">
+                <h4 className="font-medium">Hourly Rates (ISK per hour)</h4>
+                <div className="grid grid-cols-2 gap-4">
+                  {Object.entries(incomeSettings.hourlyRates).map(([category, rate]) => (
+                    <div key={category} className="space-y-2">
+                      <label className="text-sm font-medium capitalize">
+                        {category.replace(/([A-Z])/g, ' $1').trim()}
+                      </label>
+                      <Input
+                        type="number"
+                        value={rate.toString()}
+                        onChange={(e) => {
+                          const newRate = parseInt(e.target.value) || 0;
+                          setIncomeSettings(prev => ({
+                            ...prev,
+                            hourlyRates: { ...prev.hourlyRates, [category]: newRate }
+                          }));
+                        }}
+                        placeholder="50000000"
+                        className="text-right"
+                      />
+                      <p className="text-xs text-muted-foreground">
+                        {(rate / 1e6).toFixed(1)}M ISK/hour
+                      </p>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* Bonus Rates */}
+              <div className="space-y-4">
+                <h4 className="font-medium">Bonus Multipliers</h4>
+                <div className="grid grid-cols-3 gap-4">
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium">Weekend Multiplier</label>
+                    <Input
+                      type="number"
+                      step="0.1"
+                      value={incomeSettings.bonusRates.weekendMultiplier.toString()}
+                      onChange={(e) => {
+                        const value = parseFloat(e.target.value) || 1.0;
+                        setIncomeSettings(prev => ({
+                          ...prev,
+                          bonusRates: { ...prev.bonusRates, weekendMultiplier: value }
+                        }));
+                      }}
+                      placeholder="1.5"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium">Night Shift Multiplier</label>
+                    <Input
+                      type="number"
+                      step="0.1"
+                      value={incomeSettings.bonusRates.nightShiftMultiplier.toString()}
+                      onChange={(e) => {
+                        const value = parseFloat(e.target.value) || 1.0;
+                        setIncomeSettings(prev => ({
+                          ...prev,
+                          bonusRates: { ...prev.bonusRates, nightShiftMultiplier: value }
+                        }));
+                      }}
+                      placeholder="1.2"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium">Holiday Multiplier</label>
+                    <Input
+                      type="number"
+                      step="0.1"
+                      value={incomeSettings.bonusRates.holidayMultiplier.toString()}
+                      onChange={(e) => {
+                        const value = parseFloat(e.target.value) || 1.0;
+                        setIncomeSettings(prev => ({
+                          ...prev,
+                          bonusRates: { ...prev.bonusRates, holidayMultiplier: value }
+                        }));
+                      }}
+                      placeholder="2.0"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* Payment Settings */}
+              <div className="space-y-4">
+                <h4 className="font-medium">Payment Settings</h4>
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium">Payment Schedule</label>
+                    <select
+                      value={incomeSettings.paymentSettings.paymentSchedule}
+                      onChange={(e) => {
+                        setIncomeSettings(prev => ({
+                          ...prev,
+                          paymentSettings: { 
+                            ...prev.paymentSettings, 
+                            paymentSchedule: e.target.value as 'daily' | 'weekly' | 'monthly'
+                          }
+                        }));
+                      }}
+                      className="w-full h-10 px-3 rounded-md border border-input bg-background text-sm"
+                    >
+                      <option value="daily">Daily</option>
+                      <option value="weekly">Weekly</option>
+                      <option value="monthly">Monthly</option>
+                    </select>
+                  </div>
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium">Currency</label>
+                    <select
+                      value={incomeSettings.paymentSettings.currency}
+                      onChange={(e) => {
+                        setIncomeSettings(prev => ({
+                          ...prev,
+                          paymentSettings: { 
+                            ...prev.paymentSettings, 
+                            currency: e.target.value as 'ISK' | 'USD' | 'EUR'
+                          }
+                        }));
+                      }}
+                      className="w-full h-10 px-3 rounded-md border border-input bg-background text-sm"
+                    >
+                      <option value="ISK">ISK</option>
+                      <option value="USD">USD</option>
+                      <option value="EUR">EUR</option>
+                    </select>
+                  </div>
+                </div>
+                
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium">Minimum Payout (ISK)</label>
+                    <Input
+                      type="number"
+                      value={incomeSettings.paymentSettings.minimumPayout.toString()}
+                      onChange={(e) => {
+                        const value = parseInt(e.target.value) || 0;
+                        setIncomeSettings(prev => ({
+                          ...prev,
+                          paymentSettings: { ...prev.paymentSettings, minimumPayout: value }
+                        }));
+                      }}
+                      placeholder="100000000"
+                      className="text-right"
+                    />
+                    <p className="text-xs text-muted-foreground">
+                      {(incomeSettings.paymentSettings.minimumPayout / 1e6).toFixed(1)}M ISK minimum
+                    </p>
+                  </div>
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium">Tax Rate (%)</label>
+                    <Input
+                      type="number"
+                      step="0.01"
+                      min="0"
+                      max="1"
+                      value={(incomeSettings.paymentSettings.taxRate * 100).toString()}
+                      onChange={(e) => {
+                        const value = (parseFloat(e.target.value) || 0) / 100;
+                        setIncomeSettings(prev => ({
+                          ...prev,
+                          paymentSettings: { ...prev.paymentSettings, taxRate: Math.min(1, Math.max(0, value)) }
+                        }));
+                      }}
+                      placeholder="10"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* Save Settings */}
+              <div className="flex justify-end gap-2 pt-4 border-t border-border">
+                <Button
+                  variant="outline"
+                  onClick={() => {
+                    // Reset to default values
+                    window.location.reload();
+                  }}
+                >
+                  Reset Changes
+                </Button>
+                <Button
+                  onClick={async () => {
+                    try {
+                      setIncomeSettings({ ...incomeSettings });
+                      toast.success('Income settings saved successfully');
+                    } catch (error) {
+                      console.error('Failed to save income settings:', error);
+                      toast.error('Failed to save income settings');
+                    }
+                  }}
+                  className="bg-accent hover:bg-accent/90 text-accent-foreground"
+                >
+                  <FloppyDisk size={16} className="mr-2" />
+                  Save Income Settings
+                </Button>
               </div>
             </CardContent>
           </Card>
