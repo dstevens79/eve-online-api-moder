@@ -9,12 +9,17 @@ import { useKV } from '@github/spark/hooks';
 
 export interface GeneralSettings {
   corpId: number;
+  corpName: string;
+  corpTicker: string;
   sessionTimeout: boolean;
   sessionTimeoutMinutes: number;
   maxLogRetentionDays: number;
   theme: 'dark' | 'light' | 'system';
   language: string;
   timezone: string;
+  maintenanceMode: boolean;
+  debugMode: boolean;
+  logLevel: 'error' | 'warn' | 'info' | 'debug';
 }
 
 export interface DatabaseSettings {
@@ -60,6 +65,7 @@ export interface SDESettings {
 export interface SyncSettings {
   enabled: boolean;
   autoSync: boolean;
+  lastSync: string;
   syncIntervals: {
     assets: number;
     members: number;
@@ -108,6 +114,7 @@ export interface NotificationSettings {
     manufacturing: boolean;
     mining: boolean;
     markets: boolean;
+    killmails: boolean;
     memberChanges: boolean;
     structureEvents: boolean;
     assetMovements: boolean;
@@ -174,9 +181,12 @@ export interface ManualUser {
   id: string;
   username: string;
   characterName: string;
-  corporationId: number;
-  permissions: string[];
-  lastLogin: string;
+  corporationName: string;
+  corporationId?: number;
+  roles: string[];
+  permissions?: string[];
+  lastLogin?: string;
+  createdAt: string;
   isActive: boolean;
 }
 
@@ -205,12 +215,17 @@ export interface ApplicationData {
 // Default values for all settings
 export const defaultGeneralSettings: GeneralSettings = {
   corpId: 0,
+  corpName: '',
+  corpTicker: '',
   sessionTimeout: true,
   sessionTimeoutMinutes: 60,
   maxLogRetentionDays: 30,
   theme: 'dark',
   language: 'en',
   timezone: 'UTC',
+  maintenanceMode: false,
+  debugMode: false,
+  logLevel: 'info',
 };
 
 export const defaultDatabaseSettings: DatabaseSettings = {
@@ -260,6 +275,7 @@ export const defaultSDESettings: SDESettings = {
 export const defaultSyncSettings: SyncSettings = {
   enabled: true,
   autoSync: true,
+  lastSync: '',
   syncIntervals: {
     assets: 60,
     members: 30,
@@ -308,6 +324,7 @@ export const defaultNotificationSettings: NotificationSettings = {
     manufacturing: true,
     mining: false,
     markets: false,
+    killmails: false,
     memberChanges: true,
     structureEvents: false,
     assetMovements: false,

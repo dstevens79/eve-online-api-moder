@@ -483,11 +483,11 @@ export function Settings({ activeTab, onTabChange }: SettingsProps) {
   // Load SDE database stats on component mount
   React.useEffect(() => {
     const loadSDEStats = async () => {
-      if (settings.database?.host && settings.database?.username && settings.database?.password) {
+      if (databaseSettings?.host && databaseSettings?.username && databaseSettings?.password) {
         try {
           // Simulate checking EveStaticData database
           const sdeDbConfig = {
-            ...settings.database,
+            ...databaseSettings,
             database: 'EveStaticData'
           };
           
@@ -521,7 +521,7 @@ export function Settings({ activeTab, onTabChange }: SettingsProps) {
     };
     
     loadSDEStats();
-  }, [settings.database]);
+  }, [databaseSettings]);
 
   // REAL database connection test using the strict DatabaseManager
   const handleTestDbConnection = async () => {
@@ -533,14 +533,14 @@ export function Settings({ activeTab, onTabChange }: SettingsProps) {
     
     console.log('🧪 Starting REAL database connection test');
     
-    if (!settings.database) {
+    if (!databaseSettings) {
       const error = 'Please configure database connection settings first';
       toast.error(error);
       addConnectionLog(`❌ ${error}`);
       return;
     }
     
-    const { host, port, database, username, password } = settings.database;
+    const { host, port, database, username, password } = databaseSettings;
     
     // Validate required fields
     if (!host || !port || !database || !username || !password) {
@@ -628,12 +628,12 @@ export function Settings({ activeTab, onTabChange }: SettingsProps) {
 
   // Simplified database connection functions
   const handleConnectDb = async () => {
-    if (!settings.database) {
+    if (!databaseSettings) {
       toast.error('Please configure database connection settings first');
       return;
     }
     
-    const { host, port, database, username, password } = settings.database;
+    const { host, port, database, username, password } = databaseSettings;
     
     if (!host || !port || !database || !username || !password) {
       toast.error('All database fields are required');
@@ -650,11 +650,11 @@ export function Settings({ activeTab, onTabChange }: SettingsProps) {
         database,
         username,
         password,
-        ssl: settings.database.ssl || false,
-        connectionPoolSize: settings.database.connectionPoolSize || 10,
-        queryTimeout: settings.database.queryTimeout || 30,
-        autoReconnect: settings.database.autoReconnect || true,
-        charset: settings.database.charset || 'utf8mb4'
+        ssl: databaseSettings.ssl || false,
+        connectionPoolSize: databaseSettings.connectionPoolSize || 10,
+        queryTimeout: databaseSettings.queryTimeout || 30,
+        autoReconnect: databaseSettings.autoReconnect || true,
+        charset: databaseSettings.charset || 'utf8mb4'
       };
       
       const manager = new DatabaseManager(config);
@@ -818,7 +818,7 @@ export function Settings({ activeTab, onTabChange }: SettingsProps) {
   // Simplified database manager effect
   useEffect(() => {
     console.log('Database config updated');
-  }, [settings.database]);
+  }, [databaseSettings]);
 
   const handleSyncData = async () => {
     if (syncStatus.isRunning) return;
@@ -858,11 +858,8 @@ export function Settings({ activeTab, onTabChange }: SettingsProps) {
             setCorporationInfo(corp);
             
             // Update settings with fetched data
-            setSettings(current => ({
-              ...current,
-              corpName: corp.name,
-              corpTicker: corp.ticker
-            }));
+            updateGeneralSetting('corpName', corp.name);
+            updateGeneralSetting('corpTicker', corp.ticker);
           } catch (error) {
             console.error('Failed to sync corporation data:', error);
           }
@@ -870,13 +867,7 @@ export function Settings({ activeTab, onTabChange }: SettingsProps) {
       }
 
       // Update last sync time
-      setSettings(current => ({
-        ...current,
-        eveOnlineSync: {
-          ...current.eveOnlineSync,
-          lastSync: new Date().toISOString()
-        }
-      }));
+      updateSyncSetting('lastSync', new Date().toISOString());
 
       setSyncStatus({
         isRunning: false,
@@ -908,28 +899,23 @@ export function Settings({ activeTab, onTabChange }: SettingsProps) {
   };
 
   const handleToggleAutoSync = () => {
-    setSettings(current => ({
-      ...current,
-      eveOnlineSync: {
-        ...current.eveOnlineSync,
-        autoSync: !current.eveOnlineSync.autoSync
-      }
-    }));
+    updateSyncSetting('autoSync', !syncSettings.autoSync);
   };
 
   const handleToggleEVESync = () => {
-    setSettings(current => ({
-      ...current,
-      eveOnlineSync: {
-        ...current.eveOnlineSync,
-        enabled: !current.eveOnlineSync.enabled
-      }
-    }));
+    updateSyncSetting('enabled', !syncSettings.enabled);
   };
 
   const handleSaveSettings = () => {
-    setSettings(settings);
-    toast.success('Settings saved successfully');
+    // Save all settings using individual save functions
+    saveGeneralSettings();
+    saveDatabaseSettings();
+    saveESISettings();
+    saveSDESettings();
+    saveSyncSettings();
+    saveNotificationSettings();
+    saveIncomeSettings();
+    toast.success('All settings saved successfully');
   };
 
   const handleSaveAdminConfig = () => {
@@ -949,7 +935,7 @@ export function Settings({ activeTab, onTabChange }: SettingsProps) {
       return;
     }
 
-    if (!settings.sudoDatabase?.host || !settings.sudoDatabase?.username || !settings.sudoDatabase?.password) {
+    if (!databaseSettings?.sudoHost || !databaseSettings?.sudoUsername || !databaseSettings?.sudoPassword) {
       toast.error('Please configure sudo database connection first (host, username, password)');
       return;
     }
@@ -970,7 +956,7 @@ export function Settings({ activeTab, onTabChange }: SettingsProps) {
       });
 
       const setupConfig_full = {
-        mysqlRootPassword: settings.sudoDatabase.password,
+        mysqlRootPassword: databaseSettings.sudoPassword,
         lmevePassword: setupConfig.lmevePassword,
         allowedHosts: setupConfig.allowedHosts,
         downloadSDE: setupConfig.downloadSDE,
@@ -990,7 +976,7 @@ export function Settings({ activeTab, onTabChange }: SettingsProps) {
         // Update the lmeve database config with the new setup
         updateDatabaseConfig('password', setupConfig.lmevePassword);
         updateDatabaseConfig('database', 'lmeve');
-        if (!settings.database?.username) {
+        if (!databaseSettings?.username) {
           updateDatabaseConfig('username', 'lmeve');
         }
         
@@ -1060,14 +1046,8 @@ export function Settings({ activeTab, onTabChange }: SettingsProps) {
     }
   };
 
-  const handleNotificationToggle = (type: keyof typeof settings.notifications) => {
-    setSettings(current => ({
-      ...current,
-      notifications: {
-        ...current.notifications,
-        [type]: !current.notifications[type]
-      }
-    }));
+  const handleNotificationToggle = (type: string) => {
+    updateNotificationEvent(type, !notificationSettings.events[type as keyof typeof notificationSettings.events]);
   };
 
   return (
@@ -1701,7 +1681,7 @@ export function Settings({ activeTab, onTabChange }: SettingsProps) {
                             return;
                           }
 
-                          if (!settings.sudoDatabase?.host || !settings.sudoDatabase?.username || !settings.sudoDatabase?.password) {
+                          if (!databaseSettings?.sudoHost || !databaseSettings?.sudoUsername || !databaseSettings?.sudoPassword) {
                             toast.error('Please configure sudo database connection first');
                             return;
                           }
@@ -1725,7 +1705,7 @@ export function Settings({ activeTab, onTabChange }: SettingsProps) {
                             });
 
                             const fullSetupConfig = {
-                              mysqlRootPassword: settings.sudoDatabase.password,
+                              mysqlRootPassword: databaseSettings.sudoPassword,
                               lmevePassword: setupConfig.lmevePassword,
                               allowedHosts: setupConfig.allowedHosts,
                               downloadSDE: setupConfig.downloadSDE,
@@ -1748,7 +1728,7 @@ export function Settings({ activeTab, onTabChange }: SettingsProps) {
                               // Update the lmeve database config with the new setup
                               updateDatabaseConfig('password', setupConfig.lmevePassword);
                               updateDatabaseConfig('database', 'lmeve');
-                              if (!settings.database?.username) {
+                              if (!databaseSettings?.username) {
                                 updateDatabaseConfig('username', 'lmeve');
                               }
                               
@@ -1777,7 +1757,7 @@ export function Settings({ activeTab, onTabChange }: SettingsProps) {
                         }}
                         className="bg-green-600 hover:bg-green-700 text-white"
                         size="sm"
-                        disabled={setupProgress.isRunning || !settings.sudoDatabase?.password}
+                        disabled={setupProgress.isRunning || !databaseSettings?.sudoPassword}
                       >
                         {setupProgress.isRunning ? (
                           <>
@@ -1842,7 +1822,7 @@ export function Settings({ activeTab, onTabChange }: SettingsProps) {
                         />
                       </div>
                       
-                      {!settings.sudoDatabase?.password && (
+                      {!databaseSettings?.sudoPassword && (
                         <Alert>
                           <Warning size={16} />
                           <AlertDescription>
@@ -2475,14 +2455,8 @@ export function Settings({ activeTab, onTabChange }: SettingsProps) {
                           type="number"
                           min="5"
                           max="1440"
-                          value={settings.dataSyncTimers?.members || 60}
-                          onChange={(e) => setSettings(s => ({
-                            ...s,
-                            dataSyncTimers: {
-                              ...s.dataSyncTimers,
-                              members: parseInt(e.target.value) || 60
-                            }
-                          }))}
+                          value={syncSettings.syncIntervals?.members || 60}
+                          onChange={(e) => updateSyncInterval('members', parseInt(e.target.value) || 60)}
                           className="w-20 text-center"
                         />
                         <span className="text-sm text-muted-foreground">min</span>
@@ -2504,14 +2478,8 @@ export function Settings({ activeTab, onTabChange }: SettingsProps) {
                           type="number"
                           min="5"
                           max="1440"
-                          value={settings.dataSyncTimers?.assets || 30}
-                          onChange={(e) => setSettings(s => ({
-                            ...s,
-                            dataSyncTimers: {
-                              ...s.dataSyncTimers,
-                              assets: parseInt(e.target.value) || 30
-                            }
-                          }))}
+                          value={syncSettings.syncIntervals?.assets || 30}
+                          onChange={(e) => updateSyncInterval('assets', parseInt(e.target.value) || 30)}
                           className="w-20 text-center"
                         />
                         <span className="text-sm text-muted-foreground">min</span>
@@ -2535,14 +2503,8 @@ export function Settings({ activeTab, onTabChange }: SettingsProps) {
                           type="number"
                           min="5"
                           max="1440"
-                          value={settings.dataSyncTimers?.manufacturing || 15}
-                          onChange={(e) => setSettings(s => ({
-                            ...s,
-                            dataSyncTimers: {
-                              ...s.dataSyncTimers,
-                              manufacturing: parseInt(e.target.value) || 15
-                            }
-                          }))}
+                          value={syncSettings.syncIntervals?.manufacturing || 15}
+                          onChange={(e) => updateSyncInterval('manufacturing', parseInt(e.target.value) || 15)}
                           className="w-20 text-center"
                         />
                         <span className="text-sm text-muted-foreground">min</span>
@@ -2557,18 +2519,13 @@ export function Settings({ activeTab, onTabChange }: SettingsProps) {
                 <Button 
                   variant="outline"
                   onClick={() => {
-                    setSettings(s => ({
-                      ...s,
-                      dataSyncTimers: {
-                        members: 60,
-                        assets: 30,
-                        manufacturing: 15,
-                        mining: 45,
-                        market: 10,
-                        killmails: 120,
-                        income: 30
-                      }
-                    }));
+                    updateSyncInterval('members', 60);
+                    updateSyncInterval('assets', 30);
+                    updateSyncInterval('manufacturing', 15);
+                    updateSyncInterval('mining', 45);
+                    updateSyncInterval('market', 10);
+                    updateSyncInterval('killmails', 120);
+                    updateSyncInterval('income', 30);
                     toast.success('Reset to recommended defaults');
                   }}
                 >
@@ -2594,7 +2551,7 @@ export function Settings({ activeTab, onTabChange }: SettingsProps) {
                     </p>
                   </div>
                   <Switch
-                    checked={settings.notifications.manufacturing}
+                    checked={notificationSettings.events.manufacturing}
                     onCheckedChange={() => handleNotificationToggle('manufacturing')}
                   />
                 </div>
@@ -2607,7 +2564,7 @@ export function Settings({ activeTab, onTabChange }: SettingsProps) {
                     </p>
                   </div>
                   <Switch
-                    checked={settings.notifications.mining}
+                    checked={notificationSettings.events.mining}
                     onCheckedChange={() => handleNotificationToggle('mining')}
                   />
                 </div>
@@ -2620,7 +2577,7 @@ export function Settings({ activeTab, onTabChange }: SettingsProps) {
                     </p>
                   </div>
                   <Switch
-                    checked={settings.notifications.killmails}
+                    checked={notificationSettings.events.killmails}
                     onCheckedChange={() => handleNotificationToggle('killmails')}
                   />
                 </div>
@@ -2633,7 +2590,7 @@ export function Settings({ activeTab, onTabChange }: SettingsProps) {
                     </p>
                   </div>
                   <Switch
-                    checked={settings.notifications.markets}
+                    checked={notificationSettings.events.markets}
                     onCheckedChange={() => handleNotificationToggle('markets')}
                   />
                 </div>
