@@ -149,6 +149,25 @@ export interface IncomeSettings {
   };
 }
 
+export interface CorporationData {
+  corporationId: number;
+  corporationName: string;
+  allianceId?: number;
+  allianceName?: string;
+  ceoId: number;
+  ceoName: string;
+  memberCount: number;
+  description: string;
+  homeStationId?: number;
+  taxRate: number;
+  url?: string;
+  dateFounded: string;
+  creatorId: number;
+  ticker: string;
+  factionId?: number;
+  warEligible: boolean;
+}
+
 export interface ManualUser {
   id: string;
   username: string;
@@ -360,6 +379,7 @@ export const useNotificationSettings = () => useKV<NotificationSettings>('lmeve-
 export const useIncomeSettings = () => useKV<IncomeSettings>('lmeve-settings-income', defaultIncomeSettings);
 export const useManualUsers = () => useKV<ManualUser[]>('lmeve-manual-users', []);
 export const useApplicationData = () => useKV<ApplicationData>('lmeve-application-data', defaultApplicationData);
+export const useCorporationData = () => useKV<CorporationData[]>('lmeve-corporation-data', []);
 
 // Utility functions for data export/import
 export const exportAllSettings = async () => {

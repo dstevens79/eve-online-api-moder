@@ -69,7 +69,7 @@ import {
   useApplicationData,
   useManualUsers,
   useCorporationData,
-  downloadBackup,
+  backupSettings,
   exportAllSettings,
   importAllSettings,
   resetAllSettings,
@@ -347,7 +347,7 @@ export function Settings({ activeTab, onTabChange }: SettingsProps) {
   // Export/Import handlers
   const handleExportSettings = async () => {
     try {
-      await downloadBackup();
+      await backupSettings();
       toast.success('Settings exported successfully');
     } catch (error) {
       console.error('Failed to export settings:', error);
