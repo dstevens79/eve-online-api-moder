@@ -23,10 +23,15 @@ export interface SDEStatus {
 }
 
 export interface SDEDatabaseStats {
-  tables: number;
-  totalRows: number;
+  isConnected: boolean;
+  tableCount: number;
+  totalRecords: number;
   totalSize: string;
   lastUpdate: string;
+  currentVersion?: string;
+  availableVersion?: string;
+  lastUpdateCheck?: string;
+  isOutdated?: boolean;
 }
 
 class SDEService {
