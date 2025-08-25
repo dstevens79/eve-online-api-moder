@@ -748,10 +748,10 @@ export function Settings({ activeTab, onTabChange }: SettingsProps) {
       <div>
         <h2 className="text-2xl font-bold flex items-center gap-2">
           <Gear size={24} />
-          Corporation Settings
+          Database Settings
         </h2>
         <p className="text-muted-foreground">
-          Configure corporation management preferences and system settings
+          Configure database core settings
         </p>
       </div>
 
@@ -2466,7 +2466,6 @@ export function Settings({ activeTab, onTabChange }: SettingsProps) {
                     ) : (
                       'No user logged in'
                     )}
-                  </div>
                 </div>
                 
                 <div className="space-y-2">
