@@ -1,21 +1,21 @@
 /**
- * Comprehensive Data Persistence Service for LMeve
  * 
- * This service manages all persistent data storage across the application
+ * 
+
  * using the useKV hooks and provides a unified interface for data operations.
  */
 
 import { useKV } from '@github/spark/hooks';
 
-export interface GeneralSettings {
-  siteName: string;
-  serverName: string;
-  timezone: string;
-  sessionTimeout: number;
-  maintenanceMode: boolean;
-  debugMode: boolean;
-  logLevel: 'error' | 'warn' | 'info' | 'debug';
-  maxLogRetentionDays: number;
+}
+export interface Da
+  port: number;
+  username: string;
+  ssl: boolean;
+  queryTimeout: number;
+  charset: string;
+  sudoHost: string;
+  sudoUsername: string;
 }
 
 export interface DatabaseSettings {
@@ -38,7 +38,7 @@ export interface DatabaseSettings {
 
 export interface ESISettings {
   clientId: string;
-  clientSecret: string;
+export interface SyncSe
   callbackUrl: string;
   userAgent: string;
   scopes: string[];
@@ -52,169 +52,169 @@ export interface SDESettings {
   lastUpdateCheck: string;
   lastUpdateDate: string;
   autoUpdate: boolean;
-  updateSchedule: string; // cron format
-  downloadUrl: string;
-  backupBeforeUpdate: boolean;
-  cleanupAfterUpdate: boolean;
-}
-
-export interface SyncSettings {
-  enabled: boolean;
-  autoSync: boolean;
-  syncIntervals: {
-    assets: number;
-    members: number;
-    manufacturing: number;
-    mining: number;
-    market: number;
-    killmails: number;
-    income: number;
-    wallets: number;
-  };
-  lastSyncTimes: {
-    members: string;
-    assets: string;
-    manufacturing: string;
-    mining: string;
-    market: string;
-    killmails: string;
-    income: string;
-    structures: string;
-  };
-  batchSizes: {
-    assets: number;
-    members: number;
-    manufacturing: number;
-    mining: number;
-    market: number;
-    killmails: number;
-  };
-  quietHours: {
-    enabled: boolean;
-    startTime: string;
-    endTime: string;
-    timezone: string;
-  };
-}
-
-export interface NotificationSettings {
-  enabled: boolean;
-  channels: {
-    email: boolean;
-    inApp: boolean;
-    webhook: boolean;
-  };
-  events: {
-    syncErrors: boolean;
     manufacturing: boolean;
-    mining: boolean;
     markets: boolean;
-    memberChanges: boolean;
     structureEvents: boolean;
-    assetMovements: boolean;
     incomeUpdates: boolean;
-  };
-  emailSettings: {
-    smtpHost: string;
-    smtpPort: number;
-    smtpUser: string;
+ 
+
     smtpPassword: string;
-    smtpSecure: boolean;
-    fromEmail: string;
+    fromEmail: stri
+  webhookUrl: string
+    enabled: boole
+    endTime: string
   };
-  webhookUrl: string;
-  quietHours: {
-    enabled: boolean;
-    startTime: string;
-    endTime: string;
-    timezone: string;
-  };
-}
 
-export interface IncomeSettings {
   enabled: boolean;
-  hourlyRates: {
     mining: number;
-    manufacturing: number;
     invention: number;
-    copying: number;
-    research: number;
-    reaction: number;
+    research: numbe
   };
-  bonusRates: {
-    weekendMultiplier: number;
-    holidayMultiplier: number;
+    
   };
-  paymentSettings: {
-    currency: 'ISK' | 'USD' | 'EUR';
-    minimumPayout: number;
-    paymentSchedule: string;
-  };
+    currency: 'ISK' 
+    paymentSchedule
 }
-
-export interface ManualUser {
-  id: string;
+export interface Ma
   username: string;
-  passwordHash: string;
-  characterName: string;
-  corporationName: string;
-  corporationId: number;
-  isActive: boolean;
-  permissions: string[];
-  createdAt: string;
-  lastLogin: string;
-}
+  characterName: strin
+  corporationId: nu
+  permissions: string[]
+  la
 
-export interface ApplicationData {
   version: string;
-  installDate: string;
-  lastStartup: string;
-  features: {
-    manufacturing: boolean;
-    mining: boolean;
-    market: boolean;
-    structures: boolean;
+  lastStartup: strin
+    manufacturing: boolean
+    market: boolean
   };
-  metrics: {
-    totalApiCalls: number;
-    averageResponseTime: number;
-    errorRate: number;
+    totalApiCalls: num
+    
+  maintenance: 
+    cleanupSchedule: 
   };
-  maintenance: {
-    autoBackup: boolean;
-    cleanupSchedule: string;
-    logRotation: boolean;
-  };
-}
 
-// Default settings
-export const defaultGeneralSettings: GeneralSettings = {
-  siteName: 'LMeve Corporation Management',
-  serverName: 'LMeve Server',
-  timezone: 'UTC',
-  sessionTimeout: 3600,
-  maintenanceMode: false,
-  debugMode: false,
-  logLevel: 'info',
+export const defaultG
+  se
+ 
+
   maxLogRetentionDays: 30,
+
+  host: 'loca
+  database: 'lmeve'
+  password: '',
+  connectionPoolSize:
+  au
+  sudoHost:
+  sudoUsername: 'root',
+};
+export const default
+  clientSecret: '',
+  userAgent: 'LMeve Corpora
+    'esi-corporations.read_co
+    'esi-markets.read_corpor
+  ],
+  ma
+};
+export const defaultS
+  lastUpdateCheck: ''
+  autoUpdate: false,
+  downloadUrl: 'https://w
+  cleanupAfterUpdate: tr
+
+  en
+  syncIntervals: {
+    members: 30
+    mining: 30,
+    killmails: 120,
+    wallets: 180,
+  lastSyncTimes: {
+    
+ 
+
+    structures: '',
+  batchSizes: {
+    members: 100
+    mining: 100,
+    killmails: 25,
+  quietHours: {
+    startTime: '22:0
+    timezone: 'UTC',
+};
+expo
+  channels: {
+    inApp: true,
+  },
+    
+    mining: false,
+    memberChanges: true,
+    assetMovements: false,
+  },
+    
+ 
+
+  },
+  quietHours:
+    startTime: '22:
+    timezone: 'UTC',
+};
+export const defaultIncome
+  hourlyRates: {
+    manufacturing: 2
+    copying: 20000000,  
+    reaction: 400000
+  bonusRates: {
+ 
+
+    minimumPayout: 100000000, // 1
+  },
+
+  version: '2.0.0',
+  lastStartup
+    manufacturing: true,
+    market: true,
+  },
+    totalApiCalls: 0,
+    
+  maintenanc
+    cleanupSchedule: '0 1 
+  },
+
+expo
+export const use
+export const useSyncSett
+export const useIncomeSettin
+export const useApplicati
+// U
+ 
+
+    sde: await spar
+    notifications: await spark.kv.get<NotificationSettin
+    users: await spark.kv.get<ManualUser[]>
+  };
+  return {
+    exportDate: new Dat
+  };
+
+  if (!importData.s
+  }
 };
 
-export const defaultDatabaseSettings: DatabaseSettings = {
-  host: 'localhost',
-  port: 3306,
-  database: 'lmeve',
-  username: 'lmeve',
-  password: '',
-  ssl: false,
-  connectionPoolSize: 10,
-  queryTimeout: 30000,
-  autoReconnect: true,
-  charset: 'utf8mb4',
-  sudoHost: 'localhost',
-  sudoPort: 3306,
-  sudoUsername: 'root',
-  sudoPassword: '',
+  if (settings.esi) await spark.kv.set('lmeve-settings-esi
+  if (settings.sync)
+  if (setting
+  if (settings.appli
+
+export const re
+  await spark
+  await spark.kv.set('lme
+  await spark.kv.set('
+  await spark.kv.set('
 };
+// Backup to downloadabl
+  const backup = 
+  
+  link.href = URL.c
+  
 
 export const defaultESISettings: ESISettings = {
   clientId: '',
@@ -383,7 +383,7 @@ export const exportAllSettings = async () => {
     users: await spark.kv.get<ManualUser[]>('lmeve-manual-users'),
     application: await spark.kv.get<ApplicationData>('lmeve-application-data'),
   };
-  
+
   return {
     version: '2.0.0',
     exportDate: new Date().toISOString(),
@@ -440,11 +440,11 @@ export const validateSettings = (category: string, settings: any): string[] => {
   const errors: string[] = [];
   
   switch (category) {
-    case 'database':
+
       if (!settings.host) errors.push('Database host is required');
       if (!settings.database) errors.push('Database name is required');
       if (!settings.username) errors.push('Database username is required');
-      break;
+
     case 'esi':
       if (!settings.clientId) errors.push('ESI Client ID is required');
       if (!settings.clientSecret) errors.push('ESI Client Secret is required');
@@ -452,11 +452,11 @@ export const validateSettings = (category: string, settings: any): string[] => {
     case 'notifications':
       if (settings.channels.email && !settings.emailSettings.smtpHost) {
         errors.push('SMTP host is required for email notifications');
-      }
+
       if (settings.channels.webhook && !settings.webhookUrl) {
         errors.push('Webhook URL is required for webhook notifications');
       }
-      break;
+
     case 'income':
       Object.entries(settings.hourlyRates).forEach(([key, value]) => {
         if (typeof value !== 'number' || value < 0) {
@@ -465,6 +465,6 @@ export const validateSettings = (category: string, settings: any): string[] => {
       });
       break;
   }
-  
-  return errors;
+
+
 };
