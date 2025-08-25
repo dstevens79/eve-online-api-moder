@@ -424,7 +424,57 @@ export function Settings({ activeTab, onTabChange }: SettingsProps) {
       toast.error('Please configure database connection settings first');
       return;
     }
-    toast.info('Database connection feature not implemented yet');
+    
+    const { host, port, database, username, password } = settings.database;
+    
+    if (!host || !port || !database || !username || !password) {
+      toast.error('All database fields are required');
+      return;
+    }
+    
+    try {
+      addConnectionLog('🔌 Establishing persistent database connection...');
+      
+      // Use the DatabaseManager for consistent connection handling
+      const config = {
+        host,
+        port: Number(port),
+        database,
+        username,
+        password,
+        ssl: settings.database.ssl || false,
+        connectionPoolSize: settings.database.connectionPoolSize || 10,
+        queryTimeout: settings.database.queryTimeout || 30,
+        autoReconnect: settings.database.autoReconnect || true,
+        charset: settings.database.charset || 'utf8mb4'
+      };
+      
+      const manager = new DatabaseManager(config);
+      const testResult = await manager.testConnection();
+      
+      if (testResult.success && testResult.validated) {
+        setDbStatus(prev => ({
+          ...prev,
+          connected: true,
+          connectionCount: 1,
+          lastConnection: new Date().toISOString(),
+          lastError: null
+        }));
+        addConnectionLog(`✅ Database connection established successfully!`);
+        toast.success('Connected to database');
+      } else {
+        throw new Error(testResult.error || 'Connection failed validation');
+      }
+    } catch (error) {
+      const errorMsg = error instanceof Error ? error.message : 'Unknown error';
+      setDbStatus(prev => ({
+        ...prev,
+        connected: false,
+        lastError: errorMsg
+      }));
+      addConnectionLog(`❌ Connection failed: ${errorMsg}`);
+      toast.error(`Connection failed: ${errorMsg}`);
+    }
   };
 
   const handleDisconnectDb = async () => {
@@ -1001,274 +1051,280 @@ export function Settings({ activeTab, onTabChange }: SettingsProps) {
                 </div>
               </div>
 
-              {/* Database Connection Settings */}
-              <div className="border border-border rounded-lg p-4 mb-4">
-                <h4 className="font-medium mb-4">Database Connection</h4>
+              {/* Two Column Layout: Left = Connection Settings, Right = Controls & Logs */}
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                 
-                <div className="grid grid-cols-3 gap-4 mb-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="dbHost">Host</Label>
-                    <Input
-                      id="dbHost"
-                      value={settings.database?.host || ''}
-                      onChange={(e) => {
-                        updateDatabaseConfig('host', e.target.value);
-                        updateSudoDatabaseConfig('host', e.target.value);
-                      }}
-                      placeholder="localhost"
-                    />
+                {/* Left Column: Connection Configuration */}
+                <div className="space-y-4">
+                  
+                  {/* Database Connection Settings */}
+                  <div className="border border-border rounded-lg p-4">
+                    <h4 className="font-medium mb-4">Database Connection</h4>
+                    
+                    <div className="space-y-4">
+                      <div className="grid grid-cols-2 gap-4">
+                        <div className="space-y-2">
+                          <Label htmlFor="dbHost">Host</Label>
+                          <Input
+                            id="dbHost"
+                            value={settings.database?.host || ''}
+                            onChange={(e) => {
+                              updateDatabaseConfig('host', e.target.value);
+                              updateSudoDatabaseConfig('host', e.target.value);
+                            }}
+                            placeholder="localhost"
+                          />
+                        </div>
+                        <div className="space-y-2">
+                          <Label htmlFor="dbPort">Port</Label>
+                          <Input
+                            id="dbPort"
+                            type="number"
+                            value={settings.database?.port || ''}
+                            onChange={(e) => {
+                              const port = parseInt(e.target.value) || 3306;
+                              updateDatabaseConfig('port', port);
+                              updateSudoDatabaseConfig('port', port);
+                            }}
+                            placeholder="3306"
+                          />
+                        </div>
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="dbName">Database Name</Label>
+                        <Input
+                          id="dbName"
+                          value={settings.database?.database || ''}
+                          onChange={(e) => updateDatabaseConfig('database', e.target.value)}
+                          placeholder="lmeve"
+                        />
+                      </div>
+                    </div>
                   </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="dbPort">Port</Label>
-                    <Input
-                      id="dbPort"
-                      type="number"
-                      value={settings.database?.port || ''}
-                      onChange={(e) => {
-                        const port = parseInt(e.target.value) || 3306;
-                        updateDatabaseConfig('port', port);
-                        updateSudoDatabaseConfig('port', port);
-                      }}
-                      placeholder="3306"
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="dbName">Database Name</Label>
-                    <Input
-                      id="dbName"
-                      value={settings.database?.database || ''}
-                      onChange={(e) => updateDatabaseConfig('database', e.target.value)}
-                      placeholder="lmeve"
-                    />
-                  </div>
-                </div>
-              </div>
 
-              {/* Sudo Database User */}
-              <div className="border border-border rounded-lg p-4 mb-4">
-                <div className="flex items-center justify-between mb-4">
-                  <h4 className="font-medium">Sudo Database User (Administrative)</h4>
-                  <Badge variant="outline" className="text-xs">Root/Admin Access</Badge>
-                </div>
-                
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="sudoUsername">Username</Label>
-                    <Input
-                      id="sudoUsername"
-                      value={settings.sudoDatabase?.username || ''}
-                      onChange={(e) => updateSudoDatabaseConfig('username', e.target.value)}
-                      placeholder="root"
-                    />
+                  {/* Sudo Database User */}
+                  <div className="border border-border rounded-lg p-4">
+                    <div className="flex items-center justify-between mb-4">
+                      <h4 className="font-medium">Sudo Database User</h4>
+                      <Badge variant="outline" className="text-xs">Admin</Badge>
+                    </div>
+                    
+                    <div className="space-y-4">
+                      <div className="space-y-2">
+                        <Label htmlFor="sudoUsername">Username</Label>
+                        <Input
+                          id="sudoUsername"
+                          value={settings.sudoDatabase?.username || ''}
+                          onChange={(e) => updateSudoDatabaseConfig('username', e.target.value)}
+                          placeholder="root"
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="sudoPassword">Password</Label>
+                        <div className="relative">
+                          <Input
+                            id="sudoPassword"
+                            type={showSudoPassword ? "text" : "password"}
+                            value={settings.sudoDatabase?.password || ''}
+                            onChange={(e) => updateSudoDatabaseConfig('password', e.target.value)}
+                            placeholder="Root/admin database password"
+                          />
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="sm"
+                            className="absolute right-0 top-0 h-full px-3"
+                            onClick={() => setShowSudoPassword(!showSudoPassword)}
+                          >
+                            {showSudoPassword ? <EyeSlash size={16} /> : <Eye size={16} />}
+                          </Button>
+                        </div>
+                      </div>
+                    </div>
+                    <p className="text-xs text-muted-foreground mt-2">
+                      Used for database creation, schema setup, and administrative tasks.
+                    </p>
                   </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="sudoPassword">Password</Label>
-                    <div className="relative">
-                      <Input
-                        id="sudoPassword"
-                        type={showSudoPassword ? "text" : "password"}
-                        value={settings.sudoDatabase?.password || ''}
-                        onChange={(e) => updateSudoDatabaseConfig('password', e.target.value)}
-                        placeholder="Root/admin database password"
-                      />
+
+                  {/* LMeve Database User */}
+                  <div className="border border-border rounded-lg p-4">
+                    <div className="flex items-center justify-between mb-4">
+                      <h4 className="font-medium">LMeve Database User</h4>
+                      <Badge variant="outline" className="text-xs">Application</Badge>
+                    </div>
+                    
+                    <div className="space-y-4">
+                      <div className="space-y-2">
+                        <Label htmlFor="dbUsername">Username</Label>
+                        <Input
+                          id="dbUsername"
+                          value={settings.database?.username || ''}
+                          onChange={(e) => updateDatabaseConfig('username', e.target.value)}
+                          placeholder="lmeve_user"
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="dbPassword">Password</Label>
+                        <div className="relative">
+                          <Input
+                            id="dbPassword"
+                            type={showDbPassword ? "text" : "password"}
+                            value={settings.database?.password || ''}
+                            onChange={(e) => updateDatabaseConfig('password', e.target.value)}
+                            placeholder="Application database password"
+                          />
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="sm"
+                            className="absolute right-0 top-0 h-full px-3"
+                            onClick={() => setShowDbPassword(!showDbPassword)}
+                          >
+                            {showDbPassword ? <EyeSlash size={16} /> : <Eye size={16} />}
+                          </Button>
+                        </div>
+                      </div>
+                    </div>
+                    <p className="text-xs text-muted-foreground mt-2">
+                      Used for day-to-day application operations with limited privileges.
+                    </p>
+                  </div>
+                </div>
+
+                {/* Right Column: Controls and Logs */}
+                <div className="space-y-4">
+                  
+                  {/* Connection Controls */}
+                  <div className="border border-border rounded-lg p-4">
+                    <h4 className="font-medium mb-4">Connection Controls</h4>
+                    
+                    <div className="space-y-3">
                       <Button
-                        type="button"
-                        variant="ghost"
+                        variant="outline"
                         size="sm"
-                        className="absolute right-0 top-0 h-full px-3"
-                        onClick={() => setShowSudoPassword(!showSudoPassword)}
+                        onClick={() => {
+                          console.log('🧪 Test connection button clicked');
+                          handleTestDbConnection();
+                        }}
+                        disabled={testingConnection}
+                        className="w-full hover:bg-accent/10 active:bg-accent/20 transition-colors"
                       >
-                        {showSudoPassword ? <EyeSlash size={16} /> : <Eye size={16} />}
+                        {testingConnection ? (
+                          <>
+                            <ArrowClockwise size={16} className="mr-2 animate-spin" />
+                            Testing Connection...
+                          </>
+                        ) : (
+                          <>
+                            <Play size={16} className="mr-2" />
+                            Test Connection
+                          </>
+                        )}
+                      </Button>
+                      
+                      {dbStatus.connected ? (
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={handleDisconnectDb}
+                          className="w-full border-red-500/50 text-red-400 hover:bg-red-500/10"
+                        >
+                          <Stop size={16} className="mr-2" />
+                          Disconnect
+                        </Button>
+                      ) : (
+                        <Button
+                          size="sm"
+                          onClick={handleConnectDb}
+                          className="w-full bg-accent hover:bg-accent/90"
+                        >
+                          <Play size={16} className="mr-2" />
+                          Connect
+                        </Button>
+                      )}
+                      
+                      <Button
+                        onClick={handleSaveSettings}
+                        variant="secondary"
+                        size="sm"
+                        className="w-full"
+                      >
+                        Save Configuration
                       </Button>
                     </div>
                   </div>
-                </div>
-                <p className="text-xs text-muted-foreground mt-2">
-                  Used for database creation, schema setup, and administrative tasks. Typically 'root' user.
-                </p>
-              </div>
 
-              {/* LMeve Database User */}
-              <div className="border border-border rounded-lg p-4">
-                <div className="flex items-center justify-between mb-4">
-                  <h4 className="font-medium">LMeve Database User (Application)</h4>
-                  <Badge variant="outline" className="text-xs">Application Access</Badge>
-                </div>
-                
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="dbUsername">Username</Label>
-                    <Input
-                      id="dbUsername"
-                      value={settings.database?.username || ''}
-                      onChange={(e) => updateDatabaseConfig('username', e.target.value)}
-                      placeholder="lmeve_user"
-                    />
+                  {/* Connection Status */}
+                  <div className="space-y-4">
+                    {/* Immediate Test Status */}
+                    {testingConnection && (
+                      <div className="p-3 border border-blue-500/20 bg-blue-500/10 rounded-lg">
+                        <div className="flex items-center gap-2 text-blue-400">
+                          <ArrowClockwise size={16} className="animate-spin" />
+                          <span className="font-medium">Testing Connection...</span>
+                        </div>
+                        <p className="text-sm text-muted-foreground mt-1">
+                          Validating network connectivity and authentication
+                        </p>
+                      </div>
+                    )}
+
+                    {dbStatus.connected ? (
+                      <div className="p-3 border border-green-500/20 bg-green-500/10 rounded-lg">
+                        <div className="flex items-center gap-2 text-green-400 mb-2">
+                          <CheckCircle size={16} />
+                          <span className="font-medium">Connected & Validated</span>
+                        </div>
+                        <div className="grid grid-cols-2 gap-4 text-sm">
+                          <div>
+                            <p className="text-muted-foreground">Connections</p>
+                            <p className="font-medium">{dbStatus.connectionCount}</p>
+                          </div>
+                          <div>
+                            <p className="text-muted-foreground">Queries</p>
+                            <p className="font-medium">{dbStatus.queryCount}</p>
+                          </div>
+                        </div>
+                        {dbStatus.lastConnection && (
+                          <p className="text-xs text-muted-foreground mt-2">
+                            Last connected: {new Date(dbStatus.lastConnection).toLocaleString()}
+                          </p>
+                        )}
+                      </div>
+                    ) : (
+                      <div className="p-3 border border-orange-500/20 bg-orange-500/10 rounded-lg">
+                        <div className="flex items-center gap-2 text-orange-400">
+                          <Warning size={16} />
+                          <span className="font-medium">Not Connected</span>
+                        </div>
+                        <p className="text-sm text-muted-foreground mt-1">
+                          Configure connection settings and click Connect.
+                        </p>
+                        {dbStatus.lastError && (
+                          <p className="text-xs text-red-300 mt-2">
+                            Last error: {dbStatus.lastError}
+                          </p>
+                        )}
+                      </div>
+                    )}
                   </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="dbPassword">Password</Label>
-                    <div className="relative">
-                      <Input
-                        id="dbPassword"
-                        type={showDbPassword ? "text" : "password"}
-                        value={settings.database?.password || ''}
-                        onChange={(e) => updateDatabaseConfig('password', e.target.value)}
-                        placeholder="Application database password"
-                      />
+
+                  {/* Connection Logs */}
+                  <div className="border border-border rounded-lg p-4">
+                    <div className="flex items-center justify-between mb-4">
+                      <h4 className="font-medium">Connection Logs</h4>
                       <Button
-                        type="button"
-                        variant="ghost"
+                        variant="outline"
                         size="sm"
-                        className="absolute right-0 top-0 h-full px-3"
-                        onClick={() => setShowDbPassword(!showDbPassword)}
+                        onClick={clearConnectionLogs}
+                        disabled={connectionLogs.length === 0}
                       >
-                        {showDbPassword ? <EyeSlash size={16} /> : <Eye size={16} />}
+                        <X size={16} className="mr-2" />
+                        Clear
                       </Button>
                     </div>
-                  </div>
-                </div>
-                <p className="text-xs text-muted-foreground mt-2">
-                  Used for day-to-day application operations. Should have limited privileges for security.
-                </p>
-              </div>
 
-              <div className="flex gap-2 pt-2">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => {
-                    console.log('🧪 Test connection button clicked');
-                    handleTestDbConnection();
-                  }}
-                  disabled={testingConnection}
-                  className="relative hover:bg-accent/10 active:bg-accent/20 transition-colors"
-                >
-                  {testingConnection ? (
-                    <>
-                      <ArrowClockwise size={16} className="mr-2 animate-spin" />
-                      Testing...
-                    </>
-                  ) : (
-                    <>
-                      <Play size={16} className="mr-2" />
-                      Test Connection
-                    </>
-                  )}
-                </Button>
-                
-                {dbStatus.connected ? (
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={handleDisconnectDb}
-                    className="border-red-500/50 text-red-400 hover:bg-red-500/10"
-                  >
-                    <Stop size={16} className="mr-2" />
-                    Disconnect
-                  </Button>
-                ) : (
-                  <Button
-                    size="sm"
-                    onClick={handleConnectDb}
-                    className="bg-accent hover:bg-accent/90"
-                  >
-                    <Play size={16} className="mr-2" />
-                    Connect
-                  </Button>
-                )}
-              </div>
-
-              {/* Connection Status */}
-              <div className="space-y-4">
-                {/* Immediate Test Status */}
-                {testingConnection && (
-                  <div className="p-3 border border-blue-500/20 bg-blue-500/10 rounded-lg">
-                    <div className="flex items-center gap-2 text-blue-400">
-                      <ArrowClockwise size={16} className="animate-spin" />
-                      <span className="font-medium">Testing Database Connection...</span>
-                    </div>
-                    <p className="text-sm text-muted-foreground mt-1">
-                      Validating network connectivity, authentication, and database structure
-                    </p>
-                  </div>
-                )}
-
-                {dbStatus.connected ? (
-                  <div className="p-3 border border-green-500/20 bg-green-500/10 rounded-lg">
-                    <div className="flex items-center gap-2 text-green-400 mb-2">
-                      <CheckCircle size={16} />
-                      <span className="font-medium">Connected & Validated</span>
-                    </div>
-                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
-                      <div>
-                        <p className="text-muted-foreground">Connections</p>
-                        <p className="font-medium">{dbStatus.connectionCount}</p>
-                      </div>
-                      <div>
-                        <p className="text-muted-foreground">Queries</p>
-                        <p className="font-medium">{dbStatus.queryCount}</p>
-                      </div>
-                      <div>
-                        <p className="text-muted-foreground">Avg Query Time</p>
-                        <p className="font-medium">{Math.round(dbStatus.avgQueryTime)}ms</p>
-                      </div>
-                      <div>
-                        <p className="text-muted-foreground">Uptime</p>
-                        <p className="font-medium">{Math.floor(dbStatus.uptime / 60)}m</p>
-                      </div>
-                    </div>
-                    {dbStatus.lastConnection && (
-                      <p className="text-xs text-muted-foreground mt-2">
-                        Last connected: {new Date(dbStatus.lastConnection).toLocaleString()}
-                      </p>
-                    )}
-                  </div>
-                ) : (
-                  <div className="p-3 border border-orange-500/20 bg-orange-500/10 rounded-lg">
-                    <div className="flex items-center gap-2 text-orange-400">
-                      <Warning size={16} />
-                      <span className="font-medium">Not Connected</span>
-                    </div>
-                    <p className="text-sm text-muted-foreground mt-1">
-                      Configure connection settings and click Connect to establish database connection.
-                    </p>
-                    {dbStatus.lastError && (
-                      <p className="text-xs text-red-300 mt-2">
-                        Last error: {dbStatus.lastError}
-                      </p>
-                    )}
-                  </div>
-                )}
-              </div>
-
-              {/* Connection Logs */}
-              <div className="border border-border rounded-lg p-4">
-                <div className="flex items-center justify-between mb-4">
-                  <h4 className="font-medium">Connection Logs</h4>
-                  <div className="flex gap-2">
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => setShowConnectionLogs(!showConnectionLogs)}
-                    >
-                      <Eye size={16} className="mr-2" />
-                      {showConnectionLogs ? 'Hide' : 'Show'} Logs
-                    </Button>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={clearConnectionLogs}
-                      disabled={connectionLogs.length === 0}
-                    >
-                      <X size={16} className="mr-2" />
-                      Clear
-                    </Button>
-                  </div>
-                </div>
-
-                {showConnectionLogs && (
-                  <div className="space-y-2">
-                    <div className="bg-muted/30 border border-border rounded-lg p-3 h-48 overflow-y-auto font-mono text-xs">
+                    <div className="bg-muted/30 border border-border rounded-lg p-3 h-64 overflow-y-auto font-mono text-xs">
                       {connectionLogs.length === 0 ? (
                         <div className="flex items-center justify-center h-full text-muted-foreground">
                           No connection logs yet. Run a connection test to see detailed logs.
@@ -1296,39 +1352,123 @@ export function Settings({ activeTab, onTabChange }: SettingsProps) {
                         </div>
                       )}
                     </div>
-                    <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                    <div className="flex items-center gap-2 text-xs text-muted-foreground mt-2">
                       <Info size={12} />
                       <span>
-                        Logs show the complete database connection validation process including network connectivity, 
-                        authentication, and database structure checks.
+                        Logs show detailed database connection validation steps.
                       </span>
                     </div>
                   </div>
-                )}
+                </div>
               </div>
 
-              {/* Database Setup Section */}
+              {/* Automated Database Setup Section */}
               <div className="border-t border-border pt-6 space-y-4">
-                <h4 className="font-medium">Complete Database Setup</h4>
+                <h4 className="font-medium">Automated Database Setup</h4>
                 
                 <div className="p-3 bg-muted/50 rounded-lg text-sm text-muted-foreground">
-                  <p className="font-medium mb-2">LMeve Database Initialization</p>
+                  <p className="font-medium mb-2">Complete LMeve Database Initialization</p>
                   <p>
-                    Complete automated setup for new LMeve installations. Creates databases, downloads EVE SDE data, 
+                    Automated setup for new LMeve installations. Creates databases, downloads EVE SDE data, 
                     imports schema, and configures users. Uses your configured database connection settings above.
                   </p>
                 </div>
 
                 <div className="space-y-4">
-                  {/* One-Button Complete Setup */}
+                  {/* Expanded Setup Options */}
                   <div className="border border-green-500/20 rounded-lg p-4 bg-green-500/5">
                     <div className="flex items-center justify-between mb-4">
                       <div className="flex items-center gap-2">
                         <Wrench size={20} className="text-green-400" />
-                        <h5 className="font-medium">Automated Database Setup</h5>
+                        <h5 className="font-medium">Complete Database Setup</h5>
                       </div>
                       <Button
-                        onClick={handleStartSetup}
+                        onClick={async () => {
+                          // Enhanced setup button with comprehensive logic
+                          if (!setupConfig.lmevePassword) {
+                            toast.error('Please enter a database password');
+                            return;
+                          }
+
+                          if (setupConfig.lmevePassword.length < 8) {
+                            toast.error('Password must be at least 8 characters');
+                            return;
+                          }
+
+                          if (!settings.sudoDatabase?.host || !settings.sudoDatabase?.username || !settings.sudoDatabase?.password) {
+                            toast.error('Please configure sudo database connection first');
+                            return;
+                          }
+
+                          setSetupProgress(prev => ({
+                            ...prev,
+                            isRunning: true,
+                            progress: 0,
+                            currentStep: 1,
+                            currentStage: 'Starting comprehensive database setup...',
+                            steps: prev.steps.map(step => ({ ...step, status: 'pending' }))
+                          }));
+
+                          try {
+                            addConnectionLog('🚀 Starting automated database setup...');
+                            
+                            // Use the DatabaseSetupManager with real database connections
+                            const setupManager = new DatabaseSetupManager((progress) => {
+                              setSetupProgress(progress);
+                              addConnectionLog(`📊 Setup progress: ${Math.round(progress.progress)}% - ${progress.currentStage}`);
+                            });
+
+                            const fullSetupConfig = {
+                              mysqlRootPassword: settings.sudoDatabase.password,
+                              lmevePassword: setupConfig.lmevePassword,
+                              allowedHosts: setupConfig.allowedHosts,
+                              downloadSDE: setupConfig.downloadSDE,
+                              createDatabases: true,
+                              importSchema: true,
+                              createUser: true,
+                              grantPrivileges: true,
+                              validateSetup: true
+                            };
+
+                            addConnectionLog(`🔧 Setup configuration: LMeve password set, allowed hosts: ${setupConfig.allowedHosts}, SDE download: ${setupConfig.downloadSDE}`);
+                            
+                            // Execute real database setup using configured sudo connection
+                            const result = await setupManager.setupNewDatabase(fullSetupConfig);
+
+                            if (result.success) {
+                              addConnectionLog('✅ Database setup completed successfully!');
+                              toast.success('Database setup completed successfully');
+                              
+                              // Update the lmeve database config with the new setup
+                              updateDatabaseConfig('password', setupConfig.lmevePassword);
+                              updateDatabaseConfig('database', 'lmeve');
+                              if (!settings.database?.username) {
+                                updateDatabaseConfig('username', 'lmeve');
+                              }
+                              
+                              addConnectionLog('🔄 Testing new connection configuration...');
+                              
+                              // Automatically test the new connection
+                              setTimeout(() => {
+                                handleTestDbConnection();
+                              }, 1000);
+                              
+                            } else {
+                              throw new Error(result.error || 'Setup failed');
+                            }
+                          } catch (error) {
+                            console.error('Setup failed:', error);
+                            const errorMsg = error instanceof Error ? error.message : 'Unknown error';
+                            addConnectionLog(`❌ Database setup failed: ${errorMsg}`);
+                            setSetupProgress(prev => ({
+                              ...prev,
+                              isRunning: false,
+                              error: errorMsg,
+                              currentStage: 'Setup failed'
+                            }));
+                            toast.error(`Database setup failed: ${errorMsg}`);
+                          }
+                        }}
                         className="bg-green-600 hover:bg-green-700 text-white"
                         size="sm"
                         disabled={setupProgress.isRunning || !settings.sudoDatabase?.password}
@@ -1341,15 +1481,15 @@ export function Settings({ activeTab, onTabChange }: SettingsProps) {
                         ) : (
                           <>
                             <Play size={16} className="mr-2" />
-                            One-Click Setup
+                            Complete Setup
                           </>
                         )}
                       </Button>
                     </div>
                     
                     <p className="text-sm text-muted-foreground mb-3">
-                      Creates databases, downloads EVE SDE data, imports schema, and configures everything in one step. 
-                      Requires the sudo database connection configured above.
+                      Creates both lmeve and EveStaticData databases, downloads EVE SDE data, imports schema, 
+                      and configures database users with proper privileges. Requires sudo database access configured above.
                     </p>
                     
                     <div className="space-y-3">
@@ -1368,6 +1508,34 @@ export function Settings({ activeTab, onTabChange }: SettingsProps) {
                         </p>
                       </div>
                       
+                      <div className="space-y-2">
+                        <Label htmlFor="allowed-hosts">Allowed Hosts</Label>
+                        <Input
+                          id="allowed-hosts"
+                          value={setupConfig.allowedHosts}
+                          onChange={(e) => setSetupConfig(prev => ({ ...prev, allowedHosts: e.target.value }))}
+                          placeholder="% (any host) or specific IP like 192.168.1.%"
+                          disabled={setupProgress.isRunning}
+                        />
+                        <p className="text-xs text-muted-foreground">
+                          Use '%' for any host or specify IP range for security
+                        </p>
+                      </div>
+                      
+                      <div className="flex items-center justify-between p-3 border border-border rounded">
+                        <div className="space-y-0.5">
+                          <Label>Download EVE SDE Data</Label>
+                          <p className="text-sm text-muted-foreground">
+                            Download and import EVE Static Data Export (~500MB)
+                          </p>
+                        </div>
+                        <Switch
+                          checked={setupConfig.downloadSDE}
+                          onCheckedChange={(checked) => setSetupConfig(prev => ({ ...prev, downloadSDE: checked }))}
+                          disabled={setupProgress.isRunning}
+                        />
+                      </div>
+                      
                       {!settings.sudoDatabase?.password && (
                         <Alert>
                           <Warning size={16} />
@@ -1384,6 +1552,9 @@ export function Settings({ activeTab, onTabChange }: SettingsProps) {
                             <span>{Math.round(setupProgress.progress)}%</span>
                           </div>
                           <Progress value={setupProgress.progress} className="h-2" />
+                          <p className="text-xs text-muted-foreground">
+                            Step {setupProgress.currentStep} of {setupProgress.totalSteps}
+                          </p>
                         </div>
                       )}
                     </div>
@@ -1396,7 +1567,7 @@ export function Settings({ activeTab, onTabChange }: SettingsProps) {
                         disabled={setupProgress.isRunning}
                       >
                         <Terminal size={16} className="mr-2" />
-                        Manual Commands
+                        Generate Commands
                       </Button>
                       <Button
                         variant="outline"
@@ -1405,77 +1576,10 @@ export function Settings({ activeTab, onTabChange }: SettingsProps) {
                         disabled={setupProgress.isRunning}
                       >
                         <Gear size={16} className="mr-2" />
-                        Advanced Setup
+                        Step-by-Step Wizard
                       </Button>
                     </div>
                   </div>
-                </div>
-              </div>
-
-              {/* Advanced Settings */}
-              <div className="border-t border-border pt-6 space-y-4">
-                <h4 className="font-medium">Advanced Settings</h4>
-                
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="dbPoolSize">Connection Pool Size</Label>
-                    <Input
-                      id="dbPoolSize"
-                      type="number"
-                      min="1"
-                      max="50"
-                      value={settings.database?.connectionPoolSize || ''}
-                      onChange={(e) => updateDatabaseConfig('connectionPoolSize', parseInt(e.target.value) || 10)}
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="dbTimeout">Query Timeout (seconds)</Label>
-                    <Input
-                      id="dbTimeout"
-                      type="number"
-                      min="5"
-                      max="300"
-                      value={settings.database?.queryTimeout || ''}
-                      onChange={(e) => updateDatabaseConfig('queryTimeout', parseInt(e.target.value) || 30)}
-                    />
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="dbCharset">Character Set</Label>
-                    <Input
-                      id="dbCharset"
-                      value={settings.database?.charset || ''}
-                      onChange={(e) => updateDatabaseConfig('charset', e.target.value)}
-                      placeholder="utf8mb4"
-                    />
-                  </div>
-                  <div className="flex items-center justify-between">
-                    <div className="space-y-0.5">
-                      <Label>Use SSL</Label>
-                      <p className="text-sm text-muted-foreground">
-                        Enable SSL/TLS encryption
-                      </p>
-                    </div>
-                    <Switch
-                      checked={settings.database?.ssl || false}
-                      onCheckedChange={(checked) => updateDatabaseConfig('ssl', checked)}
-                    />
-                  </div>
-                </div>
-
-                <div className="flex items-center justify-between">
-                  <div className="space-y-0.5">
-                    <Label>Auto Reconnect</Label>
-                    <p className="text-sm text-muted-foreground">
-                      Automatically reconnect on connection loss
-                    </p>
-                  </div>
-                  <Switch
-                    checked={settings.database?.autoReconnect || false}
-                    onCheckedChange={(checked) => updateDatabaseConfig('autoReconnect', checked)}
-                    />
                 </div>
               </div>
 
@@ -1522,10 +1626,6 @@ export function Settings({ activeTab, onTabChange }: SettingsProps) {
                   </div>
                 </div>
               )}
-
-              <div className="border-t border-border pt-6">
-                <Button onClick={handleSaveSettings}>Save Database Configuration</Button>
-              </div>
             </CardContent>
           </Card>
         </TabsContent>
@@ -2220,12 +2320,15 @@ export function Settings({ activeTab, onTabChange }: SettingsProps) {
           </Card>
         </TabsContent>
 
-        <TabsContent value="security" className="space-y-6">
+        <TabsContent value="users" className="space-y-6">
           <Card>
             <CardHeader>
-              <CardTitle>Security Settings</CardTitle>
+              <CardTitle className="flex items-center gap-2">
+                <Users size={20} />
+                User Management
+              </CardTitle>
             </CardHeader>
-            <CardContent className="space-y-4">
+            <CardContent className="space-y-6">
               {/* Admin Configuration - Only show to admins */}
               {user?.isAdmin && (
                 <div className="space-y-4">
@@ -2274,40 +2377,191 @@ export function Settings({ activeTab, onTabChange }: SettingsProps) {
                 </div>
               )}
 
+              {/* Manual Users Section */}
               <div className="space-y-4">
-                <div className="p-4 border border-border rounded-lg space-y-2">
-                  <div className="flex items-center gap-2">
-                    <Clock size={16} />
-                    <span className="font-medium">Session Timeout</span>
-                  </div>
-                  <p className="text-sm text-muted-foreground">
-                    Automatically log out after 2 hours of inactivity
-                  </p>
-                  <Switch defaultChecked />
+                <div className="flex items-center justify-between">
+                  <h4 className="font-medium">Manual User Accounts</h4>
+                  <Button
+                    onClick={() => setShowAddUser(true)}
+                    size="sm"
+                    className="bg-accent hover:bg-accent/90"
+                  >
+                    <Users size={16} className="mr-2" />
+                    Add User
+                  </Button>
                 </div>
                 
-                <div className="p-4 border border-border rounded-lg space-y-2">
-                  <div className="flex items-center gap-2">
-                    <Users size={16} />
-                    <span className="font-medium">Role-Based Access</span>
+                {manualUsers.length > 0 ? (
+                  <div className="space-y-3">
+                    {manualUsers.map((manualUser) => (
+                      <div key={manualUser.id} className="p-4 border border-border rounded-lg">
+                        <div className="flex items-center justify-between">
+                          <div>
+                            <h5 className="font-medium">{manualUser.characterName}</h5>
+                            <p className="text-sm text-muted-foreground">
+                              Username: {manualUser.username} • Corporation: {manualUser.corporationName}
+                            </p>
+                            <p className="text-xs text-muted-foreground">
+                              Roles: {manualUser.roles.join(', ')} • Created: {new Date(manualUser.createdAt).toLocaleDateString()}
+                            </p>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <Badge variant={manualUser.isActive ? "default" : "secondary"}>
+                              {manualUser.isActive ? "Active" : "Inactive"}
+                            </Badge>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => {
+                                setManualUsers(users => users.filter(u => u.id !== manualUser.id));
+                                toast.success('User removed');
+                              }}
+                            >
+                              <X size={16} />
+                            </Button>
+                          </div>
+                        </div>
+                        
+                        {manualUser.lastLogin && (
+                          <div className="mt-2 text-xs text-muted-foreground">
+                            Last login: {new Date(manualUser.lastLogin).toLocaleString()}
+                          </div>
+                        )}
+                      </div>
+                    ))}
                   </div>
-                  <p className="text-sm text-muted-foreground">
-                    Restrict access to sensitive data based on user roles
-                  </p>
-                  <Switch defaultChecked />
-                </div>
-                
-                <div className="p-4 border border-border rounded-lg space-y-2">
-                  <div className="flex items-center gap-2">
-                    <Database size={16} />
-                    <span className="font-medium">Data Encryption</span>
+                ) : (
+                  <div className="p-4 border border-dashed border-border rounded-lg text-center">
+                    <Users size={32} className="mx-auto mb-2 text-muted-foreground" />
+                    <p className="text-sm text-muted-foreground mb-2">No manual users created</p>
+                    <p className="text-xs text-muted-foreground">
+                      Create manual user accounts for direct login access
+                    </p>
                   </div>
-                  <p className="text-sm text-muted-foreground">
-                    Encrypt sensitive corporation data at rest
-                  </p>
-                  <Switch defaultChecked />
-                </div>
+                )}
               </div>
+
+              {/* Add User Modal */}
+              {showAddUser && (
+                <div className="fixed inset-0 bg-background/80 backdrop-blur-sm z-50 flex items-center justify-center">
+                  <div className="bg-card border border-border rounded-lg p-6 w-full max-w-md mx-4 shadow-lg">
+                    <div className="flex items-center justify-between mb-4">
+                      <h3 className="text-lg font-semibold">Add Manual User</h3>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => {
+                          setShowAddUser(false);
+                          setNewUser({
+                            username: '',
+                            password: '',
+                            characterName: '',
+                            corporationName: '',
+                            roles: []
+                          });
+                        }}
+                      >
+                        <X size={16} />
+                      </Button>
+                    </div>
+
+                    <div className="space-y-4">
+                      <div className="space-y-2">
+                        <Label htmlFor="newUsername">Username</Label>
+                        <Input
+                          id="newUsername"
+                          value={newUser.username}
+                          onChange={(e) => setNewUser(u => ({ ...u, username: e.target.value }))}
+                          placeholder="Login username"
+                        />
+                      </div>
+
+                      <div className="space-y-2">
+                        <Label htmlFor="newPassword">Password</Label>
+                        <Input
+                          id="newPassword"
+                          type="password"
+                          value={newUser.password}
+                          onChange={(e) => setNewUser(u => ({ ...u, password: e.target.value }))}
+                          placeholder="User password"
+                        />
+                      </div>
+
+                      <div className="space-y-2">
+                        <Label htmlFor="newCharacterName">Character Name</Label>
+                        <Input
+                          id="newCharacterName"
+                          value={newUser.characterName}
+                          onChange={(e) => setNewUser(u => ({ ...u, characterName: e.target.value }))}
+                          placeholder="EVE character name"
+                        />
+                      </div>
+
+                      <div className="space-y-2">
+                        <Label htmlFor="newCorporationName">Corporation Name</Label>
+                        <Input
+                          id="newCorporationName"
+                          value={newUser.corporationName}
+                          onChange={(e) => setNewUser(u => ({ ...u, corporationName: e.target.value }))}
+                          placeholder="Corporation name"
+                        />
+                      </div>
+                    </div>
+
+                    <div className="flex gap-3 pt-6">
+                      <Button
+                        onClick={() => {
+                          setShowAddUser(false);
+                          setNewUser({
+                            username: '',
+                            password: '',
+                            characterName: '',
+                            corporationName: '',
+                            roles: []
+                          });
+                        }}
+                        variant="outline"
+                        className="flex-1"
+                      >
+                        Cancel
+                      </Button>
+                      <Button
+                        onClick={() => {
+                          if (!newUser.username || !newUser.password || !newUser.characterName) {
+                            toast.error('Please fill in all required fields');
+                            return;
+                          }
+
+                          const user = {
+                            id: Date.now().toString(),
+                            username: newUser.username,
+                            characterName: newUser.characterName,
+                            corporationName: newUser.corporationName || 'Unknown Corporation',
+                            roles: ['member'],
+                            createdAt: new Date().toISOString(),
+                            isActive: true
+                          };
+
+                          setManualUsers(users => [...users, user]);
+                          setShowAddUser(false);
+                          setNewUser({
+                            username: '',
+                            password: '',
+                            characterName: '',
+                            corporationName: '',
+                            roles: []
+                          });
+                          toast.success('User created successfully');
+                        }}
+                        disabled={!newUser.username || !newUser.password || !newUser.characterName}
+                        className="flex-1 bg-accent hover:bg-accent/90"
+                      >
+                        Create User
+                      </Button>
+                    </div>
+                  </div>
+                </div>
+              )}
             </CardContent>
           </Card>
         </TabsContent>
