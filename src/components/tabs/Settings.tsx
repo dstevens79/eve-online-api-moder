@@ -202,8 +202,7 @@ export function Settings({ activeTab, onTabChange }: SettingsProps) {
   const [showSetupWizard, setShowSetupWizard] = useState(false);
   const [showSetupCommands, setShowSetupCommands] = useState(false);
   
-  // SDE Management
-  const { checkForUpdates: checkSDEUpdates, downloadSDE } = useSDEManager();
+  // SDE Management - using the existing useSDEManager hook imported above
   const [sdeStats, setSDEStats] = useState<SDEDatabaseStats>({
     isConnected: false,
     tableCount: 0,
