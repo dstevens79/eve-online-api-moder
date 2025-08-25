@@ -802,12 +802,12 @@ export function Settings({ activeTab, onTabChange }: SettingsProps) {
           <TabsList>
             <TabsTrigger value="general">General</TabsTrigger>
             <TabsTrigger value="database">Database</TabsTrigger>
+            <TabsTrigger value="eve">EVE Online</TabsTrigger>
             <TabsTrigger value="sde">EVE SDE</TabsTrigger>
             <TabsTrigger value="esi">ESI Config</TabsTrigger>
             <TabsTrigger value="sync">Data Sync</TabsTrigger>
             <TabsTrigger value="notifications">Notifications</TabsTrigger>
-            <TabsTrigger value="users">Users</TabsTrigger>
-            <TabsTrigger value="debug">Debug</TabsTrigger>
+            <TabsTrigger value="security">Security</TabsTrigger>
           </TabsList>
         </div>
 
@@ -1384,194 +1384,6 @@ export function Settings({ activeTab, onTabChange }: SettingsProps) {
           </Card>
         </TabsContent>
 
-        <TabsContent value="sde" className="space-y-6">
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Archive size={20} />
-                EVE Static Data Export (SDE)
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-6">
-              <div className="p-3 bg-muted/50 rounded-lg text-sm text-muted-foreground">
-                <p className="font-medium mb-2">EVE SDE Database:</p>
-                <p>
-                  The Static Data Export contains reference data for all items, ships, solar systems, 
-                  and other static information in EVE Online. This data is essential for features like 
-                  item pricing, manufacturing calculations, and location lookups.
-                </p>
-              </div>
-
-              {/* Current Status */}
-              <div className="border border-border rounded-lg p-4">
-                <div className="flex items-center justify-between mb-4">
-                  <h4 className="font-medium">Current Status</h4>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={checkForUpdates}
-                    disabled={sdeStatus.isDownloading || sdeStatus.isUpdating}
-                  >
-                    <ArrowClockwise size={16} className="mr-2" />
-                    Check for Updates
-                  </Button>
-                </div>
-
-                {sdeStatus.isInstalled ? (
-                  <div className="space-y-4">
-                    <div className="p-3 border border-green-500/20 bg-green-500/10 rounded-lg">
-                      <div className="flex items-center gap-2 text-green-400 mb-2">
-                        <CheckCircle size={16} />
-                        <span className="font-medium">SDE Installed</span>
-                      </div>
-                      <div className="grid grid-cols-2 md:grid-cols-3 gap-4 text-sm">
-                        <div>
-                          <p className="text-muted-foreground">Version</p>
-                          <p className="font-medium">{sdeStatus.currentVersion}</p>
-                        </div>
-                        <div>
-                          <p className="text-muted-foreground">Installed</p>
-                          <p className="font-medium">
-                            {sdeStatus.installedDate 
-                              ? new Date(sdeStatus.installedDate).toLocaleDateString()
-                              : 'Unknown'
-                            }
-                          </p>
-                        </div>
-                        {sdeStats && (
-                          <div>
-                            <p className="text-muted-foreground">Database Size</p>
-                            <p className="font-medium">{sdeStats.totalSize}</p>
-                          </div>
-                        )}
-                      </div>
-                    </div>
-
-                    {sdeStats && (
-                      <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-                        <div className="p-3 border border-border rounded-lg">
-                          <div className="flex items-center gap-2 mb-2">
-                            <Database size={16} className="text-blue-400" />
-                            <span className="font-medium">Tables</span>
-                          </div>
-                          <p className="text-xl font-bold">{sdeStats.tables}</p>
-                        </div>
-                        <div className="p-3 border border-border rounded-lg">
-                          <div className="flex items-center gap-2 mb-2">
-                            <List size={16} className="text-green-400" />
-                            <span className="font-medium">Total Rows</span>
-                          </div>
-                          <p className="text-xl font-bold">{sdeStats.totalRows.toLocaleString()}</p>
-                        </div>
-                        <div className="p-3 border border-border rounded-lg">
-                          <div className="flex items-center gap-2 mb-2">
-                            <Clock size={16} className="text-purple-400" />
-                            <span className="font-medium">Last Update</span>
-                          </div>
-                          <p className="text-sm font-medium">
-                            {new Date(sdeStats.lastUpdate).toLocaleDateString()}
-                          </p>
-                        </div>
-                      </div>
-                    )}
-                  </div>
-                ) : (
-                  <div className="p-3 border border-orange-500/20 bg-orange-500/10 rounded-lg">
-                    <div className="flex items-center gap-2 text-orange-400">
-                      <Warning size={16} />
-                      <span className="font-medium">SDE Not Installed</span>
-                    </div>
-                    <p className="text-sm text-muted-foreground mt-1">
-                      The EVE Static Data Export is not installed. Download and install it to enable 
-                      full functionality.
-                    </p>
-                  </div>
-                )}
-
-                {sdeStatus.isUpdateAvailable && (
-                  <div className="p-3 border border-blue-500/20 bg-blue-500/10 rounded-lg">
-                    <div className="flex items-center gap-2 text-blue-400 mb-2">
-                      <Info size={16} />
-                      <span className="font-medium">Update Available</span>
-                    </div>
-                    <p className="text-sm text-muted-foreground mb-3">
-                      A newer version of the SDE is available: {sdeStatus.latestVersion}
-                    </p>
-                  </div>
-                )}
-
-                {sdeStatus.lastChecked && (
-                  <p className="text-xs text-muted-foreground">
-                    Last checked: {new Date(sdeStatus.lastChecked).toLocaleString()}
-                  </p>
-                )}
-              </div>
-
-              {/* Download and Update */}
-              <div className="border-t border-border pt-6 space-y-4">
-                <h4 className="font-medium">Download & Update</h4>
-                
-                <div className="space-y-4">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="font-medium">Download Latest SDE</p>
-                      <p className="text-sm text-muted-foreground">
-                        Download the latest EVE Static Data Export from Fuzzwork
-                      </p>
-                    </div>
-                    <Button
-                      onClick={downloadSDE}
-                      disabled={sdeStatus.isDownloading || sdeStatus.isUpdating || (!sdeStatus.isUpdateAvailable && sdeStatus.isInstalled)}
-                      className="bg-accent hover:bg-accent/90"
-                    >
-                      {sdeStatus.isDownloading ? (
-                        <>
-                          <ArrowClockwise size={16} className="mr-2 animate-spin" />
-                          Downloading...
-                        </>
-                      ) : (
-                        <>
-                          <CloudArrowDown size={16} className="mr-2" />
-                          Download SDE
-                        </>
-                      )}
-                    </Button>
-                  </div>
-
-                  {sdeStatus.isDownloading && typeof sdeStatus.downloadProgress === 'number' && (
-                    <div className="space-y-2">
-                      <div className="flex justify-between text-sm">
-                        <span>Downloading SDE archive...</span>
-                        <span>{Math.round(sdeStatus.downloadProgress)}%</span>
-                      </div>
-                      <Progress value={sdeStatus.downloadProgress} className="h-2" />
-                    </div>
-                  )}
-
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="font-medium">Update Database</p>
-                      <p className="text-sm text-muted-foreground">
-                        Import SDE data into the database (requires download first)
-                      </p>
-                    </div>
-                    <Button
-                      onClick={updateDatabase}
-                      disabled={sdeStatus.isDownloading || sdeStatus.isUpdating || sdeStatus.downloadProgress !== 100}
-                      variant="outline"
-                    >
-                      {sdeStatus.isUpdating ? (
-                        <>
-                          <ArrowClockwise size={16} className="mr-2 animate-spin" />
-                          Updating...
-                        </>
-                      ) : (
-                        <>
-                          <Upload size={16} className="mr-2" />
-                          Update Database
-                        </>
-                      )}
-                    </Button>
                   </div>
 
                   {sdeStatus.error && (
@@ -1923,16 +1735,66 @@ export function Settings({ activeTab, onTabChange }: SettingsProps) {
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-6">
-              <div className="p-3 bg-muted/50 rounded-lg text-sm text-muted-foreground">
-                <p className="font-medium mb-2">EVE ESI Integration Status:</p>
-                <p>
-                  ESI credentials are now configured in the Database tab. This section shows registered 
-                  corporations and access control settings.
-                </p>
+              {/* ESI Application Settings */}
+              <div className="space-y-4">
+                <div className="flex items-center justify-between">
+                  <h4 className="font-medium">ESI Application</h4>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => window.open('https://developers.eveonline.com/applications', '_blank')}
+                  >
+                    <Globe size={16} className="mr-2" />
+                    Manage Apps
+                  </Button>
+                </div>
+                
+                <div className="p-3 bg-muted/50 rounded-lg text-sm text-muted-foreground">
+                  <p className="font-medium mb-2">Setup Instructions:</p>
+                  <ol className="list-decimal list-inside space-y-1">
+                    <li>Create an application at developers.eveonline.com</li>
+                    <li>Set the callback URL to: <code className="bg-background px-1 rounded">{window.location.origin}</code></li>
+                    <li>Copy the Client ID and Client Secret below</li>
+                    <li>Save configuration and test login</li>
+                  </ol>
+                </div>
+                
+                <div className="grid grid-cols-1 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="clientId">Client ID</Label>
+                    <Input
+                      id="clientId"
+                      value={esiConfig.clientId}
+                      onChange={(e) => updateESIConfig({ ...esiConfig, clientId: e.target.value })}
+                      placeholder="Your EVE Online application Client ID"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="clientSecret">Client Secret</Label>
+                    <div className="relative">
+                      <Input
+                        id="clientSecret"
+                        type={showSecrets ? "text" : "password"}
+                        value={esiConfig.secretKey}
+                        onChange={(e) => updateESIConfig({ ...esiConfig, secretKey: e.target.value })}
+                        placeholder="Your EVE Online application Client Secret"
+                      />
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        className="absolute right-0 top-0 h-full px-3"
+                        onClick={() => setShowSecrets(!showSecrets)}
+                      >
+                        {showSecrets ? <EyeSlash size={16} /> : <Eye size={16} />}
+                      </Button>
+                    </div>
+                  </div>
+                </div>
               </div>
 
               {/* Registered Corporations */}
-              <div className="space-y-4">
+              <div className="border-t border-border pt-6 space-y-4">
                 <div className="flex items-center justify-between">
                   <h4 className="font-medium">Registered Corporations</h4>
                   <Badge variant="outline">
@@ -2226,90 +2088,15 @@ export function Settings({ activeTab, onTabChange }: SettingsProps) {
           </Card>
         </TabsContent>
 
-        <TabsContent value="users" className="space-y-6">
+        <TabsContent value="security" className="space-y-6">
           <Card>
             <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Users size={20} />
-                User Management
-              </CardTitle>
+              <CardTitle>Security Settings</CardTitle>
             </CardHeader>
-            <CardContent className="space-y-6">
-              <div className="p-3 bg-muted/50 rounded-lg text-sm text-muted-foreground">
-                <p className="font-medium mb-2">Manual User Accounts:</p>
-                <p>
-                  Create and manage local user accounts that can access LMeve without ESI authentication.
-                  These accounts are useful for service accounts, external tools, or users without EVE Online access.
-                </p>
-              </div>
-
-              {/* Add User Button */}
-              <div className="flex items-center justify-between">
-                <h4 className="font-medium">Manual Users</h4>
-                <Button 
-                  onClick={() => setShowAddUser(true)}
-                  className="bg-accent hover:bg-accent/90"
-                >
-                  <Users size={16} className="mr-2" />
-                  Add User
-                </Button>
-              </div>
-
-              {/* Users List */}
-              {manualUsers.length > 0 ? (
-                <div className="space-y-3">
-                  {manualUsers.map((user) => (
-                    <div key={user.id} className="p-4 border border-border rounded-lg">
-                      <div className="flex items-center justify-between">
-                        <div>
-                          <h5 className="font-medium">{user.characterName}</h5>
-                          <p className="text-sm text-muted-foreground">
-                            Username: {user.username} • Corp: {user.corporationName}
-                          </p>
-                          <p className="text-xs text-muted-foreground">
-                            Created: {new Date(user.createdAt).toLocaleDateString()}
-                            {user.lastLogin && ` • Last login: ${new Date(user.lastLogin).toLocaleDateString()}`}
-                          </p>
-                        </div>
-                        <div className="flex items-center gap-2">
-                          <Badge variant={user.isActive ? "default" : "secondary"}>
-                            {user.isActive ? "Active" : "Inactive"}
-                          </Badge>
-                          <div className="flex gap-1">
-                            {user.roles.map(role => (
-                              <Badge key={role} variant="outline" className="text-xs">
-                                {role}
-                              </Badge>
-                            ))}
-                          </div>
-                          <Button
-                            variant="outline" 
-                            size="sm"
-                            onClick={() => {
-                              setManualUsers(users => users.filter(u => u.id !== user.id));
-                              toast.success('User removed');
-                            }}
-                          >
-                            <X size={14} />
-                          </Button>
-                        </div>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              ) : (
-                <div className="p-8 border border-dashed border-border rounded-lg text-center">
-                  <Users size={32} className="mx-auto mb-3 text-muted-foreground" />
-                  <p className="text-sm text-muted-foreground mb-2">No manual users created</p>
-                  <p className="text-xs text-muted-foreground">
-                    Click "Add User" to create a local account
-                  </p>
-                </div>
-              )}
-
+            <CardContent className="space-y-4">
               {/* Admin Configuration - Only show to admins */}
               {user?.isAdmin && (
-                <div className="border-t border-border pt-6">
+                <div className="space-y-4">
                   <div className="p-4 border border-accent/20 bg-accent/5 rounded-lg space-y-4">
                     <div className="flex items-center gap-2">
                       <UserCheck size={16} className="text-accent" />
@@ -2350,128 +2137,45 @@ export function Settings({ activeTab, onTabChange }: SettingsProps) {
                       </Badge>
                     </div>
                   </div>
+                  
+                  <div className="border-t border-border pt-4"></div>
                 </div>
               )}
 
-              {/* Add User Modal */}
-              {showAddUser && (
-                <div className="fixed inset-0 bg-background/80 backdrop-blur-sm z-50 flex items-center justify-center">
-                  <div className="bg-card border border-border rounded-lg p-6 w-full max-w-md mx-4 shadow-lg">
-                    <div className="flex items-center justify-between mb-4">
-                      <h3 className="text-lg font-semibold">Add Manual User</h3>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => {
-                          setShowAddUser(false);
-                          setNewUser({
-                            username: '',
-                            password: '',
-                            characterName: '',
-                            corporationName: '',
-                            roles: [],
-                          });
-                        }}
-                      >
-                        <X size={16} />
-                      </Button>
-                    </div>
-
-                    <div className="space-y-4">
-                      <div className="space-y-2">
-                        <Label htmlFor="newUsername">Username</Label>
-                        <Input
-                          id="newUsername"
-                          value={newUser.username}
-                          onChange={(e) => setNewUser(u => ({ ...u, username: e.target.value }))}
-                          placeholder="Login username"
-                        />
-                      </div>
-                      
-                      <div className="space-y-2">
-                        <Label htmlFor="newPassword">Password</Label>
-                        <Input
-                          id="newPassword"
-                          type="password"
-                          value={newUser.password}
-                          onChange={(e) => setNewUser(u => ({ ...u, password: e.target.value }))}
-                          placeholder="User password"
-                        />
-                      </div>
-                      
-                      <div className="space-y-2">
-                        <Label htmlFor="newCharacterName">Character Name</Label>
-                        <Input
-                          id="newCharacterName"
-                          value={newUser.characterName}
-                          onChange={(e) => setNewUser(u => ({ ...u, characterName: e.target.value }))}
-                          placeholder="Display name"
-                        />
-                      </div>
-                      
-                      <div className="space-y-2">
-                        <Label htmlFor="newCorporationName">Corporation Name</Label>
-                        <Input
-                          id="newCorporationName"
-                          value={newUser.corporationName}
-                          onChange={(e) => setNewUser(u => ({ ...u, corporationName: e.target.value }))}
-                          placeholder="Corporation or organization"
-                        />
-                      </div>
-                    </div>
-
-                    <div className="flex gap-3 pt-6">
-                      <Button
-                        onClick={() => {
-                          setShowAddUser(false);
-                          setNewUser({
-                            username: '',
-                            password: '',
-                            characterName: '',
-                            corporationName: '',
-                            roles: [],
-                          });
-                        }}
-                        variant="outline"
-                        className="flex-1"
-                      >
-                        Cancel
-                      </Button>
-                      <Button
-                        onClick={() => {
-                          if (!newUser.username || !newUser.password || !newUser.characterName) {
-                            toast.error('Please fill in all required fields');
-                            return;
-                          }
-                          
-                          const userToAdd = {
-                            id: Math.random().toString(36).substring(2),
-                            ...newUser,
-                            roles: ['member'],
-                            createdAt: new Date().toISOString(),
-                            isActive: true
-                          };
-                          
-                          setManualUsers(users => [...users, userToAdd]);
-                          setShowAddUser(false);
-                          setNewUser({
-                            username: '',
-                            password: '',
-                            characterName: '',
-                            corporationName: '',
-                            roles: [],
-                          });
-                          toast.success('User added successfully');
-                        }}
-                        disabled={!newUser.username || !newUser.password || !newUser.characterName}
-                        className="flex-1 bg-accent hover:bg-accent/90"
-                      >
-                        Add User
-                      </Button>
-                    </div>
+              <div className="space-y-4">
+                <div className="p-4 border border-border rounded-lg space-y-2">
+                  <div className="flex items-center gap-2">
+                    <Clock size={16} />
+                    <span className="font-medium">Session Timeout</span>
                   </div>
+                  <p className="text-sm text-muted-foreground">
+                    Automatically log out after 2 hours of inactivity
+                  </p>
+                  <Switch defaultChecked />
                 </div>
-              )}
+                
+                <div className="p-4 border border-border rounded-lg space-y-2">
+                  <div className="flex items-center gap-2">
+                    <Users size={16} />
+                    <span className="font-medium">Role-Based Access</span>
+                  </div>
+                  <p className="text-sm text-muted-foreground">
+                    Restrict access to sensitive data based on user roles
+                  </p>
+                  <Switch defaultChecked />
+                </div>
+                
+                <div className="p-4 border border-border rounded-lg space-y-2">
+                  <div className="flex items-center gap-2">
+                    <Database size={16} />
+                    <span className="font-medium">Data Encryption</span>
+                  </div>
+                  <p className="text-sm text-muted-foreground">
+                    Encrypt sensitive corporation data at rest
+                  </p>
+                  <Switch defaultChecked />
+                </div>
+              </div>
             </CardContent>
           </Card>
         </TabsContent>
