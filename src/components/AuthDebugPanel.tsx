@@ -2,15 +2,15 @@ import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { useCorporationAuth } from '@/lib/corp-auth';
+import { useCorporationAuth, AuthenticatedUser } from '@/lib/corp-auth';
 import { useKV } from '@github/spark/hooks';
-import { UserCheck, RefreshCw, Trash2 } from '@phosphor-icons/react';
+import { UserCheck, ArrowClockwise, Trash } from '@phosphor-icons/react';
 
 export function AuthDebugPanel() {
   const [directTest, setDirectTest] = useState<'idle' | 'running' | 'success' | 'error'>('idle');
   const { user, loginWithCredentials, logout, authTrigger, isAuthenticated } = useCorporationAuth();
   const [refreshCounter, setRefreshCounter] = useState(0);
-  const [kvUser, setKVUser] = useKV('corp-auth-user', null);
+  const [kvUser, setKVUser] = useKV<AuthenticatedUser | null>('corp-auth-user', null);
 
   // Force refresh every 2 seconds to see live updates
   useEffect(() => {
@@ -96,7 +96,7 @@ export function AuthDebugPanel() {
             className="text-xs"
           >
             {directTest === 'running' ? (
-              <RefreshCw size={12} className="animate-spin mr-1" />
+              <ArrowClockwise size={12} className="animate-spin mr-1" />
             ) : (
               <UserCheck size={12} className="mr-1" />
             )}
@@ -109,7 +109,7 @@ export function AuthDebugPanel() {
             variant="outline"
             className="text-xs"
           >
-            <Trash2 size={12} className="mr-1" />
+            <Trash size={12} className="mr-1" />
             Clear Auth
           </Button>
         </div>

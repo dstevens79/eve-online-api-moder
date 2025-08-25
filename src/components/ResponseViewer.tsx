@@ -49,7 +49,7 @@ export function ResponseViewer({ response }: ResponseViewerProps) {
     return new Date(timestamp).toLocaleString();
   };
 
-  const renderJsonValue = (value: any, depth = 0): JSX.Element => {
+  const renderJsonValue = (value: any, depth = 0): React.ReactElement => {
     const indent = '  '.repeat(depth);
     
     if (value === null) {
@@ -122,7 +122,7 @@ export function ResponseViewer({ response }: ResponseViewerProps) {
               {response.status}
             </Badge>
             <span className="text-sm font-normal text-muted-foreground">
-              {formatTimestamp(response.timestamp)}
+              {formatTimestamp(response.timestamp || Date.now())}
             </span>
           </CardTitle>
           <div className="flex gap-2">
@@ -138,11 +138,11 @@ export function ResponseViewer({ response }: ResponseViewerProps) {
       <CardContent>
         <div className="space-y-4">
           {/* Headers */}
-          {Object.keys(response.headers).length > 0 && (
+          {Object.keys(response.headers || {}).length > 0 && (
             <div>
               <h4 className="font-medium mb-2">Headers</h4>
               <div className="bg-muted rounded-lg p-3 space-y-1 text-sm font-mono">
-                {Object.entries(response.headers).map(([key, value]) => (
+                {Object.entries(response.headers || {}).map(([key, value]) => (
                   <div key={key} className="flex">
                     <span className="text-primary min-w-[200px]">{key}:</span>
                     <span className="text-muted-foreground">{value}</span>
@@ -172,15 +172,15 @@ export function ResponseViewer({ response }: ResponseViewerProps) {
             </div>
             <div>
               <p className="text-xs text-muted-foreground">Content Type</p>
-              <p className="text-sm font-mono">{response.headers['content-type'] || 'application/json'}</p>
+              <p className="text-sm font-mono">{response.headers?.['content-type'] || 'application/json'}</p>
             </div>
             <div>
               <p className="text-xs text-muted-foreground">Content Length</p>
-              <p className="text-sm font-mono">{response.headers['content-length'] || 'Unknown'}</p>
+              <p className="text-sm font-mono">{response.headers?.['content-length'] || 'Unknown'}</p>
             </div>
             <div>
               <p className="text-xs text-muted-foreground">Time</p>
-              <p className="text-sm">{formatTimestamp(response.timestamp)}</p>
+              <p className="text-sm">{formatTimestamp(response.timestamp || Date.now())}</p>
             </div>
           </div>
         </div>

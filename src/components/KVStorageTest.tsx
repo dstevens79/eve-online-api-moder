@@ -16,7 +16,7 @@ export function KVStorageTest() {
 
   const loadKVKeys = async () => {
     try {
-      const keys = await spark.kv.keys();
+      const keys = await (window as any).spark.kv.keys();
       setKvKeys(keys.filter(key => key.startsWith('auth-') || key.startsWith('kv-test')));
     } catch (error) {
       console.error('Failed to load KV keys:', error);

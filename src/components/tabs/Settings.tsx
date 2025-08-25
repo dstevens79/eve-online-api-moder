@@ -2466,6 +2466,7 @@ export function Settings({ activeTab, onTabChange }: SettingsProps) {
                     ) : (
                       'No user logged in'
                     )}
+                  </div>
                 </div>
                 
                 <div className="space-y-2">

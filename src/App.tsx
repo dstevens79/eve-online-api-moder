@@ -230,7 +230,7 @@ function App() {
   // Handle ESI SSO login
   const handleESILogin = () => {
     try {
-      if (!esiConfig.clientId) {
+      if (!esiConfig?.clientId) {
         toast.error('ESI authentication is not configured. Please contact your administrator.');
         return;
       }
@@ -481,7 +481,7 @@ function App() {
               {/* ESI SSO Login */}
               <Button 
                 onClick={handleESILogin}
-                disabled={isLoggingIn || !esiConfig.clientId}
+                disabled={isLoggingIn || !esiConfig?.clientId}
                 className="w-full bg-blue-600 hover:bg-blue-700 text-white"
                 size="lg"
               >
@@ -489,7 +489,7 @@ function App() {
                 Sign In with EVE Online
               </Button>
               
-              {!esiConfig.clientId && (
+              {!esiConfig?.clientId && (
                 <p className="text-xs text-muted-foreground text-center mt-2">
                   EVE SSO login requires ESI configuration by an administrator
                 </p>
@@ -555,7 +555,7 @@ function App() {
                       <SignIn size={16} className="mr-2" />
                       Local Sign In
                     </Button>
-                    {esiConfig.clientId && (
+                    {esiConfig?.clientId && (
                       <Button 
                         onClick={handleESILogin}
                         className="bg-blue-600 hover:bg-blue-700 text-white"
@@ -690,7 +690,7 @@ function App() {
                             <SignIn size={16} className="mr-2" />
                             Local Sign In
                           </Button>
-                          {esiConfig.clientId && (
+                          {esiConfig?.clientId && (
                             <Button 
                               onClick={handleESILogin}
                               className="bg-blue-600 hover:bg-blue-700 text-white"
@@ -718,7 +718,7 @@ function App() {
                             <SignIn size={16} className="mr-2" />
                             Local Sign In
                           </Button>
-                          {esiConfig.clientId && (
+                          {esiConfig?.clientId && (
                             <Button 
                               onClick={handleESILogin}
                               className="bg-blue-600 hover:bg-blue-700 text-white"
@@ -732,7 +732,7 @@ function App() {
                     </div>
                   )
                 ) : activeTab === 'settings' ? (
-                  <Settings activeTab={activeSettingsTab} onTabChange={handleSettingsTabChange} />
+                  <Settings activeTab={activeSettingsTab || 'general'} onTabChange={handleSettingsTabChange} />
                 ) : (
                   <Tabs value={activeTab} onValueChange={handleTabChange}>
                     {tabs.map((tab) => {

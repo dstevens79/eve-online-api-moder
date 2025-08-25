@@ -13,7 +13,7 @@ import {
   Building,
   Crown,
   Shield,
-  AlertTriangle,
+  Warning,
   Info
 } from '@phosphor-icons/react';
 import { useCorporationAuth } from '@/lib/corp-auth';
@@ -24,7 +24,7 @@ interface CorporationESICallbackProps {
 }
 
 export function CorporationESICallback({ onLoginSuccess, onLoginError }: CorporationESICallbackProps) {
-  const { handleESICallback, registeredCorps, registerCorporationESI } = useCorporationAuth();
+  const { handleESICallback, registeredCorps, registerCorporation, user } = useCorporationAuth();
   const [status, setStatus] = useState<'processing' | 'success' | 'error' | 'registration'>('processing');
   const [progress, setProgress] = useState(0);
   const [message, setMessage] = useState('Initializing EVE Online authentication...');
@@ -81,28 +81,33 @@ export function CorporationESICallback({ onLoginSuccess, onLoginError }: Corpora
         setProgress(90);
         setMessage('Completing authentication...');
         
-        const user = await handleESICallback(code, state);
+        await handleESICallback(code, state);
         
-        setCharacterInfo({
-          name: user.characterName,
-          id: user.characterId,
-          isCeo: user.isCeo,
-          isDirector: user.isDirector
-        });
-        
-        setCorporationInfo({
-          name: user.corporationName,
-          id: user.corporationId,
-          allianceName: user.allianceName
-        });
+        // User should be available from the hook after successful callback
+        if (user) {
+          setCharacterInfo({
+            name: user.characterName,
+            id: user.characterId,
+            isCeo: user.isCeo,
+            isDirector: user.isDirector
+          });
+          
+          setCorporationInfo({
+            name: user.corporationName,
+            id: user.corporationId,
+            allianceName: user.allianceName
+          });
 
-        setProgress(100);
-        setMessage('Authentication successful!');
-        setStatus('success');
-        
-        setTimeout(() => {
-          onLoginSuccess();
-        }, 1500);
+          setProgress(100);
+          setMessage('Authentication successful!');
+          setStatus('success');
+          
+          setTimeout(() => {
+            onLoginSuccess();
+          }, 1500);
+        } else {
+          throw new Error('Authentication completed but user data not available');
+        }
 
       } catch (error) {
         console.error('ESI callback error:', error);
@@ -133,13 +138,13 @@ export function CorporationESICallback({ onLoginSuccess, onLoginError }: Corpora
       setMessage('Registering corporation ESI access...');
       
       // In a real implementation, this would save the refresh token and register the corp
-      await registerCorporationESI(
-        corporationInfo.id,
-        corporationInfo.name,
-        'refresh-token-placeholder', // This would come from the ESI callback
-        characterInfo.id,
-        ['default', 'scopes'] // This would come from the actual scopes granted
-      );
+      await registerCorporation({
+        corporationId: corporationInfo.id,
+        corporationName: corporationInfo.name,
+        refreshToken: 'refresh-token-placeholder', // This would come from the ESI callback
+        registeredBy: characterInfo.id,
+        scopes: ['default', 'scopes'] // This would come from the actual scopes granted
+      });
       
       setStatus('success');
       setMessage('Corporation registered successfully!');
@@ -296,7 +301,7 @@ export function CorporationESICallback({ onLoginSuccess, onLoginError }: Corpora
                   <Button
                     onClick={handleRegisterCorporation}
                     className="w-full"
-                    disabled={status === 'processing'}
+                    disabled={false}
                   >
                     Register Corporation ESI Access
                   </Button>
@@ -308,7 +313,7 @@ export function CorporationESICallback({ onLoginSuccess, onLoginError }: Corpora
           {status === 'error' && (
             <div className="space-y-4">
               <Alert variant="destructive">
-                <AlertTriangle size={16} />
+                <Warning size={16} />
                 <AlertDescription>
                   {error}
                 </AlertDescription>

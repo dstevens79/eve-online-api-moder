@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
-import { Search, ExternalLink, Star } from '@phosphor-icons/react';
+import { MagnifyingGlass, ArrowSquareOut, Star } from '@phosphor-icons/react';
 import { API_CATEGORIES } from '@/lib/api-data';
 import { EveApiEndpoint } from '@/lib/types';
 import { useKV } from '@github/spark/hooks';
@@ -27,23 +27,24 @@ export function EndpointBrowser({ onSelectEndpoint }: EndpointBrowserProps) {
   const toggleFavorite = (endpoint: EveApiEndpoint) => {
     const endpointKey = `${endpoint.method}:${endpoint.path}`;
     setFavorites((current) => {
-      if (current.includes(endpointKey)) {
-        return current.filter(key => key !== endpointKey);
+      const currentArray = current || [];
+      if (currentArray.includes(endpointKey)) {
+        return currentArray.filter(key => key !== endpointKey);
       } else {
-        return [...current, endpointKey];
+        return [...currentArray, endpointKey];
       }
     });
   };
 
   const isFavorite = (endpoint: EveApiEndpoint) => {
     const endpointKey = `${endpoint.method}:${endpoint.path}`;
-    return favorites.includes(endpointKey);
+    return (favorites || []).includes(endpointKey);
   };
 
   return (
     <div className="space-y-6">
       <div className="relative">
-        <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground" size={20} />
+        <MagnifyingGlass className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground" size={20} />
         <Input
           placeholder="Search endpoints..."
           value={searchTerm}
@@ -98,7 +99,7 @@ export function EndpointBrowser({ onSelectEndpoint }: EndpointBrowserProps) {
                       >
                         <Star size={16} weight={isFavorite(endpoint) ? 'fill' : 'regular'} />
                       </button>
-                      <ExternalLink size={16} className="text-muted-foreground" />
+                      <ArrowSquareOut size={16} className="text-muted-foreground" />
                     </div>
                   </div>
                 ))}
@@ -112,7 +113,7 @@ export function EndpointBrowser({ onSelectEndpoint }: EndpointBrowserProps) {
         <Card>
           <CardContent className="pt-6">
             <div className="text-center text-muted-foreground">
-              <Search size={48} className="mx-auto mb-4 opacity-50" />
+              <MagnifyingGlass size={48} className="mx-auto mb-4 opacity-50" />
               <p>No endpoints found matching "{searchTerm}"</p>
             </div>
           </CardContent>

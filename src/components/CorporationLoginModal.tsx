@@ -6,7 +6,7 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } f
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Separator } from '@/components/ui/separator';
-import { Rocket, Key, Globe, AlertTriangle, Info } from '@phosphor-icons/react';
+import { Rocket, Key, Globe, Warning, Info } from '@phosphor-icons/react';
 import { useCorporationAuth } from '@/lib/corp-auth';
 
 interface CorporationLoginModalProps {
@@ -63,7 +63,7 @@ export function CorporationLoginModal({ open, onOpenChange }: CorporationLoginMo
     setIsESIProcessing(true);
 
     try {
-      if (!esiConfig.clientId) {
+      if (!esiConfig?.clientId) {
         setError('ESI is not configured. Please contact your administrator to set up ESI authentication.');
         return;
       }
@@ -85,8 +85,8 @@ export function CorporationLoginModal({ open, onOpenChange }: CorporationLoginMo
     }
   };
 
-  const hasESIConfig = Boolean(esiConfig.clientId);
-  const registeredCorpCount = registeredCorps.filter(corp => corp.isActive).length;
+  const hasESIConfig = Boolean(esiConfig?.clientId);
+  const registeredCorpCount = registeredCorps?.filter(corp => corp.isActive).length || 0;
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -115,7 +115,7 @@ export function CorporationLoginModal({ open, onOpenChange }: CorporationLoginMo
 
           {error && (
             <Alert variant="destructive" className="mt-4">
-              <AlertTriangle size={16} />
+              <Warning size={16} />
               <AlertDescription>{error}</AlertDescription>
             </Alert>
           )}
@@ -192,7 +192,7 @@ export function CorporationLoginModal({ open, onOpenChange }: CorporationLoginMo
             <div className="space-y-3">
               {!hasESIConfig ? (
                 <Alert variant="destructive">
-                  <AlertTriangle size={16} />
+                  <Warning size={16} />
                   <AlertDescription>
                     ESI authentication is not configured. Please contact your administrator.
                   </AlertDescription>

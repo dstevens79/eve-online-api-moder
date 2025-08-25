@@ -233,3 +233,44 @@ export interface CorpSettings {
     reactions: number;
   };
 }
+
+// EVE API types
+export interface EveApiParameter {
+  name: string;
+  in: 'path' | 'query' | 'body';
+  required: boolean;
+  type: string;
+  description?: string;
+}
+
+export interface EveApiEndpoint {
+  path: string;
+  method: 'GET' | 'POST' | 'PUT' | 'DELETE';
+  summary: string;
+  description: string;
+  parameters: EveApiParameter[];
+  requiresAuth: boolean;
+  category: string;
+}
+
+export interface EveApiCategory {
+  name: string;
+  description: string;
+  endpoints: EveApiEndpoint[];
+}
+
+export interface ApiResponse {
+  data?: any;
+  error?: string;
+  status: number;
+  headers?: Record<string, string>;
+  timestamp?: number;
+}
+
+export interface RequestHistory {
+  id: string;
+  endpoint: EveApiEndpoint;
+  parameters: Record<string, any>;
+  response: ApiResponse;
+  timestamp: number;
+}

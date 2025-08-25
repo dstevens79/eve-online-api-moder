@@ -64,8 +64,8 @@ export function ComprehensiveAuthTest() {
       // Test 4: KV Storage verification
       addLog('📋 Test 4: Direct KV verification');
       try {
-        const directKVRead = await spark.kv.get('auth-user');
-        addLog(`🔍 Direct KV read: ${directKVRead?.characterName || 'null'}`);
+        const directKVRead = await (window as any).spark.kv.get('corp-auth-user');
+        addLog(`🔍 Direct KV read: ${JSON.stringify(directKVRead) || 'null'}`);
       } catch (error) {
         addLog(`❌ Direct KV read failed: ${error}`);
       }
