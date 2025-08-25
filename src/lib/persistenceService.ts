@@ -1,21 +1,18 @@
 /**
+ * Persistence Service for LMeve Settings and Data
  * 
- * 
-
+ * This service provides a unified interface for managing application settings
  * using the useKV hooks and provides a unified interface for data operations.
  */
 
 import { useKV } from '@github/spark/hooks';
 
-}
-export interface Da
-  port: number;
-  username: string;
-  ssl: boolean;
-  queryTimeout: number;
-  charset: string;
-  sudoHost: string;
-  sudoUsername: string;
+export interface GeneralSettings {
+  sessionTimeout: number;
+  maxLogRetentionDays: number;
+  theme: 'dark' | 'light' | 'system';
+  language: string;
+  timezone: string;
 }
 
 export interface DatabaseSettings {
@@ -38,7 +35,7 @@ export interface DatabaseSettings {
 
 export interface ESISettings {
   clientId: string;
-export interface SyncSe
+  clientSecret: string;
   callbackUrl: string;
   userAgent: string;
   scopes: string[];
@@ -52,169 +49,163 @@ export interface SDESettings {
   lastUpdateCheck: string;
   lastUpdateDate: string;
   autoUpdate: boolean;
-    manufacturing: boolean;
-    markets: boolean;
-    structureEvents: boolean;
-    incomeUpdates: boolean;
- 
-
-    smtpPassword: string;
-    fromEmail: stri
-  webhookUrl: string
-    enabled: boole
-    endTime: string
-  };
-
-  enabled: boolean;
-    mining: number;
-    invention: number;
-    research: numbe
-  };
-    
-  };
-    currency: 'ISK' 
-    paymentSchedule
+  updateSchedule: string;
+  downloadUrl: string;
+  backupBeforeUpdate: boolean;
+  cleanupAfterUpdate: boolean;
 }
-export interface Ma
-  username: string;
-  characterName: strin
-  corporationId: nu
-  permissions: string[]
-  la
 
-  version: string;
-  lastStartup: strin
-    manufacturing: boolean
-    market: boolean
-  };
-    totalApiCalls: num
-    
-  maintenance: 
-    cleanupSchedule: 
-  };
-
-export const defaultG
-  se
- 
-
-  maxLogRetentionDays: 30,
-
-  host: 'loca
-  database: 'lmeve'
-  password: '',
-  connectionPoolSize:
-  au
-  sudoHost:
-  sudoUsername: 'root',
-};
-export const default
-  clientSecret: '',
-  userAgent: 'LMeve Corpora
-    'esi-corporations.read_co
-    'esi-markets.read_corpor
-  ],
-  ma
-};
-export const defaultS
-  lastUpdateCheck: ''
-  autoUpdate: false,
-  downloadUrl: 'https://w
-  cleanupAfterUpdate: tr
-
-  en
+export interface SyncSettings {
+  enabled: boolean;
+  autoSync: boolean;
   syncIntervals: {
-    members: 30
-    mining: 30,
-    killmails: 120,
-    wallets: 180,
+    assets: number;
+    members: number;
+    manufacturing: number;
+    mining: number;
+    market: number;
+    killmails: number;
+    income: number;
+    wallets: number;
+  };
   lastSyncTimes: {
-    
- 
-
-    structures: '',
+    members: string;
+    assets: string;
+    manufacturing: string;
+    mining: string;
+    market: string;
+    killmails: string;
+    income: string;
+    structures: string;
+  };
   batchSizes: {
-    members: 100
-    mining: 100,
-    killmails: 25,
+    assets: number;
+    members: number;
+    manufacturing: number;
+    mining: number;
+    market: number;
+    killmails: number;
+  };
   quietHours: {
-    startTime: '22:0
-    timezone: 'UTC',
-};
-expo
+    enabled: boolean;
+    startTime: string;
+    endTime: string;
+    timezone: string;
+  };
+}
+
+export interface NotificationSettings {
+  enabled: boolean;
   channels: {
-    inApp: true,
-  },
-    
-    mining: false,
-    memberChanges: true,
-    assetMovements: false,
-  },
-    
- 
+    email: boolean;
+    inApp: boolean;
+    webhook: boolean;
+  };
+  events: {
+    syncErrors: boolean;
+    manufacturing: boolean;
+    mining: boolean;
+    markets: boolean;
+    memberChanges: boolean;
+    structureEvents: boolean;
+    assetMovements: boolean;
+    incomeUpdates: boolean;
+  };
+  emailSettings: {
+    smtpHost: string;
+    smtpPort: number;
+    smtpUser: string;
+    smtpPassword: string;
+    smtpSecure: boolean;
+    fromEmail: string;
+  };
+  webhookUrl: string;
+  quietHours: {
+    enabled: boolean;
+    startTime: string;
+    endTime: string;
+    timezone: string;
+  };
+}
 
-  },
-  quietHours:
-    startTime: '22:
-    timezone: 'UTC',
-};
-export const defaultIncome
+export interface IncomeSettings {
+  enabled: boolean;
   hourlyRates: {
-    manufacturing: 2
-    copying: 20000000,  
-    reaction: 400000
+    mining: number;
+    manufacturing: number;
+    invention: number;
+    copying: number;
+    research: number;
+    reaction: number;
+  };
   bonusRates: {
- 
-
-    minimumPayout: 100000000, // 1
-  },
-
-  version: '2.0.0',
-  lastStartup
-    manufacturing: true,
-    market: true,
-  },
-    totalApiCalls: 0,
-    
-  maintenanc
-    cleanupSchedule: '0 1 
-  },
-
-expo
-export const use
-export const useSyncSett
-export const useIncomeSettin
-export const useApplicati
-// U
- 
-
-    sde: await spar
-    notifications: await spark.kv.get<NotificationSettin
-    users: await spark.kv.get<ManualUser[]>
+    weekendMultiplier: number;
+    holidayMultiplier: number;
   };
-  return {
-    exportDate: new Dat
+  paymentSettings: {
+    currency: 'ISK';
+    minimumPayout: number;
+    paymentSchedule: 'daily' | 'weekly' | 'monthly';
   };
+}
 
-  if (!importData.s
-  }
+export interface ManualUser {
+  id: string;
+  username: string;
+  characterName: string;
+  corporationId: number;
+  permissions: string[];
+  lastLogin: string;
+  isActive: boolean;
+}
+
+export interface ApplicationData {
+  version: string;
+  installDate: string;
+  lastStartup: string;
+  features: {
+    manufacturing: boolean;
+    mining: boolean;
+    market: boolean;
+    structures: boolean;
+  };
+  metrics: {
+    totalApiCalls: number;
+    averageResponseTime: number;
+    errorRate: number;
+  };
+  maintenance: {
+    autoBackup: boolean;
+    cleanupSchedule: string;
+    logRotation: boolean;
+  };
+}
+
+// Default values for all settings
+export const defaultGeneralSettings: GeneralSettings = {
+  sessionTimeout: 3600, // 1 hour
+  maxLogRetentionDays: 30,
+  theme: 'dark',
+  language: 'en',
+  timezone: 'UTC',
 };
 
-  if (settings.esi) await spark.kv.set('lmeve-settings-esi
-  if (settings.sync)
-  if (setting
-  if (settings.appli
-
-export const re
-  await spark
-  await spark.kv.set('lme
-  await spark.kv.set('
-  await spark.kv.set('
+export const defaultDatabaseSettings: DatabaseSettings = {
+  host: 'localhost',
+  port: 3306,
+  database: 'lmeve',
+  username: 'lmeve',
+  password: '',
+  ssl: false,
+  connectionPoolSize: 10,
+  queryTimeout: 30000,
+  autoReconnect: true,
+  charset: 'utf8mb4',
+  sudoHost: 'localhost',
+  sudoPort: 3306,
+  sudoUsername: 'root',
+  sudoPassword: '',
 };
-// Backup to downloadabl
-  const backup = 
-  
-  link.href = URL.c
-  
 
 export const defaultESISettings: ESISettings = {
   clientId: '',
@@ -373,15 +364,15 @@ export const useApplicationData = () => useKV<ApplicationData>('lmeve-applicatio
 // Utility functions for data export/import
 export const exportAllSettings = async () => {
   const settings = {
-    general: await spark.kv.get<GeneralSettings>('lmeve-settings-general'),
-    database: await spark.kv.get<DatabaseSettings>('lmeve-settings-database'),
-    esi: await spark.kv.get<ESISettings>('lmeve-settings-esi'),
-    sde: await spark.kv.get<SDESettings>('lmeve-settings-sde'),
-    sync: await spark.kv.get<SyncSettings>('lmeve-settings-sync'),
-    notifications: await spark.kv.get<NotificationSettings>('lmeve-settings-notifications'),
-    income: await spark.kv.get<IncomeSettings>('lmeve-settings-income'),
-    users: await spark.kv.get<ManualUser[]>('lmeve-manual-users'),
-    application: await spark.kv.get<ApplicationData>('lmeve-application-data'),
+    general: await window.spark.kv.get<GeneralSettings>('lmeve-settings-general'),
+    database: await window.spark.kv.get<DatabaseSettings>('lmeve-settings-database'),
+    esi: await window.spark.kv.get<ESISettings>('lmeve-settings-esi'),
+    sde: await window.spark.kv.get<SDESettings>('lmeve-settings-sde'),
+    sync: await window.spark.kv.get<SyncSettings>('lmeve-settings-sync'),
+    notifications: await window.spark.kv.get<NotificationSettings>('lmeve-settings-notifications'),
+    income: await window.spark.kv.get<IncomeSettings>('lmeve-settings-income'),
+    users: await window.spark.kv.get<ManualUser[]>('lmeve-manual-users'),
+    application: await window.spark.kv.get<ApplicationData>('lmeve-application-data'),
   };
 
   return {
@@ -398,27 +389,27 @@ export const importAllSettings = async (importData: any) => {
 
   const { settings } = importData;
 
-  if (settings.general) await spark.kv.set('lmeve-settings-general', settings.general);
-  if (settings.database) await spark.kv.set('lmeve-settings-database', settings.database);
-  if (settings.esi) await spark.kv.set('lmeve-settings-esi', settings.esi);
-  if (settings.sde) await spark.kv.set('lmeve-settings-sde', settings.sde);
-  if (settings.sync) await spark.kv.set('lmeve-settings-sync', settings.sync);
-  if (settings.notifications) await spark.kv.set('lmeve-settings-notifications', settings.notifications);
-  if (settings.income) await spark.kv.set('lmeve-settings-income', settings.income);
-  if (settings.users) await spark.kv.set('lmeve-manual-users', settings.users);
-  if (settings.application) await spark.kv.set('lmeve-application-data', settings.application);
+  if (settings.general) await window.spark.kv.set('lmeve-settings-general', settings.general);
+  if (settings.database) await window.spark.kv.set('lmeve-settings-database', settings.database);
+  if (settings.esi) await window.spark.kv.set('lmeve-settings-esi', settings.esi);
+  if (settings.sde) await window.spark.kv.set('lmeve-settings-sde', settings.sde);
+  if (settings.sync) await window.spark.kv.set('lmeve-settings-sync', settings.sync);
+  if (settings.notifications) await window.spark.kv.set('lmeve-settings-notifications', settings.notifications);
+  if (settings.income) await window.spark.kv.set('lmeve-settings-income', settings.income);
+  if (settings.users) await window.spark.kv.set('lmeve-manual-users', settings.users);
+  if (settings.application) await window.spark.kv.set('lmeve-application-data', settings.application);
 };
 
 // Reset all settings to defaults
 export const resetAllSettings = async () => {
-  await spark.kv.set('lmeve-settings-general', defaultGeneralSettings);
-  await spark.kv.set('lmeve-settings-database', defaultDatabaseSettings);
-  await spark.kv.set('lmeve-settings-esi', defaultESISettings);
-  await spark.kv.set('lmeve-settings-sde', defaultSDESettings);
-  await spark.kv.set('lmeve-settings-sync', defaultSyncSettings);
-  await spark.kv.set('lmeve-settings-notifications', defaultNotificationSettings);
-  await spark.kv.set('lmeve-settings-income', defaultIncomeSettings);
-  await spark.kv.set('lmeve-manual-users', []);
+  await window.spark.kv.set('lmeve-settings-general', defaultGeneralSettings);
+  await window.spark.kv.set('lmeve-settings-database', defaultDatabaseSettings);
+  await window.spark.kv.set('lmeve-settings-esi', defaultESISettings);
+  await window.spark.kv.set('lmeve-settings-sde', defaultSDESettings);
+  await window.spark.kv.set('lmeve-settings-sync', defaultSyncSettings);
+  await window.spark.kv.set('lmeve-settings-notifications', defaultNotificationSettings);
+  await window.spark.kv.set('lmeve-settings-income', defaultIncomeSettings);
+  await window.spark.kv.set('lmeve-manual-users', []);
   // Don't reset application data as it contains version info
 };
 
@@ -440,11 +431,11 @@ export const validateSettings = (category: string, settings: any): string[] => {
   const errors: string[] = [];
   
   switch (category) {
-
+    case 'database':
       if (!settings.host) errors.push('Database host is required');
       if (!settings.database) errors.push('Database name is required');
       if (!settings.username) errors.push('Database username is required');
-
+      break;
     case 'esi':
       if (!settings.clientId) errors.push('ESI Client ID is required');
       if (!settings.clientSecret) errors.push('ESI Client Secret is required');
@@ -452,11 +443,11 @@ export const validateSettings = (category: string, settings: any): string[] => {
     case 'notifications':
       if (settings.channels.email && !settings.emailSettings.smtpHost) {
         errors.push('SMTP host is required for email notifications');
-
+      }
       if (settings.channels.webhook && !settings.webhookUrl) {
         errors.push('Webhook URL is required for webhook notifications');
       }
-
+      break;
     case 'income':
       Object.entries(settings.hourlyRates).forEach(([key, value]) => {
         if (typeof value !== 'number' || value < 0) {
@@ -466,5 +457,5 @@ export const validateSettings = (category: string, settings: any): string[] => {
       break;
   }
 
-
+  return errors;
 };
