@@ -1384,20 +1384,15 @@ export function Settings({ activeTab, onTabChange }: SettingsProps) {
           </Card>
         </TabsContent>
 
-                  </div>
-
-                  {sdeStatus.error && (
-                    <div className="p-3 border border-red-500/20 bg-red-500/10 rounded-lg">
-                      <div className="flex items-center gap-2 text-red-400">
-                        <Warning size={16} />
-                        <span className="font-medium">Error</span>
-                      </div>
-                      <p className="text-sm text-red-300 mt-1">{sdeStatus.error}</p>
-                    </div>
-                  )}
-                </div>
-              </div>
-
+        <TabsContent value="sde" className="space-y-6">
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Archive size={20} />
+                EVE Static Data Export (SDE) Maintenance
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-6">
               {/* Database Setup */}
               <div className="border-t border-border pt-6 space-y-4">
                 <h4 className="font-medium">Complete Database Setup</h4>
