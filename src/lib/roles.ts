@@ -257,31 +257,67 @@ export function canAccessSettingsTab(user: LMeveUser | null, settingsTab: string
  * Get the highest role from EVE corporation roles
  */
 export function getEVERoleMapping(eveRoles: string[]): UserRole {
-  // Check for CEO role first
-  if (eveRoles.some(role => role.toLowerCase().includes('ceo') || role === 'CEO')) {
+  // Normalize roles for comparison
+  const normalizedRoles = eveRoles.map(role => role.toLowerCase());
+  
+  // Check for CEO role first (highest priority)
+  if (normalizedRoles.includes('ceo') || 
+      normalizedRoles.includes('chief_executive_officer')) {
     return 'corp_admin';
   }
   
-  // Check for director roles
-  if (eveRoles.some(role => 
-    role.toLowerCase().includes('director') || 
-    role.toLowerCase().includes('personnel_manager') ||
-    role === 'Director'
+  // Check for director roles (second highest)
+  if (normalizedRoles.some(role => 
+    role.includes('director') || 
+    role === 'personnel_manager' ||
+    role === 'security_officer' ||
+    role === 'communications_officer'
   )) {
     return 'corp_director';
   }
   
-  // Check for manager-level roles
-  if (eveRoles.some(role => 
-    role.toLowerCase().includes('manager') ||
-    role.toLowerCase().includes('accountant') ||
-    role.toLowerCase().includes('factory_manager') ||
-    role.toLowerCase().includes('station_manager')
+  // Check for specific manager roles that indicate corp management permissions
+  if (normalizedRoles.some(role => 
+    role === 'factory_manager' ||
+    role === 'station_manager' ||
+    role === 'accountant' ||
+    role === 'junior_accountant' ||
+    role === 'trader' ||
+    role === 'config_equipment' ||
+    role === 'config_starbase_equipment' ||
+    role === 'container_can_take' ||
+    role === 'hangar_can_take1' ||
+    role === 'hangar_can_take2' ||
+    role === 'hangar_can_take3' ||
+    role === 'hangar_can_take4' ||
+    role === 'hangar_can_take5' ||
+    role === 'hangar_can_take6' ||
+    role === 'hangar_can_take7'
   )) {
     return 'corp_manager';
   }
   
-  // Default to member
+  // Check for limited access roles
+  if (normalizedRoles.some(role => 
+    role === 'hangar_can_query1' ||
+    role === 'hangar_can_query2' ||
+    role === 'hangar_can_query3' ||
+    role === 'hangar_can_query4' ||
+    role === 'hangar_can_query5' ||
+    role === 'hangar_can_query6' ||
+    role === 'hangar_can_query7' ||
+    role === 'account_can_query1' ||
+    role === 'account_can_query2' ||
+    role === 'account_can_query3' ||
+    role === 'account_can_query4' ||
+    role === 'account_can_query5' ||
+    role === 'account_can_query6' ||
+    role === 'account_can_query7'
+  )) {
+    return 'corp_member';
+  }
+  
+  // Default to member role for any authenticated corp member
   return 'corp_member';
 }
 

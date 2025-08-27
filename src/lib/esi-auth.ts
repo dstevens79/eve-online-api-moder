@@ -19,15 +19,41 @@ const SSO_AUTH_URL = `${SSO_BASE_URL}/v2/oauth/authorize`;
 const SSO_TOKEN_URL = `${SSO_BASE_URL}/v2/oauth/token`;
 const SSO_VERIFY_URL = `${SSO_BASE_URL}/oauth/verify`;
 
-// Required scopes for corporation management
+// Required scopes for corporation management based on LMeve requirements
 const REQUIRED_SCOPES = [
+  // Character and corporation info
   'esi-characters.read_corporation_roles.v1',
   'esi-corporations.read_corporation_membership.v1',
-  'esi-universe.read_structures.v1',
+  'esi-corporations.read_titles.v1',
+  
+  // Corporation data
   'esi-assets.read_corporation_assets.v1',
   'esi-industry.read_corporation_jobs.v1',
+  'esi-industry.read_character_jobs.v1',
   'esi-wallet.read_corporation_wallets.v1',
-  'esi-killmails.read_corporation_killmails.v1'
+  'esi-wallet.read_character_wallet.v1',
+  
+  // Killmails and structures
+  'esi-killmails.read_corporation_killmails.v1',
+  'esi-universe.read_structures.v1',
+  
+  // Market and contracts
+  'esi-markets.read_corporation_orders.v1',
+  'esi-contracts.read_corporation_contracts.v1',
+  
+  // Mining and planetary interaction
+  'esi-industry.read_corporation_mining.v1',
+  'esi-planets.read_customs_offices.v1',
+  
+  // Additional corporation management
+  'esi-corporations.read_blueprints.v1',
+  'esi-corporations.read_containers_logs.v1',
+  'esi-corporations.read_divisions.v1',
+  'esi-corporations.read_facilities.v1',
+  'esi-corporations.read_medals.v1',
+  'esi-corporations.read_outposts.v1',
+  'esi-corporations.read_standings.v1',
+  'esi-corporations.track_members.v1'
 ];
 
 export class ESIAuthService {

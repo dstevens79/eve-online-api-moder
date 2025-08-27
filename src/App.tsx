@@ -39,6 +39,7 @@ import { LMeveDataProvider } from '@/lib/LMeveDataContext';
 import { useAuth, AuthProvider } from '@/lib/auth-provider';
 import { ESICallback } from '@/components/ESICallback';
 import { canAccessTab, canAccessSettingsTab } from '@/lib/roles';
+import { EVELoginButton } from '@/components/EVELoginButton';
 
 // Tab Components (will be implemented)
 import { Dashboard } from '@/components/tabs/Dashboard';
@@ -481,35 +482,9 @@ function AppContent() {
                 </div>
               </form>
               
-              {/* Divider */}
-              <div className="relative my-6">
-                <div className="absolute inset-0 flex items-center">
-                  <div className="w-full border-t border-border"></div>
-                </div>
-                <div className="relative flex justify-center text-xs uppercase">
-                  <span className="bg-card px-2 text-muted-foreground">Or</span>
-                </div>
-              </div>
-              
-              {/* ESI SSO Login */}
-              <Button 
-                onClick={handleESILogin}
-                disabled={isLoggingIn || !esiConfig?.clientId}
-                className="w-full bg-blue-600 hover:bg-blue-700 text-white"
-                size="lg"
-              >
-                <Rocket size={16} className="mr-2" />
-                Sign In with EVE Online
-              </Button>
-              
-              {!esiConfig?.clientId && (
-                <p className="text-xs text-muted-foreground text-center mt-2">
-                  EVE SSO login requires ESI configuration by an administrator
-                </p>
-              )}
-              
               <div className="text-xs text-muted-foreground text-center mt-4">
-                Default admin: <strong>admin</strong> / <strong>12345</strong>
+                Default admin: <strong>admin</strong> / <strong>12345</strong><br />
+                <span className="opacity-75">Use EVE SSO button in header for corporation authentication</span>
               </div>
             </div>
           </div>
@@ -521,6 +496,37 @@ function AppContent() {
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-4">
                 <div className="flex items-center gap-3">
+                  {/* Character and Corporation images for ESI users */}
+                  {currentUser && currentUser.authMethod === 'esi' && (
+                    <div className="flex items-center gap-2">
+                      {/* Character portrait */}
+                      {currentUser.characterId && (
+                        <img 
+                          src={`https://images.evetech.net/characters/${currentUser.characterId}/portrait?size=64`}
+                          alt={currentUser.characterName || 'Character'}
+                          className="w-8 h-8 rounded-full border-2 border-accent/30"
+                          onError={(e) => {
+                            // Fallback to default avatar on error
+                            (e.target as HTMLImageElement).src = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMzIiIGhlaWdodD0iMzIiIHZpZXdCb3g9IjAgMCAzMiAzMiIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPGNpcmNsZSBjeD0iMTYiIGN5PSIxNiIgcj0iMTYiIGZpbGw9IiMzMzMiLz4KPHN2ZyB3aWR0aD0iMTYiIGhlaWdodD0iMTYiIHZpZXdCb3g9IjAgMCAxNiAxNiIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIiB4PSI4IiB5PSI4Ij4KPHBhdGggZD0iTTggMTBDNi45IDEwIDYgOS4xIDYgOEM2IDYuOSA2LjkgNiA4IDZDOS4xIDYgMTAgNi45IDEwIDhDMTAgOS4xIDkuMSAxMCA4IDEwWiIgZmlsbD0iIzk5OSIvPgo8cGF0aCBkPSJNOCAxMkM1LjggMTIgNCA5LjggNCA4QzQgNi4yIDUuOCA0IDggNEM5LjggNCA4IDUuOCA4IDhDOCA5LjggOS44IDEyIDggMTJaIiBmaWxsPSIjOTk5Ii8+Cjwvc3ZnPgo8L3N2Zz4K';
+                          }}
+                        />
+                      )}
+                      
+                      {/* Corporation logo */}
+                      {currentUser.corporationId && (
+                        <img 
+                          src={`https://images.evetech.net/corporations/${currentUser.corporationId}/logo?size=64`}
+                          alt={currentUser.corporationName || 'Corporation'}
+                          className="w-8 h-8 rounded border border-accent/30"
+                          onError={(e) => {
+                            // Fallback to default corp logo on error
+                            (e.target as HTMLImageElement).src = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMzIiIGhlaWdodD0iMzIiIHZpZXdCb3g9IjAgMCAzMiAzMiIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHJlY3Qgd2lkdGg9IjMyIiBoZWlnaHQ9IjMyIiBmaWxsPSIjMjIyIi8+CjxwYXRoIGQ9Ik0xNiA4TDI0IDE2TDE2IDI0TDggMTZMMTYgOFoiIGZpbGw9IiM2NjYiLz4KPC9zdmc+';
+                          }}
+                        />
+                      )}
+                    </div>
+                  )}
+                  
                   <Rocket size={28} className="text-accent" />
                   <div>
                     <h1 className="text-2xl font-bold text-foreground">LMeve</h1>
@@ -556,7 +562,7 @@ function AppContent() {
                     </Button>
                   </>
                 ) : (
-                  // Unauthenticated user section  
+                  // Unauthenticated user section - always show both login options
                   <div className="flex items-center gap-2">
                     <Button 
                       onClick={() => setShowQuickLogin(true)}
@@ -566,11 +572,19 @@ function AppContent() {
                       <SignIn size={16} className="mr-2" />
                       Local Sign In
                     </Button>
-                    {esiConfig?.clientId && (
+                    {/* Always show EVE SSO button if configured */}
+                    {esiConfig?.clientId ? (
+                      <EVELoginButton
+                        onClick={handleESILogin}
+                        size="small"
+                        disabled={!esiConfig?.clientId}
+                      />
+                    ) : (
                       <Button 
                         onClick={handleESILogin}
                         className="bg-blue-600 hover:bg-blue-700 text-white"
                         size="sm"
+                        disabled={true}
                       >
                         <Rocket size={16} className="mr-2" />
                         EVE SSO
