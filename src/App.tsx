@@ -93,6 +93,18 @@ function AppContent() {
     return 'configured';
   };
 
+  // Debug ESI config
+  React.useEffect(() => {
+    console.log('🔧 ESI Config Debug:', {
+      hasClientId: !!esiConfig?.clientId,
+      clientId: esiConfig?.clientId ? esiConfig.clientId.substring(0, 8) + '...' : 'none',
+      hasSecret: !!esiConfig?.clientSecret,
+      isConfigured: esiConfig?.isConfigured,
+      registeredCorpsCount: registeredCorps.length,
+      validationStatus: getValidationStatus()
+    });
+  }, [esiConfig, registeredCorps]);
+
   // Force re-render when user changes to ensure UI updates
   React.useEffect(() => {
     console.log('🔄 User state changed:', {
@@ -560,15 +572,27 @@ function AppContent() {
                         {currentUser.authMethod === 'esi' && ' • ESI'}
                       </p>
                     </div>
-                    <Button 
-                      variant="outline" 
-                      size="sm"
-                      className="border-border hover:bg-muted"
-                      onClick={currentLogout}
-                    >
-                      <SignOut size={16} className="mr-2" />
-                      Logout
-                    </Button>
+                    <div className="flex items-center gap-2">
+                      {/* Show EVE SSO button for manual users if ESI is configured */}
+                      {currentUser.authMethod === 'manual' && esiConfig?.clientId && (
+                        <EVELoginButton
+                          onClick={handleESILogin}
+                          size="small"
+                          disabled={!esiConfig?.clientId}
+                          showCorporationCount={registeredCorps.length}
+                          showValidationStatus={getValidationStatus()}
+                        />
+                      )}
+                      <Button 
+                        variant="outline" 
+                        size="sm"
+                        className="border-border hover:bg-muted"
+                        onClick={currentLogout}
+                      >
+                        <SignOut size={16} className="mr-2" />
+                        Logout
+                      </Button>
+                    </div>
                   </>
                 ) : (
                   // Unauthenticated user section - always show both login options

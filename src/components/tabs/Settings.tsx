@@ -298,7 +298,23 @@ export function Settings({ activeTab, onTabChange }: SettingsProps) {
         return;
       }
       
+      // Update the auth provider with new ESI configuration
+      const clientId = esiSettings.clientId || realESIConfig.clientId || '';
+      const clientSecret = esiSettings.clientSecret || realESIConfig.clientSecret;
+      
+      if (!clientId) {
+        toast.error('Client ID is required');
+        return;
+      }
+      
+      console.log('🔧 Saving ESI configuration to auth provider:', { clientId, hasSecret: !!clientSecret });
+      
+      // Update auth provider ESI config
+      realUpdateESIConfig(clientId, clientSecret);
+      
+      // Save to local settings as well
       setESISettings({ ...esiSettings });
+      
       toast.success('ESI settings saved successfully');
     } catch (error) {
       console.error('Failed to save ESI settings:', error);
@@ -814,15 +830,23 @@ export function Settings({ activeTab, onTabChange }: SettingsProps) {
 
   // Initialize ESI settings with proper state management
   useEffect(() => {
-    // If we have values from the auth provider but not in local state, initialize local state
-    if (realESIConfig.clientId && !esiSettings.clientId && !esiSettings.clientSecret) {
+    console.log('🔄 ESI Config sync check:', {
+      realClientId: realESIConfig.clientId,
+      realSecret: !!realESIConfig.clientSecret,
+      localClientId: esiSettings.clientId,
+      localSecret: !!esiSettings.clientSecret
+    });
+    
+    // Initialize local state with values from auth provider if they exist and local state is empty
+    if (realESIConfig.clientId && !esiSettings.clientId) {
+      console.log('📥 Initializing ESI settings from auth provider');
       setESISettings(prev => ({
         ...prev,
-        clientId: '',
-        clientSecret: ''
+        clientId: realESIConfig.clientId || '',
+        clientSecret: realESIConfig.clientSecret || ''
       }));
     }
-  }, [realESIConfig.clientId, realESIConfig.clientSecret, esiSettings.clientId, esiSettings.clientSecret]);
+  }, [realESIConfig.clientId, realESIConfig.clientSecret, esiSettings.clientId, esiSettings.clientSecret, setESISettings]);
 
   // Load SDE stats when component mounts
   useEffect(() => {
@@ -1331,9 +1355,7 @@ export function Settings({ activeTab, onTabChange }: SettingsProps) {
                       <Input
                         id="clientId"
                         value={esiSettings.clientId || realESIConfig.clientId || ''}
-                        onChange={(e) => {
-                          setESISettings(prev => ({ ...prev, clientId: e.target.value }));
-                        }}
+                        onChange={(e) => updateESISetting('clientId', e.target.value)}
                         placeholder="Your EVE Online application Client ID"
                         className={esiSettings.clientId && esiSettings.clientId !== realESIConfig.clientId ? 'border-accent' : ''}
                       />
@@ -1348,9 +1370,7 @@ export function Settings({ activeTab, onTabChange }: SettingsProps) {
                           id="clientSecret"
                           type={showSecrets ? "text" : "password"}
                           value={esiSettings.clientSecret || realESIConfig.clientSecret || ''}
-                          onChange={(e) => {
-                            setESISettings(prev => ({ ...prev, clientSecret: e.target.value }));
-                          }}
+                          onChange={(e) => updateESISetting('clientSecret', e.target.value)}
                           placeholder="Your EVE Online application Client Secret"
                           className={esiSettings.clientSecret && esiSettings.clientSecret !== realESIConfig.clientSecret ? 'border-accent' : ''}
                         />
