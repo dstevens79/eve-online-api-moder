@@ -70,11 +70,11 @@ export function UserManagement() {
   if (!canManageUsers) {
     return (
       <Card>
-        <CardContent className=\"flex items-center justify-center h-64\">
-          <div className=\"text-center space-y-2\">
-            <Shield size={48} className=\"mx-auto text-muted-foreground\" />
-            <h3 className=\"text-lg font-medium\">Access Denied</h3>
-            <p className=\"text-sm text-muted-foreground\">
+        <CardContent className="flex items-center justify-center h-64">
+          <div className="text-center space-y-2">
+            <Shield size={48} className="mx-auto text-muted-foreground" />
+            <h3 className="text-lg font-medium">Access Denied</h3>
+            <p className="text-sm text-muted-foreground">
               You don't have permission to manage users.
             </p>
           </div>
@@ -193,12 +193,12 @@ export function UserManagement() {
   };
 
   return (
-    <div className=\"space-y-6\">
+    <div className="space-y-6">
       {/* Header */}
-      <div className=\"flex items-center justify-between\">
+      <div className="flex items-center justify-between">
         <div>
-          <h2 className=\"text-2xl font-bold tracking-tight\">User Management</h2>
-          <p className=\"text-muted-foreground\">
+          <h2 className="text-2xl font-bold tracking-tight">User Management</h2>
+          <p className="text-muted-foreground">
             Manage user accounts and permissions for your corporation
           </p>
         </div>
@@ -206,7 +206,7 @@ export function UserManagement() {
         <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
           <DialogTrigger asChild>
             <Button>
-              <UserPlus size={16} className=\"mr-2\" />
+              <UserPlus size={16} className="mr-2" />
               Create User
             </Button>
           </DialogTrigger>
@@ -214,39 +214,39 @@ export function UserManagement() {
             <DialogHeader>
               <DialogTitle>Create New User</DialogTitle>
             </DialogHeader>
-            <div className=\"space-y-4 pt-4\">
-              <div className=\"space-y-2\">
-                <Label htmlFor=\"username\">Username</Label>
+            <div className="space-y-4 pt-4">
+              <div className="space-y-2">
+                <Label htmlFor="username">Username</Label>
                 <Input
-                  id=\"username\"
+                  id="username"
                   value={newUsername}
                   onChange={(e) => setNewUsername(e.target.value)}
-                  placeholder=\"Enter username\"
+                  placeholder="Enter username"
                   disabled={isCreating}
                 />
               </div>
               
-              <div className=\"space-y-2\">
-                <Label htmlFor=\"password\">Password</Label>
+              <div className="space-y-2">
+                <Label htmlFor="password">Password</Label>
                 <Input
-                  id=\"password\"
-                  type=\"password\"
+                  id="password"
+                  type="password"
                   value={newPassword}
                   onChange={(e) => setNewPassword(e.target.value)}
-                  placeholder=\"Enter password\"
+                  placeholder="Enter password"
                   disabled={isCreating}
                 />
               </div>
               
-              <div className=\"space-y-2\">
-                <Label htmlFor=\"role\">Role</Label>
+              <div className="space-y-2">
+                <Label htmlFor="role">Role</Label>
                 <Select 
                   value={newRole} 
                   onValueChange={(value) => setNewRole(value as UserRole)}
                   disabled={isCreating}
                 >
                   <SelectTrigger>
-                    <SelectValue placeholder=\"Select role\" />
+                    <SelectValue placeholder="Select role" />
                   </SelectTrigger>
                   <SelectContent>
                     {Object.entries(ROLE_LABELS).map(([role, label]) => {
@@ -255,9 +255,9 @@ export function UserManagement() {
                       
                       return (
                         <SelectItem key={role} value={role}>
-                          <div className=\"flex flex-col\">
+                          <div className="flex flex-col">
                             <span>{label}</span>
-                            <span className=\"text-xs text-muted-foreground\">
+                            <span className="text-xs text-muted-foreground">
                               {ROLE_DESCRIPTIONS[role as UserRole]}
                             </span>
                           </div>
@@ -268,19 +268,19 @@ export function UserManagement() {
                 </Select>
               </div>
               
-              <div className=\"flex gap-3 pt-4\">
+              <div className="flex gap-3 pt-4">
                 <Button 
-                  variant=\"outline\" 
+                  variant="outline" 
                   onClick={() => setIsCreateDialogOpen(false)}
                   disabled={isCreating}
-                  className=\"flex-1\"
+                  className="flex-1"
                 >
                   Cancel
                 </Button>
                 <Button 
                   onClick={handleCreateUser}
                   disabled={isCreating}
-                  className=\"flex-1\"
+                  className="flex-1"
                 >
                   {isCreating ? 'Creating...' : 'Create User'}
                 </Button>
@@ -293,7 +293,7 @@ export function UserManagement() {
       {/* Users Table */}
       <Card>
         <CardHeader>
-          <CardTitle className=\"flex items-center gap-2\">
+          <CardTitle className="flex items-center gap-2">
             <Users size={20} />
             System Users ({users.length})
           </CardTitle>
@@ -315,12 +315,12 @@ export function UserManagement() {
               {users.map((user) => (
                 <TableRow key={user.id}>
                   <TableCell>
-                    <div className=\"flex flex-col\">
-                      <span className=\"font-medium\">
+                    <div className="flex flex-col">
+                      <span className="font-medium">
                         {user.characterName || user.username || 'Unknown'}
                       </span>
                       {user.username && user.characterName && (
-                        <span className=\"text-xs text-muted-foreground\">
+                        <span className="text-xs text-muted-foreground">
                           @{user.username}
                         </span>
                       )}
@@ -328,15 +328,15 @@ export function UserManagement() {
                   </TableCell>
                   
                   <TableCell>
-                    <div className=\"flex items-center gap-2\">
+                    <div className="flex items-center gap-2">
                       {user.authMethod === 'esi' ? (
-                        <Badge variant=\"secondary\" className=\"text-xs\">
-                          <Key size={12} className=\"mr-1\" />
+                        <Badge variant="secondary" className="text-xs">
+                          <Key size={12} className="mr-1" />
                           ESI
                         </Badge>
                       ) : (
-                        <Badge variant=\"outline\" className=\"text-xs\">
-                          <Shield size={12} className=\"mr-1\" />
+                        <Badge variant="outline" className="text-xs">
+                          <Shield size={12} className="mr-1" />
                           Manual
                         </Badge>
                       )}
@@ -344,45 +344,45 @@ export function UserManagement() {
                   </TableCell>
                   
                   <TableCell>
-                    <Badge variant={getRoleBadgeVariant(user.role)} className=\"text-xs\">
+                    <Badge variant={getRoleBadgeVariant(user.role)} className="text-xs">
                       {ROLE_LABELS[user.role]}
                     </Badge>
                   </TableCell>
                   
                   <TableCell>
-                    <span className=\"text-sm\">
+                    <span className="text-sm">
                       {user.corporationName || 'No Corporation'}
                     </span>
                   </TableCell>
                   
                   <TableCell>
-                    <div className=\"flex items-center gap-2 text-sm\">
-                      <Clock size={14} className=\"text-muted-foreground\" />
+                    <div className="flex items-center gap-2 text-sm">
+                      <Clock size={14} className="text-muted-foreground" />
                       {formatLastLogin(user.lastLogin)}
                     </div>
                   </TableCell>
                   
                   <TableCell>
                     {user.isActive ? (
-                      <div className=\"flex items-center gap-2 text-green-600\">
+                      <div className="flex items-center gap-2 text-green-600">
                         <CheckCircle size={14} />
-                        <span className=\"text-xs\">Active</span>
+                        <span className="text-xs">Active</span>
                       </div>
                     ) : (
-                      <div className=\"flex items-center gap-2 text-red-600\">
+                      <div className="flex items-center gap-2 text-red-600">
                         <AlertTriangle size={14} />
-                        <span className=\"text-xs\">Inactive</span>
+                        <span className="text-xs">Inactive</span>
                       </div>
                     )}
                   </TableCell>
                   
                   <TableCell>
-                    <div className=\"flex items-center gap-1\">
+                    <div className="flex items-center gap-1">
                       {/* Can't edit current user or super admin (unless current user is super admin) */}
                       {user.id !== currentUser?.id && (user.role !== 'super_admin' || canManageSystem) && (
                         <Button 
-                          variant=\"ghost\" 
-                          size=\"sm\"
+                          variant="ghost" 
+                          size="sm"
                           onClick={() => openEditDialog(user)}
                         >
                           <Edit3 size={14} />
@@ -392,10 +392,10 @@ export function UserManagement() {
                       {/* Can't delete current user or super admin (unless current user is super admin) */}
                       {user.id !== currentUser?.id && (user.role !== 'super_admin' || canManageSystem) && (
                         <Button 
-                          variant=\"ghost\" 
-                          size=\"sm\"
+                          variant="ghost" 
+                          size="sm"
                           onClick={() => openDeleteDialog(user)}
-                          className=\"text-red-600 hover:text-red-700 hover:bg-red-50\"
+                          className="text-red-600 hover:text-red-700 hover:bg-red-50"
                         >
                           <Trash2 size={14} />
                         </Button>
@@ -408,8 +408,8 @@ export function UserManagement() {
           </Table>
           
           {users.length === 0 && (
-            <div className=\"text-center py-8 text-muted-foreground\">
-              <Users size={48} className=\"mx-auto mb-4 opacity-50\" />
+            <div className="text-center py-8 text-muted-foreground">
+              <Users size={48} className="mx-auto mb-4 opacity-50" />
               <p>No users found</p>
             </div>
           )}
@@ -423,7 +423,7 @@ export function UserManagement() {
             <DialogTitle>Edit User Role</DialogTitle>
           </DialogHeader>
           {selectedUser && (
-            <div className=\"space-y-4 pt-4\">
+            <div className="space-y-4 pt-4">
               <Alert>
                 <Shield size={16} />
                 <AlertDescription>
@@ -431,15 +431,15 @@ export function UserManagement() {
                 </AlertDescription>
               </Alert>
               
-              <div className=\"space-y-2\">
-                <Label htmlFor=\"edit-role\">Role</Label>
+              <div className="space-y-2">
+                <Label htmlFor="edit-role">Role</Label>
                 <Select 
                   value={editRole} 
                   onValueChange={(value) => setEditRole(value as UserRole)}
                   disabled={isUpdating}
                 >
                   <SelectTrigger>
-                    <SelectValue placeholder=\"Select role\" />
+                    <SelectValue placeholder="Select role" />
                   </SelectTrigger>
                   <SelectContent>
                     {Object.entries(ROLE_LABELS).map(([role, label]) => {
@@ -448,9 +448,9 @@ export function UserManagement() {
                       
                       return (
                         <SelectItem key={role} value={role}>
-                          <div className=\"flex flex-col\">
+                          <div className="flex flex-col">
                             <span>{label}</span>
-                            <span className=\"text-xs text-muted-foreground\">
+                            <span className="text-xs text-muted-foreground">
                               {ROLE_DESCRIPTIONS[role as UserRole]}
                             </span>
                           </div>
@@ -461,19 +461,19 @@ export function UserManagement() {
                 </Select>
               </div>
               
-              <div className=\"flex gap-3 pt-4\">
+              <div className="flex gap-3 pt-4">
                 <Button 
-                  variant=\"outline\" 
+                  variant="outline" 
                   onClick={() => setIsEditDialogOpen(false)}
                   disabled={isUpdating}
-                  className=\"flex-1\"
+                  className="flex-1"
                 >
                   Cancel
                 </Button>
                 <Button 
                   onClick={handleEditUser}
                   disabled={isUpdating}
-                  className=\"flex-1\"
+                  className="flex-1"
                 >
                   {isUpdating ? 'Updating...' : 'Update Role'}
                 </Button>
@@ -490,8 +490,8 @@ export function UserManagement() {
             <DialogTitle>Delete User</DialogTitle>
           </DialogHeader>
           {selectedUser && (
-            <div className=\"space-y-4 pt-4\">
-              <Alert variant=\"destructive\">
+            <div className="space-y-4 pt-4">
+              <Alert variant="destructive">
                 <AlertTriangle size={16} />
                 <AlertDescription>
                   This action cannot be undone. This will permanently delete the user account for:{' '}
@@ -499,20 +499,20 @@ export function UserManagement() {
                 </AlertDescription>
               </Alert>
               
-              <div className=\"flex gap-3 pt-4\">
+              <div className="flex gap-3 pt-4">
                 <Button 
-                  variant=\"outline\" 
+                  variant="outline" 
                   onClick={() => setIsDeleteDialogOpen(false)}
                   disabled={isDeleting}
-                  className=\"flex-1\"
+                  className="flex-1"
                 >
                   Cancel
                 </Button>
                 <Button 
-                  variant=\"destructive\"
+                  variant="destructive"
                   onClick={handleDeleteUser}
                   disabled={isDeleting}
-                  className=\"flex-1\"
+                  className="flex-1"
                 >
                   {isDeleting ? 'Deleting...' : 'Delete User'}
                 </Button>
