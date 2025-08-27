@@ -1321,7 +1321,7 @@ export function Settings({ activeTab, onTabChange }: SettingsProps) {
                         value={realESIConfig.clientId || ''}
                         onChange={(e) => {
                           // Store temporarily for batch update
-                          setEsiSettings(prev => ({ ...prev, clientId: e.target.value }));
+                          setESISettings(prev => ({ ...prev, clientId: e.target.value }));
                         }}
                         placeholder="Your EVE Online application Client ID"
                       />
@@ -1335,7 +1335,7 @@ export function Settings({ activeTab, onTabChange }: SettingsProps) {
                           value={realESIConfig.clientSecret || ''}
                           onChange={(e) => {
                             // Store temporarily for batch update
-                            setEsiSettings(prev => ({ ...prev, clientSecret: e.target.value }));
+                            setESISettings(prev => ({ ...prev, clientSecret: e.target.value }));
                           }}
                           placeholder="Your EVE Online application Client Secret"
                         />
