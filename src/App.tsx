@@ -36,8 +36,9 @@ import { useKV } from '@github/spark/hooks';
 import { TabType } from '@/lib/types';
 import { DatabaseProvider } from '@/lib/DatabaseContext';
 import { LMeveDataProvider } from '@/lib/LMeveDataContext';
-import { useCorporationAuth } from '@/lib/corp-auth';
-import { CorporationESICallback } from '@/components/CorporationESICallback';
+import { useAuth, AuthProvider } from '@/lib/auth-provider';
+import { ESICallback } from '@/components/ESICallback';
+import { canAccessTab, canAccessSettingsTab } from '@/lib/roles';
 
 // Tab Components (will be implemented)
 import { Dashboard } from '@/components/tabs/Dashboard';
@@ -51,7 +52,7 @@ import { Market } from '@/components/tabs/Market';
 import { Income } from '@/components/tabs/Income';
 import { Settings } from '@/components/tabs/Settings';
 
-function App() {
+function AppContent() {
   const [activeTab, setActiveTab] = useKV<TabType>('active-tab', 'dashboard');
   const [activeSettingsTab, setActiveSettingsTab] = useKV<string>('active-settings-tab', 'general');
   const [settingsExpanded, setSettingsExpanded] = useKV<boolean>('settings-expanded', false);
@@ -64,8 +65,9 @@ function App() {
     authTrigger,
     loginWithCredentials,
     loginWithESI,
+    handleESICallback,
     esiConfig
-  } = useCorporationAuth();
+  } = useAuth();
   const [isESICallback, setIsESICallback] = useState(false);
   const [forceRender, setForceRender] = useState(0);
   
@@ -87,9 +89,8 @@ function App() {
       hasUser: !!currentUser,
       characterName: currentUser?.characterName,
       corporationName: currentUser?.corporationName,
-      isAdmin: currentUser?.isAdmin,
+      role: currentUser?.role,
       authMethod: currentUser?.authMethod,
-      canManageESI: currentUser?.canManageESI,
       timestamp: Date.now()
     });
     
@@ -99,7 +100,7 @@ function App() {
         id: currentUser.characterId,
         name: currentUser.characterName,
         corp: currentUser.corporationName,
-        isAdmin: currentUser.isAdmin,
+        role: currentUser.role,
         authMethod: currentUser.authMethod
       });
       setForceRender(prev => prev + 1);
@@ -264,7 +265,7 @@ function App() {
   // Show ESI callback handler if this is a callback
   if (isESICallback) {
     return (
-      <CorporationESICallback 
+      <ESICallback 
         onLoginSuccess={handleLoginSuccess}
         onLoginError={handleLoginError}
       />
@@ -308,6 +309,13 @@ function App() {
       return;
     }
     
+    // Check tab access permissions for authenticated users
+    if (currentUser && !canAccessTab(currentUser, value)) {
+      console.log('❌ Tab change blocked - insufficient permissions');
+      toast.error('You do not have permission to access this section');
+      return;
+    }
+    
     console.log('🔄 Allowing tab change to:', value);
     
     if (value === 'settings') {
@@ -331,6 +339,13 @@ function App() {
   };
 
   const handleSettingsTabChange = (value: string) => {
+    // Check settings tab access permissions
+    if (currentUser && !canAccessSettingsTab(currentUser, value)) {
+      console.log('❌ Settings tab change blocked - insufficient permissions');
+      toast.error('You do not have permission to access this section');
+      return;
+    }
+    
     setActiveSettingsTab(value);
   };
 
@@ -347,9 +362,8 @@ function App() {
             <div>User: {currentUser?.characterName || 'null'}</div>
             <div>Corporation: {currentUser?.corporationName || 'null'}</div>
             <div>Has User Object: {currentUser ? 'true' : 'false'}</div>
-            <div>Is Admin: {currentUser?.isAdmin ? 'true' : 'false'}</div>
+            <div>Role: {currentUser?.role || 'none'}</div>
             <div>Auth Method: {currentUser?.authMethod || 'none'}</div>
-            <div>Can Manage ESI: {currentUser?.canManageESI ? 'true' : 'false'}</div>
             <div>Is Authenticated: {currentAuth ? 'true' : 'false'}</div>
             <div>Show Quick Login: {showQuickLogin ? 'true' : 'false'}</div>
             <div>Active Tab: {activeTab}</div>
@@ -527,9 +541,7 @@ function App() {
                     <div className="text-right">
                       <p className="text-sm font-medium">{currentUser.characterName}</p>
                       <p className="text-xs text-muted-foreground">
-                        {currentUser.isAdmin ? 'Local Admin' : 
-                         currentUser.isCeo ? 'CEO' : 
-                         currentUser.isDirector ? 'Director' : 'Member'}
+                        {(currentUser as any).role?.replace('_', ' ').toUpperCase() || 'MEMBER'}
                         {currentUser.authMethod === 'esi' && ' • ESI'}
                       </p>
                     </div>
@@ -580,8 +592,9 @@ function App() {
               {tabs.map((tab) => {
                 const IconComponent = tab.icon;
                 const isActive = activeTab === tab.id;
-                // Only dashboard is accessible when not authenticated
-                const isDisabled = !currentUser && tab.id !== 'dashboard';
+                // Check accessibility based on authentication and permissions
+                const isAccessible = canAccessTab(currentUser, tab.id);
+                const isDisabled = !isAccessible;
                 return (
                   <Button
                     key={tab.id}
@@ -643,6 +656,10 @@ function App() {
                     {settingsTabs.map((settingsTab) => {
                       const IconComponent = settingsTab.icon;
                       const isActiveSettings = activeSettingsTab === settingsTab.id;
+                      const isAccessible = canAccessSettingsTab(currentUser, settingsTab.id);
+                      
+                      if (!isAccessible) return null;
+                      
                       return (
                         <Button
                           key={settingsTab.id}
@@ -751,6 +768,15 @@ function App() {
       </div>
       </LMeveDataProvider>
     </DatabaseProvider>
+  );
+}
+
+// Main App component with AuthProvider
+function App() {
+  return (
+    <AuthProvider>
+      <AppContent />
+    </AuthProvider>
   );
 }
 

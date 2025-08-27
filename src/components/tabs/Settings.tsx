@@ -75,6 +75,7 @@ import {
   resetAllSettings,
   validateSettings
 } from '@/lib/persistenceService';
+import { UserManagement } from '@/components/UserManagement';
 
 interface SyncStatus {
   isRunning: boolean;

@@ -277,3 +277,108 @@ export interface RequestHistory {
   response: ApiResponse;
   timestamp: number;
 }
+
+// Role-based access control types
+export type UserRole = 
+  | 'super_admin'           // Full system access, can manage all corporations
+  | 'corp_admin'            // Corporation administrator, can manage corp settings and users
+  | 'corp_director'         // Corporation director, can view/manage corp operations
+  | 'corp_manager'          // Corporation manager, can manage specific areas
+  | 'corp_member'           // Basic corporation member, read-only access
+  | 'guest';                // Limited guest access
+
+export interface RolePermissions {
+  // System permissions
+  canManageSystem: boolean;
+  canManageMultipleCorps: boolean;
+  canConfigureESI: boolean;
+  canManageDatabase: boolean;
+  
+  // Corporation permissions
+  canManageCorp: boolean;
+  canManageUsers: boolean;
+  canViewFinancials: boolean;
+  canManageManufacturing: boolean;
+  canManageMining: boolean;
+  canManageAssets: boolean;
+  canManageMarket: boolean;
+  canViewKillmails: boolean;
+  canManageIncome: boolean;
+  
+  // Data permissions
+  canViewAllMembers: boolean;
+  canEditAllData: boolean;
+  canExportData: boolean;
+  canDeleteData: boolean;
+}
+
+export interface LMeveUser {
+  // Core identity
+  id: string;
+  username?: string;                    // For manual logins
+  characterId?: number;                 // For ESI logins
+  characterName?: string;               // EVE character name
+  
+  // Corporation data
+  corporationId?: number;
+  corporationName?: string;
+  allianceId?: number;
+  allianceName?: string;
+  
+  // Authentication
+  authMethod: 'manual' | 'esi';
+  role: UserRole;
+  permissions: RolePermissions;
+  
+  // ESI data (when applicable)
+  accessToken?: string;
+  refreshToken?: string;
+  tokenExpiry?: string;
+  scopes?: string[];
+  
+  // Session management
+  lastLogin: string;
+  sessionExpiry: string;
+  isActive: boolean;
+  
+  // Metadata
+  createdDate: string;
+  createdBy?: string;
+  updatedDate: string;
+  updatedBy?: string;
+}
+
+export interface ESIAuthState {
+  state: string;
+  verifier: string;
+  challenge: string;
+  timestamp: number;
+  corporationId?: number;
+}
+
+export interface ESITokenResponse {
+  access_token: string;
+  token_type: string;
+  expires_in: number;
+  refresh_token?: string;
+  scope?: string;
+}
+
+export interface ESICharacterData {
+  character_id: number;
+  character_name: string;
+  corporation_id: number;
+  alliance_id?: number;
+  scopes: string[];
+}
+
+export interface CorporationConfig {
+  corporationId: number;
+  corporationName: string;
+  esiClientId?: string;
+  esiClientSecret?: string;
+  registeredScopes: string[];
+  isActive: boolean;
+  registrationDate: string;
+  lastTokenRefresh?: string;
+}

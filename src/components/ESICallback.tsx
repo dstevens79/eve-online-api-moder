@@ -1,166 +1,150 @@
 import React, { useEffect, useState } from 'react';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Rocket, AlertCircle, CheckCircle, Loader2 } from '@phosphor-icons/react';
 import { Button } from '@/components/ui/button';
-import { Rocket, CheckCircle, XCircle, Spinner } from '@phosphor-icons/react';
-import { useAuth, ESIAuthState } from '@/lib/auth';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { useAuth } from '@/lib/auth-provider';
 
 interface ESICallbackProps {
-  onLoginSuccess?: () => void;
-  onLoginError?: () => void;
+  onLoginSuccess: () => void;
+  onLoginError: () => void;
 }
 
 export function ESICallback({ onLoginSuccess, onLoginError }: ESICallbackProps) {
   const { handleESICallback } = useAuth();
-  const [status, setStatus] = useState<'loading' | 'success' | 'error'>('loading');
+  const [status, setStatus] = useState<'processing' | 'success' | 'error'>('processing');
   const [error, setError] = useState<string | null>(null);
+  const [characterName, setCharacterName] = useState<string | null>(null);
 
   useEffect(() => {
-    const handleCallback = async () => {
-      const urlParams = new URLSearchParams(window.location.search);
-      const code = urlParams.get('code');
-      const state = urlParams.get('state');
-      const error = urlParams.get('error');
-
-      if (error) {
-        setStatus('error');
-        setError(`ESI authentication error: ${error}`);
-        onLoginError?.();
-        return;
-      }
-
-      if (!code || !state) {
-        setStatus('error');
-        setError('Missing authorization code or state parameter');
-        onLoginError?.();
-        return;
-      }
-
+    const processCallback = async () => {
       try {
-        // Handle the callback
-        await handleESICallback(code, state);
+        console.log('🔄 Processing ESI callback');
+        setStatus('processing');
         
+        // Get URL parameters
+        const urlParams = new URLSearchParams(window.location.search);
+        const code = urlParams.get('code');
+        const state = urlParams.get('state');
+        const error = urlParams.get('error');
+        
+        // Handle OAuth error
+        if (error) {
+          const errorDescription = urlParams.get('error_description') || 'Authentication was denied or cancelled';
+          throw new Error(errorDescription);
+        }
+        
+        // Validate required parameters
+        if (!code || !state) {
+          throw new Error('Missing required authentication parameters');
+        }
+        
+        console.log('🔄 Processing ESI authentication with code and state');
+        
+        // Process the callback
+        const user = await handleESICallback(code, state);
+        
+        setCharacterName(user.characterName || 'Unknown Character');
         setStatus('success');
         
-        // Redirect after successful login
+        console.log('✅ ESI authentication successful');
+        
+        // Delay to show success message
         setTimeout(() => {
-          onLoginSuccess?.();
+          onLoginSuccess();
         }, 2000);
         
-      } catch (err) {
+      } catch (error) {
+        console.error('❌ ESI callback processing failed:', error);
+        const errorMessage = error instanceof Error ? error.message : 'Authentication failed';
+        setError(errorMessage);
         setStatus('error');
-        setError(err instanceof Error ? err.message : 'Authentication failed');
-        onLoginError?.();
+        
+        // Delay to show error message
+        setTimeout(() => {
+          onLoginError();
+        }, 3000);
       }
     };
-
-    handleCallback();
+    
+    processCallback();
   }, [handleESICallback, onLoginSuccess, onLoginError]);
 
   const handleRetry = () => {
-    // Clean up all ESI-related session storage
-    sessionStorage.removeItem('esi-auth-state');
-    sessionStorage.removeItem('esi-login-attempt');
-    onLoginError?.();
+    onLoginError();
   };
 
   return (
-    <div className="min-h-screen bg-background flex items-center justify-center p-4">
-      {/* Background decoration */}
-      <div className="absolute inset-0 bg-gradient-to-br from-accent/5 via-background to-primary/5" />
-      
-      <div className="w-full max-w-md relative">
-        {/* Header */}
-        <div className="text-center mb-8">
-          <div className="flex items-center justify-center gap-3 mb-4">
-            <Rocket size={32} className="text-accent" />
-            <h1 className="text-3xl font-bold text-foreground">LMeve</h1>
-          </div>
-          <p className="text-muted-foreground">
-            EVE Online Corporation Management
-          </p>
-        </div>
-
-        <Card className="border-border bg-card/50 backdrop-blur-sm">
-          <CardHeader className="space-y-1">
-            <CardTitle className="text-xl text-center flex items-center justify-center gap-2">
-              {status === 'loading' && (
-                <>
-                  <Spinner size={20} className="animate-spin text-accent" />
-                  Authenticating...
-                </>
-              )}
-              {status === 'success' && (
-                <>
-                  <CheckCircle size={20} className="text-green-500" />
-                  Authentication Successful
-                </>
-              )}
-              {status === 'error' && (
-                <>
-                  <XCircle size={20} className="text-destructive" />
-                  Authentication Failed
-                </>
-              )}
-            </CardTitle>
-            <CardDescription className="text-center">
-              {status === 'loading' && 'Processing your EVE Online authentication...'}
-              {status === 'success' && 'You will be redirected to the application shortly.'}
-              {status === 'error' && 'There was a problem with your authentication.'}
-            </CardDescription>
-          </CardHeader>
-          
-          <CardContent className="space-y-4">
-            {status === 'loading' && (
-              <div className="text-center py-8">
-                <div className="space-y-2">
-                  <Spinner size={32} className="animate-spin text-accent mx-auto" />
-                  <p className="text-sm text-muted-foreground">
-                    Verifying your character information...
-                  </p>
-                </div>
+    <div className=\"min-h-screen bg-background flex items-center justify-center p-4\">
+      <Card className=\"w-full max-w-md mx-auto\">
+        <CardHeader className=\"text-center\">
+          <div className=\"flex justify-center mb-4\">
+            {status === 'processing' && (
+              <div className=\"bg-accent/20 p-4 rounded-full\">
+                <Loader2 size={32} className=\"text-accent animate-spin\" />
               </div>
             )}
-
             {status === 'success' && (
-              <div className="text-center py-4">
-                <CheckCircle size={48} className="text-green-500 mx-auto mb-4" />
-                <p className="text-sm text-muted-foreground">
-                  Welcome to LMeve! Redirecting you to the application...
-                </p>
+              <div className=\"bg-green-500/20 p-4 rounded-full\">
+                <CheckCircle size={32} className=\"text-green-500\" />
               </div>
             )}
-
             {status === 'error' && (
-              <div className="space-y-4">
-                {error && (
-                  <Alert variant="destructive">
-                    <XCircle size={16} />
-                    <AlertDescription>{error}</AlertDescription>
-                  </Alert>
-                )}
-                
-                <div className="text-center">
-                  <Button onClick={handleRetry} variant="outline" className="w-full">
-                    Return to Login
-                  </Button>
-                </div>
-                
-                <div className="text-center">
-                  <p className="text-xs text-muted-foreground">
-                    Common issues:
-                    • Corporation not registered with ESI access
-                    • Invalid ESI client configuration 
-                    • Missing required scopes or roles
-                    
-                    Contact your corporation leadership for ESI access setup.
-                  </p>
-                </div>
+              <div className=\"bg-red-500/20 p-4 rounded-full\">
+                <AlertCircle size={32} className=\"text-red-500\" />
               </div>
             )}
-          </CardContent>
-        </Card>
-      </div>
+          </div>
+          
+          <CardTitle className=\"text-xl\">
+            {status === 'processing' && 'Processing Authentication'}
+            {status === 'success' && 'Authentication Successful'}
+            {status === 'error' && 'Authentication Failed'}
+          </CardTitle>
+        </CardHeader>
+        
+        <CardContent className=\"space-y-4\">
+          {status === 'processing' && (
+            <div className=\"text-center text-muted-foreground\">
+              <p className=\"mb-2\">Authenticating with EVE Online...</p>
+              <p className=\"text-sm\">This may take a few moments.</p>
+            </div>
+          )}
+          
+          {status === 'success' && (
+            <div className=\"text-center space-y-2\">
+              <p className=\"text-green-500 font-medium\">
+                Welcome, {characterName}!
+              </p>
+              <p className=\"text-sm text-muted-foreground\">
+                Your EVE Online authentication was successful. 
+                You will be redirected to the dashboard shortly.
+              </p>
+            </div>
+          )}
+          
+          {status === 'error' && (
+            <div className=\"space-y-4\">
+              <Alert variant=\"destructive\">
+                <AlertCircle size={16} />
+                <AlertDescription>
+                  {error}
+                </AlertDescription>
+              </Alert>
+              
+              <div className=\"text-center\">
+                <p className=\"text-sm text-muted-foreground mb-4\">
+                  Please try signing in again or contact your administrator if the problem persists.
+                </p>
+                <Button onClick={handleRetry} variant=\"outline\" className=\"w-full\">
+                  <Rocket size={16} className=\"mr-2\" />
+                  Return to Login
+                </Button>
+              </div>
+            </div>
+          )}
+        </CardContent>
+      </Card>
     </div>
   );
 }
