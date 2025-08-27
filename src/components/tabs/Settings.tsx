@@ -76,6 +76,7 @@ import {
   validateSettings
 } from '@/lib/persistenceService';
 import { UserManagement } from '@/components/UserManagement';
+import { useAuth } from '@/lib/auth-provider';
 
 interface SyncStatus {
   isRunning: boolean;
@@ -108,9 +109,21 @@ export function Settings({ activeTab, onTabChange }: SettingsProps) {
     updateESIConfig, 
     registeredCorps 
   } = useCorporationAuth();
+  
+  // Use real auth provider for corporation management
+  const {
+    esiConfig: realESIConfig,
+    updateESIConfig: realUpdateESIConfig,
+    getRegisteredCorporations,
+    registerCorporation,
+    updateCorporation,
+    deleteCorporation
+  } = useAuth();
+  
   const { sdeStatus, checkForUpdates, downloadSDE, updateDatabase, getDatabaseStats } = useSDEManager();
   
-  // Use the new persistence system
+  // Get real registered corporations
+  const realRegisteredCorps = getRegisteredCorporations();
   const [generalSettings, setGeneralSettings] = useGeneralSettings();
   const [databaseSettings, setDatabaseSettings] = useDatabaseSettings();
   const [esiSettings, setESISettings] = useESISettings();
@@ -1305,8 +1318,11 @@ export function Settings({ activeTab, onTabChange }: SettingsProps) {
                       <Label htmlFor="clientId">EVE Online Client ID</Label>
                       <Input
                         id="clientId"
-                        value={esiConfig.clientId}
-                        onChange={(e) => updateESIConfig({ ...esiConfig, clientId: e.target.value })}
+                        value={realESIConfig.clientId || ''}
+                        onChange={(e) => {
+                          // Store temporarily for batch update
+                          setEsiSettings(prev => ({ ...prev, clientId: e.target.value }));
+                        }}
                         placeholder="Your EVE Online application Client ID"
                       />
                     </div>
@@ -1316,8 +1332,11 @@ export function Settings({ activeTab, onTabChange }: SettingsProps) {
                         <Input
                           id="clientSecret"
                           type={showSecrets ? "text" : "password"}
-                          value={esiConfig.secretKey}
-                          onChange={(e) => updateESIConfig({ ...esiConfig, secretKey: e.target.value })}
+                          value={realESIConfig.clientSecret || ''}
+                          onChange={(e) => {
+                            // Store temporarily for batch update
+                            setEsiSettings(prev => ({ ...prev, clientSecret: e.target.value }));
+                          }}
                           placeholder="Your EVE Online application Client Secret"
                         />
                         <Button
@@ -1332,8 +1351,33 @@ export function Settings({ activeTab, onTabChange }: SettingsProps) {
                       </div>
                     </div>
                   </div>
+                  <div className="flex gap-2">
+                    <Button
+                      onClick={() => {
+                        const clientId = esiSettings.clientId || realESIConfig.clientId || '';
+                        const clientSecret = esiSettings.clientSecret || realESIConfig.clientSecret;
+                        if (clientId) {
+                          realUpdateESIConfig(clientId, clientSecret);
+                          toast.success('ESI configuration updated');
+                        } else {
+                          toast.error('Client ID is required');
+                        }
+                      }}
+                      size="sm"
+                    >
+                      Save ESI Config
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => window.open('https://developers.eveonline.com/applications', '_blank')}
+                    >
+                      <Globe size={16} className="mr-2" />
+                      Manage Apps
+                    </Button>
+                  </div>
                   <p className="text-xs text-muted-foreground">
-                    Create an application at developers.eveonline.com with callback URL: <code className="bg-background px-1 rounded">{window.location.origin}</code>
+                    Create an application at developers.eveonline.com with callback URL: <code className="bg-background px-1 rounded">{window.location.origin}/</code>
                   </p>
                 </div>
               </div>
@@ -2355,36 +2399,55 @@ export function Settings({ activeTab, onTabChange }: SettingsProps) {
                 <div className="flex items-center justify-between">
                   <h4 className="font-medium">Registered Corporations</h4>
                   <Badge variant="outline">
-                    {registeredCorps.filter(corp => corp.isActive).length} Active
+                    {realRegisteredCorps.filter(corp => corp.isActive).length} Active
                   </Badge>
                 </div>
                 
-                {registeredCorps.length > 0 ? (
+                {realRegisteredCorps.length > 0 ? (
                   <div className="space-y-3">
-                    {registeredCorps.map((corp) => (
+                    {realRegisteredCorps.map((corp) => (
                       <div key={corp.corporationId} className="p-4 border border-border rounded-lg">
                         <div className="flex items-center justify-between">
                           <div>
                             <h5 className="font-medium">{corp.corporationName}</h5>
                             <p className="text-sm text-muted-foreground">
-                              Corp ID: {corp.corporationId} • Registered: {new Date(corp.registeredAt).toLocaleDateString()}
+                              Corp ID: {corp.corporationId} • Registered: {new Date(corp.registrationDate).toLocaleDateString()}
                             </p>
                           </div>
                           <div className="flex items-center gap-2">
                             <Badge variant={corp.isActive ? "default" : "secondary"}>
                               {corp.isActive ? "Active" : "Inactive"}
                             </Badge>
-                            {corp.keyExpiry && (
+                            {corp.lastTokenRefresh && (
                               <Badge variant="outline" className="text-xs">
-                                Expires: {new Date(corp.keyExpiry).toLocaleDateString()}
+                                Updated: {new Date(corp.lastTokenRefresh).toLocaleDateString()}
                               </Badge>
                             )}
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() => updateCorporation(corp.corporationId, { isActive: !corp.isActive })}
+                            >
+                              {corp.isActive ? 'Disable' : 'Enable'}
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant="destructive"
+                              onClick={() => {
+                                if (confirm(`Are you sure you want to remove ${corp.corporationName}?`)) {
+                                  deleteCorporation(corp.corporationId);
+                                  toast.success('Corporation removed');
+                                }
+                              }}
+                            >
+                              <X size={14} />
+                            </Button>
                           </div>
                         </div>
                         
                         <div className="mt-3 text-xs text-muted-foreground">
-                          <p>Scopes: {corp.scopes.join(', ')}</p>
-                          <p>Registered by Character ID: {corp.registeredBy}</p>
+                          <p>Scopes: {corp.registeredScopes.join(', ')}</p>
+                          <p>ESI Client: {corp.esiClientId ? 'Configured' : 'Using Global'}</p>
                         </div>
                       </div>
                     ))}
@@ -2403,13 +2466,13 @@ export function Settings({ activeTab, onTabChange }: SettingsProps) {
               <div className="grid grid-cols-2 gap-4 p-4 bg-muted/30 rounded-lg">
                 <div className="text-center">
                   <div className="text-2xl font-bold text-accent">
-                    {registeredCorps.reduce((sum, corp) => sum + (corp.isActive ? 1 : 0), 0)}
+                    {realRegisteredCorps.reduce((sum, corp) => sum + (corp.isActive ? 1 : 0), 0)}
                   </div>
                   <div className="text-xs text-muted-foreground">Active Corps</div>
                 </div>
                 <div className="text-center">
                   <div className="text-2xl font-bold text-accent">
-                    {esiConfig.clientId ? '✓' : '✗'}
+                    {realESIConfig.clientId ? '✓' : '✗'}
                   </div>
                   <div className="text-xs text-muted-foreground">ESI Configured</div>
                 </div>

@@ -4,6 +4,7 @@ import { toast } from 'sonner';
 import { LMeveUser, UserRole, CorporationConfig } from './types';
 import { createUserWithRole, isSessionValid, refreshUserSession } from './roles';
 import { getESIAuthService, initializeESIAuth } from './esi-auth';
+import { createDefaultCorporationConfig } from './corp-validation';
 
 interface AuthContextType {
   // Current user state
@@ -27,6 +28,12 @@ interface AuthContextType {
   deleteUser: (userId: string) => Promise<void>;
   getAllUsers: () => LMeveUser[];
   
+  // Corporation management
+  registerCorporation: (config: CorporationConfig) => Promise<void>;
+  updateCorporation: (corporationId: number, config: Partial<CorporationConfig>) => Promise<void>;
+  deleteCorporation: (corporationId: number) => Promise<void>;
+  getRegisteredCorporations: () => CorporationConfig[];
+  
   // Configuration
   esiConfig: { clientId?: string; clientSecret?: string; isConfigured: boolean };
   updateESIConfig: (clientId: string, clientSecret?: string) => void;
@@ -47,6 +54,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
   const [users, setUsers] = useKV<LMeveUser[]>('lmeve-users', []);
   const [userCredentials, setUserCredentials] = useKV<Record<string, string>>('lmeve-credentials', {});
   const [esiConfiguration, setESIConfiguration] = useKV<{ clientId?: string; clientSecret?: string }>('lmeve-esi-config', {});
+  const [registeredCorporations, setRegisteredCorporations] = useKV<CorporationConfig[]>('lmeve-registered-corps', []);
   
   // Local state
   const [isLoading, setIsLoading] = useState(false);
@@ -74,13 +82,13 @@ export function AuthProvider({ children }: AuthProviderProps) {
   useEffect(() => {
     if (esiConfiguration.clientId) {
       try {
-        initializeESIAuth(esiConfiguration.clientId, esiConfiguration.clientSecret);
+        initializeESIAuth(esiConfiguration.clientId, esiConfiguration.clientSecret, registeredCorporations);
         console.log('✅ ESI Auth initialized with configuration');
       } catch (error) {
         console.error('❌ Failed to initialize ESI Auth:', error);
       }
     }
-  }, [esiConfiguration]);
+  }, [esiConfiguration, registeredCorporations]);
 
   // Session validation
   useEffect(() => {
@@ -155,12 +163,32 @@ export function AuthProvider({ children }: AuthProviderProps) {
 
   // Handle ESI callback
   const handleESICallback = useCallback(async (code: string, state: string): Promise<LMeveUser> => {
-    console.log('🔄 Processing ESI callback');
+    console.log('🔄 Processing ESI callback with corporation validation');
     setIsLoading(true);
     
     try {
       const esiService = getESIAuthService();
-      const esiUser = await esiService.handleCallback(code, state);
+      const esiUser = await esiService.handleCallback(code, state, registeredCorporations);
+      
+      // Check if this requires corporation registration
+      const requiresCorpRegistration = (esiUser as any)._requiresCorporationRegistration;
+      if (requiresCorpRegistration) {
+        console.log('🏢 Auto-registering new corporation');
+        
+        const corpConfig = createDefaultCorporationConfig(
+          requiresCorpRegistration.corporationId,
+          requiresCorpRegistration.corporationName,
+          requiresCorpRegistration.characterId
+        );
+        
+        // Register the corporation
+        setRegisteredCorporations(prev => [...prev, corpConfig]);
+        
+        // Clean up the temporary flag
+        delete (esiUser as any)._requiresCorporationRegistration;
+        
+        toast.success(`Corporation "${corpConfig.corporationName}" has been registered automatically.`);
+      }
       
       // Check if this replaces an existing manual login
       if (currentUser && currentUser.authMethod === 'manual') {
@@ -216,7 +244,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
     } finally {
       setIsLoading(false);
     }
-  }, [currentUser, users, setUsers, setCurrentUser, triggerAuthChange]);
+  }, [currentUser, users, registeredCorporations, setUsers, setCurrentUser, setRegisteredCorporations, triggerAuthChange]);
 
   // Logout
   const logout = useCallback(async () => {
@@ -375,6 +403,105 @@ export function AuthProvider({ children }: AuthProviderProps) {
     return users;
   }, [users]);
 
+  // Register corporation
+  const registerCorporation = useCallback(async (config: CorporationConfig) => {
+    console.log('🏢 Registering corporation:', config.corporationName);
+    
+    // Check if corporation already exists
+    const existingCorp = registeredCorporations.find(corp => 
+      corp.corporationId === config.corporationId
+    );
+    
+    if (existingCorp) {
+      throw new Error('Corporation is already registered');
+    }
+    
+    setRegisteredCorporations(prev => [...prev, config]);
+    
+    // Update ESI service with new corporation list
+    if (esiConfiguration.clientId) {
+      try {
+        const esiService = getESIAuthService();
+        esiService.updateRegisteredCorporations([...registeredCorporations, config]);
+      } catch (error) {
+        console.warn('Failed to update ESI service corporations:', error);
+      }
+    }
+    
+    console.log('✅ Corporation registered successfully');
+  }, [registeredCorporations, esiConfiguration, setRegisteredCorporations]);
+
+  // Update corporation
+  const updateCorporation = useCallback(async (corporationId: number, updates: Partial<CorporationConfig>) => {
+    console.log('🔄 Updating corporation:', corporationId);
+    
+    setRegisteredCorporations(prev => prev.map(corp => 
+      corp.corporationId === corporationId ? { ...corp, ...updates } : corp
+    ));
+    
+    // Update ESI service
+    if (esiConfiguration.clientId) {
+      try {
+        const esiService = getESIAuthService();
+        const updatedCorps = registeredCorporations.map(corp => 
+          corp.corporationId === corporationId ? { ...corp, ...updates } : corp
+        );
+        esiService.updateRegisteredCorporations(updatedCorps);
+      } catch (error) {
+        console.warn('Failed to update ESI service corporations:', error);
+      }
+    }
+    
+    console.log('✅ Corporation updated successfully');
+  }, [registeredCorporations, esiConfiguration, setRegisteredCorporations]);
+
+  // Delete corporation
+  const deleteCorporation = useCallback(async (corporationId: number) => {
+    console.log('🗑️ Deleting corporation:', corporationId);
+    
+    const corpToDelete = registeredCorporations.find(corp => corp.corporationId === corporationId);
+    if (!corpToDelete) {
+      throw new Error('Corporation not found');
+    }
+    
+    // Remove corporation
+    const updatedCorps = registeredCorporations.filter(corp => corp.corporationId !== corporationId);
+    setRegisteredCorporations(updatedCorps);
+    
+    // Update ESI service
+    if (esiConfiguration.clientId) {
+      try {
+        const esiService = getESIAuthService();
+        esiService.updateRegisteredCorporations(updatedCorps);
+      } catch (error) {
+        console.warn('Failed to update ESI service corporations:', error);
+      }
+    }
+    
+    // Logout any users from this corporation
+    const usersFromCorp = users.filter(u => u.corporationId === corporationId);
+    if (usersFromCorp.length > 0) {
+      console.log(`🚪 Logging out ${usersFromCorp.length} users from deleted corporation`);
+      
+      // Remove users from this corporation
+      setUsers(prev => prev.filter(u => u.corporationId !== corporationId));
+      
+      // If current user is from this corp, log them out
+      if (currentUser && currentUser.corporationId === corporationId) {
+        setCurrentUser(null);
+        triggerAuthChange();
+        toast.info('You have been logged out because your corporation was removed.');
+      }
+    }
+    
+    console.log('✅ Corporation deleted successfully');
+  }, [registeredCorporations, users, currentUser, esiConfiguration, setRegisteredCorporations, setUsers, setCurrentUser, triggerAuthChange]);
+
+  // Get registered corporations
+  const getRegisteredCorporations = useCallback(() => {
+    return registeredCorporations;
+  }, [registeredCorporations]);
+
   // Update ESI configuration
   const updateESIConfig = useCallback((clientId: string, clientSecret?: string) => {
     console.log('🔧 Updating ESI configuration');
@@ -384,13 +511,13 @@ export function AuthProvider({ children }: AuthProviderProps) {
     
     // Initialize ESI service with new config
     try {
-      initializeESIAuth(clientId, clientSecret);
+      initializeESIAuth(clientId, clientSecret, registeredCorporations);
       console.log('✅ ESI configuration updated');
     } catch (error) {
       console.error('❌ Failed to update ESI configuration:', error);
       throw error;
     }
-  }, [setESIConfiguration]);
+  }, [registeredCorporations, setESIConfiguration]);
 
   const contextValue: AuthContextType = {
     // Current user state
@@ -413,6 +540,12 @@ export function AuthProvider({ children }: AuthProviderProps) {
     updateUserRole,
     deleteUser,
     getAllUsers,
+    
+    // Corporation management
+    registerCorporation,
+    updateCorporation,
+    deleteCorporation,
+    getRegisteredCorporations,
     
     // Configuration
     esiConfig: {

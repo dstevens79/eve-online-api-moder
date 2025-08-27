@@ -67,7 +67,8 @@ function AppContent() {
     loginWithCredentials,
     loginWithESI,
     handleESICallback,
-    esiConfig
+    esiConfig,
+    getRegisteredCorporations
   } = useAuth();
   const [isESICallback, setIsESICallback] = useState(false);
   const [forceRender, setForceRender] = useState(0);
@@ -83,6 +84,14 @@ function AppContent() {
   const currentUser = user;
   const currentAuth = isAuthenticated;
   const currentLogout = logout;
+  
+  // Get corporation status for EVE login button
+  const registeredCorps = getRegisteredCorporations();
+  const getValidationStatus = () => {
+    if (!esiConfig?.clientId) return 'not-configured';
+    if (registeredCorps.length === 0) return 'no-corps';
+    return 'configured';
+  };
 
   // Force re-render when user changes to ensure UI updates
   React.useEffect(() => {
@@ -573,23 +582,13 @@ function AppContent() {
                       Local Sign In
                     </Button>
                     {/* Always show EVE SSO button if configured */}
-                    {esiConfig?.clientId ? (
-                      <EVELoginButton
-                        onClick={handleESILogin}
-                        size="small"
-                        disabled={!esiConfig?.clientId}
-                      />
-                    ) : (
-                      <Button 
-                        onClick={handleESILogin}
-                        className="bg-blue-600 hover:bg-blue-700 text-white"
-                        size="sm"
-                        disabled={true}
-                      >
-                        <Rocket size={16} className="mr-2" />
-                        EVE SSO
-                      </Button>
-                    )}
+                    <EVELoginButton
+                      onClick={handleESILogin}
+                      size="small"
+                      disabled={!esiConfig?.clientId}
+                      showCorporationCount={registeredCorps.length}
+                      showValidationStatus={getValidationStatus()}
+                    />
                   </div>
                 )}
               </div>
@@ -720,15 +719,11 @@ function AppContent() {
                             <SignIn size={16} className="mr-2" />
                             Local Sign In
                           </Button>
-                          {esiConfig?.clientId && (
-                            <Button 
-                              onClick={handleESILogin}
-                              className="bg-blue-600 hover:bg-blue-700 text-white"
-                            >
-                              <Rocket size={16} className="mr-2" />
-                              Sign In with EVE Online
-                            </Button>
-                          )}
+                          <EVELoginButton
+                            onClick={handleESILogin}
+                            showCorporationCount={registeredCorps.length}
+                            showValidationStatus={getValidationStatus()}
+                          />
                         </div>
                       </div>
                     </div>
@@ -748,15 +743,11 @@ function AppContent() {
                             <SignIn size={16} className="mr-2" />
                             Local Sign In
                           </Button>
-                          {esiConfig?.clientId && (
-                            <Button 
-                              onClick={handleESILogin}
-                              className="bg-blue-600 hover:bg-blue-700 text-white"
-                            >
-                              <Rocket size={16} className="mr-2" />
-                              Sign In with EVE Online
-                            </Button>
-                          )}
+                          <EVELoginButton
+                            onClick={handleESILogin}
+                            showCorporationCount={registeredCorps.length}
+                            showValidationStatus={getValidationStatus()}
+                          />
                         </div>
                       </div>
                     </div>

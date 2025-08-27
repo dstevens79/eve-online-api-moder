@@ -6,6 +6,12 @@ import {
   CorporationConfig 
 } from './types';
 import { getEVERoleMapping, createUserWithRole } from './roles';
+import { 
+  validateESIUser, 
+  validateRequiredScopes, 
+  getValidationErrorMessage,
+  createDefaultCorporationConfig 
+} from './corp-validation';
 
 /**
  * EVE Online SSO Authentication Service
@@ -60,11 +66,21 @@ export class ESIAuthService {
   private clientId: string;
   private clientSecret?: string;
   private redirectUri: string;
+  private registeredCorporations: CorporationConfig[];
 
-  constructor(clientId: string, clientSecret?: string) {
+  constructor(clientId: string, clientSecret?: string, registeredCorps: CorporationConfig[] = []) {
     this.clientId = clientId;
     this.clientSecret = clientSecret;
     this.redirectUri = `${window.location.origin}/`;
+    this.registeredCorporations = registeredCorps;
+  }
+
+  /**
+   * Update registered corporations list
+   */
+  updateRegisteredCorporations(corporations: CorporationConfig[]): void {
+    this.registeredCorporations = corporations;
+    console.log('✅ Updated registered corporations:', corporations.length);
   }
 
   /**
@@ -142,10 +158,17 @@ export class ESIAuthService {
   }
 
   /**
-   * Handle the authorization callback
+   * Handle the authorization callback with corporation validation
    */
-  async handleCallback(code: string, state: string): Promise<LMeveUser> {
-    console.log('🔄 Processing ESI callback');
+  async handleCallback(
+    code: string, 
+    state: string,
+    registeredCorps?: CorporationConfig[]
+  ): Promise<LMeveUser> {
+    console.log('🔄 Processing ESI callback with validation');
+    
+    // Use provided corporations or instance corporations
+    const corporations = registeredCorps || this.registeredCorporations;
     
     // Retrieve stored auth state
     const storedStateData = sessionStorage.getItem('esi-auth-state');
@@ -178,46 +201,78 @@ export class ESIAuthService {
         tokenResponse.access_token
       );
 
-      // Create user with appropriate role
-      const userRole = getEVERoleMapping(corporationRoles);
+      // Validate user against corporation whitelist
+      const validation = validateESIUser(characterData, corporationRoles, corporations);
       
-      const userData: Partial<LMeveUser> = {
-        characterId: characterData.character_id,
-        characterName: characterData.character_name,
-        corporationId: characterData.corporation_id,
-        allianceId: characterData.alliance_id,
-        authMethod: 'esi',
-        accessToken: tokenResponse.access_token,
-        refreshToken: tokenResponse.refresh_token,
-        tokenExpiry: new Date(Date.now() + tokenResponse.expires_in * 1000).toISOString(),
-        scopes: tokenResponse.scope?.split(' ') || REQUIRED_SCOPES
-      };
+      if (!validation.isValid) {
+        throw new Error(validation.reason || 'Corporation validation failed');
+      }
 
-      const user = createUserWithRole(userData, userRole);
+      // Validate required scopes
+      const scopeValidation = validateRequiredScopes(
+        characterData.scopes, 
+        validation.corporationConfig
+      );
       
+      if (!scopeValidation.isValid) {
+        console.warn('⚠️ Missing required scopes:', scopeValidation.missingScopes);
+        // Still allow login but warn about limited functionality
+      }
+
       // Get corporation name
-      if (user.corporationId) {
-        try {
-          user.corporationName = await this.getCorporationName(user.corporationId);
-        } catch (error) {
-          console.warn('Failed to get corporation name:', error);
-        }
+      let corporationName = '';
+      try {
+        corporationName = await this.getCorporationName(characterData.corporation_id);
+      } catch (error) {
+        console.warn('Failed to get corporation name:', error);
+        corporationName = 'Unknown Corporation';
       }
 
       // Get alliance name if applicable
-      if (user.allianceId) {
+      let allianceName: string | undefined;
+      if (characterData.alliance_id) {
         try {
-          user.allianceName = await this.getAllianceName(user.allianceId);
+          allianceName = await this.getAllianceName(characterData.alliance_id);
         } catch (error) {
           console.warn('Failed to get alliance name:', error);
         }
       }
 
+      // Create user with validated role
+      const userData: Partial<LMeveUser> = {
+        characterId: characterData.character_id,
+        characterName: characterData.character_name,
+        corporationId: characterData.corporation_id,
+        corporationName,
+        allianceId: characterData.alliance_id,
+        allianceName,
+        authMethod: 'esi',
+        accessToken: tokenResponse.access_token,
+        refreshToken: tokenResponse.refresh_token,
+        tokenExpiry: new Date(Date.now() + tokenResponse.expires_in * 1000).toISOString(),
+        scopes: tokenResponse.scope?.split(' ') || characterData.scopes
+      };
+
+      const user = createUserWithRole(userData, validation.suggestedRole);
+
       console.log('✅ ESI authentication successful:', {
         characterName: user.characterName,
         corporationName: user.corporationName,
-        role: user.role
+        role: user.role,
+        validationReason: validation.reason
       });
+
+      // If this is a new corporation being self-registered, return additional info
+      if (!validation.corporationConfig && validation.suggestedRole === 'corp_admin') {
+        console.log('🏢 New corporation self-registration detected');
+        
+        // Note: The auth provider should handle creating the corporation config
+        (user as any)._requiresCorporationRegistration = {
+          corporationId: characterData.corporation_id,
+          corporationName,
+          characterId: characterData.character_id
+        };
+      }
 
       // Clean up session storage
       sessionStorage.removeItem('esi-auth-state');
@@ -292,14 +347,33 @@ export class ESIAuthService {
       throw new Error(`Failed to get character info: ${response.status}`);
     }
 
-    const data = await response.json();
-    console.log('✅ Character info retrieved:', data.CharacterName);
+    const verifyData = await response.json();
+    console.log('✅ Character verified:', verifyData.CharacterName);
+    
+    // Get full character data from ESI
+    const charResponse = await fetch(
+      `${ESI_BASE_URL}/latest/characters/${verifyData.CharacterID}/`,
+      {
+        headers: {
+          'Authorization': `Bearer ${accessToken}`,
+          'User-Agent': 'LMeve/1.0 (https://github.com/dstevens79/lmeve)'
+        }
+      }
+    );
+
+    if (!charResponse.ok) {
+      throw new Error(`Failed to get character data: ${charResponse.status}`);
+    }
+
+    const charData = await charResponse.json();
+    console.log('✅ Character data retrieved:', charData.name);
     
     return {
-      character_id: data.CharacterID,
-      character_name: data.CharacterName,
-      corporation_id: data.CharacterOwnerHash, // This is actually character ID, need to get corp from ESI
-      scopes: data.Scopes?.split(' ') || []
+      character_id: verifyData.CharacterID,
+      character_name: verifyData.CharacterName,
+      corporation_id: charData.corporation_id,
+      alliance_id: charData.alliance_id,
+      scopes: verifyData.Scopes?.split(' ') || []
     };
   }
 
@@ -468,8 +542,12 @@ export let esiAuthService: ESIAuthService | null = null;
 /**
  * Initialize ESI Auth Service with configuration
  */
-export function initializeESIAuth(clientId: string, clientSecret?: string): void {
-  esiAuthService = new ESIAuthService(clientId, clientSecret);
+export function initializeESIAuth(
+  clientId: string, 
+  clientSecret?: string, 
+  registeredCorps: CorporationConfig[] = []
+): void {
+  esiAuthService = new ESIAuthService(clientId, clientSecret, registeredCorps);
   console.log('✅ ESI Auth Service initialized');
 }
 
