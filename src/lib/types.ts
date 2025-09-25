@@ -10,26 +10,31 @@ export type TabType = 'dashboard' | 'members' | 'assets' | 'manufacturing' | 'mi
 export interface Member {
   id: number;
   characterId: number;
-  characterName: string;
+  characterName?: string;
+  name?: string; // Alternative name field used in some contexts
   corporationId: number;
-  corporationName: string;
+  corporationName?: string;
   allianceId?: number;
   allianceName?: string;
-  roles: string[];
-  titles: string[];
-  lastLogin: string;
-  location: string;
-  logonDuration: number;
+  roles?: string[];
+  titles?: string[];
+  title?: string; // Single title field used in some contexts
+  lastLogin?: string;
+  location?: string;
+  ship?: string; // Ship name (simplified)
   shipTypeId?: number;
   shipTypeName?: string;
-  startDateTime: string;
+  logonDuration?: number;
+  startDateTime?: string;
   logoffDateTime?: string;
-  isOnline: boolean;
-  accessLevel: 'member' | 'director' | 'ceo';
-  joinedDate: string;
-  totalSkillPoints: number;
-  activeClones: number;
-  securityStatus: number;
+  isOnline?: boolean;
+  isActive: boolean;
+  accessLevel?: 'member' | 'director' | 'ceo';
+  joinedDate?: string;
+  joinDate?: string; // Alternative field name
+  totalSkillPoints?: number;
+  activeClones?: number;
+  securityStatus?: number;
 }
 
 // Manufacturing types
@@ -276,6 +281,190 @@ export interface RequestHistory {
   parameters: Record<string, any>;
   response: ApiResponse;
   timestamp: number;
+}
+
+// Asset management types
+export interface Asset {
+  id: string;
+  itemId: number;
+  typeId: number;
+  typeName: string;
+  categoryId: number;
+  categoryName: string;
+  groupId: number;
+  groupName: string;
+  quantity: number;
+  locationId: number;
+  locationName: string;
+  locationType: 'station' | 'structure' | 'ship' | 'container';
+  locationFlag: string;
+  ownerId: number;
+  ownerName: string;
+  estimatedValue: number;
+  estimatedPrice?: number;
+  lastUpdate: string;
+  isSingleton: boolean;
+  isBlueprintCopy?: boolean;
+  blueprintRuns?: number;
+  materialEfficiency?: number;
+  timeEfficiency?: number;
+}
+
+// Corporation management types
+export interface Corporation {
+  id: number;
+  corporationId: number;
+  name: string;
+  ticker: string;
+  allianceId?: number;
+  allianceName?: string;
+  memberCount: number;
+  taxRate: number;
+  ceoId: number;
+  ceoName: string;
+  description?: string;
+  url?: string;
+  founded: string;
+  homeStationId?: number;
+  homeStationName?: string;
+  walletBalance?: number;
+  isActive: boolean;
+  lastUpdate: string;
+}
+
+// Market data types
+export interface MarketPrice {
+  typeId: number;
+  typeName: string;
+  regionId: number;
+  region: string;
+  buyPrice: number;
+  sellPrice: number;
+  averagePrice?: number;
+  adjustedPrice?: number;
+  volume: number;
+  orderCount?: number;
+  lastUpdate: string;
+  priceHistory?: Array<{
+    date: string;
+    volume: number;
+    orderCount: number;
+    lowest: number;
+    highest: number;
+    average: number;
+  }>;
+}
+
+// Mining operations types
+export interface MiningOperation {
+  id: string;
+  date: string;
+  minerId: number;
+  minerName: string;
+  systemId: number;
+  system: string;
+  stationId?: number;
+  stationName?: string;
+  oreTypeId: number;
+  ore: string;
+  quantity: number;
+  estimatedValue: number;
+  refined: boolean;
+  refinedBy?: number;
+  refinedByName?: string;
+  refinedDate?: string;
+  minerals?: Array<{
+    typeId: number;
+    typeName: string;
+    quantity: number;
+    value: number;
+  }>;
+  notes?: string;
+}
+
+// Killmail types
+export interface KillmailParticipant {
+  characterId?: number;
+  characterName?: string;
+  corporationId: number;
+  corporationName: string;
+  allianceId?: number;
+  allianceName?: string;
+  factionId?: number;
+  factionName?: string;
+  shipTypeId: number;
+  shipTypeName: string;
+  weaponTypeId?: number;
+  weaponTypeName?: string;
+  damageDone?: number;
+  finalBlow?: boolean;
+}
+
+export interface KillmailVictim extends KillmailParticipant {
+  damageTaken: number;
+  items?: Array<{
+    typeId: number;
+    typeName: string;
+    quantity: number;
+    singleton: boolean;
+    flag: number;
+    destroyed: boolean;
+  }>;
+}
+
+export interface KillmailSummary {
+  id: string;
+  killmailId?: number;
+  killmailHash?: string;
+  timestamp: string;
+  systemId: number;
+  systemName: string;
+  regionId: number;
+  regionName: string;
+  victim: KillmailVictim;
+  attackers: KillmailParticipant[];
+  attackerCount: number;
+  totalValue: number;
+  isCorpLoss: boolean;
+  isCorpKill: boolean;
+  zkbUrl?: string;
+}
+
+// Dashboard analytics types
+export interface DashboardStats {
+  totalMembers: number;
+  activeMembers: number;
+  onlineMembers?: number;
+  totalAssets: number;
+  totalAssetsValue: number;
+  activeJobs: number;
+  completedJobsThisMonth: number;
+  pendingJobsCount?: number;
+  miningOperationsThisMonth: number;
+  miningValueThisMonth: number;
+  corpWalletBalance: number;
+  monthlyProfit?: number;
+  weeklyProfit?: number;
+  marketOrders?: number;
+  recentActivity: ActivityLog[];
+  alerts?: Array<{
+    id: string;
+    type: 'warning' | 'error' | 'info';
+    message: string;
+    timestamp: string;
+    dismissed?: boolean;
+  }>;
+}
+
+export interface ActivityLog {
+  id: string;
+  timestamp: string;
+  type: 'login' | 'logout' | 'manufacturing' | 'mining' | 'asset_update' | 'market' | 'killmail' | 'system';
+  memberId?: number;
+  memberName?: string;
+  description: string;
+  details?: Record<string, any>;
+  severity?: 'low' | 'medium' | 'high' | 'critical';
 }
 
 // Role-based access control types

@@ -67,7 +67,8 @@ function AppContent() {
     loginWithCredentials,
     loginWithESI,
     handleESICallback,
-    esiConfig
+    esiConfig,
+    getRegisteredCorporations
   } = useAuth();
   const [isESICallback, setIsESICallback] = useState(false);
   const [forceRender, setForceRender] = useState(0);
@@ -83,6 +84,26 @@ function AppContent() {
   const currentUser = user;
   const currentAuth = isAuthenticated;
   const currentLogout = logout;
+  
+  // Get corporation status for EVE login button
+  const registeredCorps = getRegisteredCorporations();
+  const getValidationStatus = () => {
+    if (!esiConfig?.clientId) return 'not-configured';
+    if (registeredCorps.length === 0) return 'no-corps';
+    return 'configured';
+  };
+
+  // Debug ESI config
+  React.useEffect(() => {
+    console.log('🔧 ESI Config Debug:', {
+      hasClientId: !!esiConfig?.clientId,
+      clientId: esiConfig?.clientId ? esiConfig.clientId.substring(0, 8) + '...' : 'none',
+      hasSecret: !!esiConfig?.clientSecret,
+      isConfigured: esiConfig?.isConfigured,
+      registeredCorpsCount: registeredCorps.length,
+      validationStatus: getValidationStatus()
+    });
+  }, [esiConfig, registeredCorps]);
 
   // Force re-render when user changes to ensure UI updates
   React.useEffect(() => {
@@ -551,15 +572,27 @@ function AppContent() {
                         {currentUser.authMethod === 'esi' && ' • ESI'}
                       </p>
                     </div>
-                    <Button 
-                      variant="outline" 
-                      size="sm"
-                      className="border-border hover:bg-muted"
-                      onClick={currentLogout}
-                    >
-                      <SignOut size={16} className="mr-2" />
-                      Logout
-                    </Button>
+                    <div className="flex items-center gap-2">
+                      {/* Show EVE SSO button for manual users if ESI is configured */}
+                      {currentUser.authMethod === 'manual' && esiConfig?.clientId && (
+                        <EVELoginButton
+                          onClick={handleESILogin}
+                          size="small"
+                          disabled={!esiConfig?.clientId}
+                          showCorporationCount={registeredCorps.length}
+                          showValidationStatus={getValidationStatus()}
+                        />
+                      )}
+                      <Button 
+                        variant="outline" 
+                        size="sm"
+                        className="border-border hover:bg-muted"
+                        onClick={currentLogout}
+                      >
+                        <SignOut size={16} className="mr-2" />
+                        Logout
+                      </Button>
+                    </div>
                   </>
                 ) : (
                   // Unauthenticated user section - always show both login options
@@ -573,23 +606,13 @@ function AppContent() {
                       Local Sign In
                     </Button>
                     {/* Always show EVE SSO button if configured */}
-                    {esiConfig?.clientId ? (
-                      <EVELoginButton
-                        onClick={handleESILogin}
-                        size="small"
-                        disabled={!esiConfig?.clientId}
-                      />
-                    ) : (
-                      <Button 
-                        onClick={handleESILogin}
-                        className="bg-blue-600 hover:bg-blue-700 text-white"
-                        size="sm"
-                        disabled={true}
-                      >
-                        <Rocket size={16} className="mr-2" />
-                        EVE SSO
-                      </Button>
-                    )}
+                    <EVELoginButton
+                      onClick={handleESILogin}
+                      size="small"
+                      disabled={!esiConfig?.clientId}
+                      showCorporationCount={registeredCorps.length}
+                      showValidationStatus={getValidationStatus()}
+                    />
                   </div>
                 )}
               </div>
@@ -720,15 +743,11 @@ function AppContent() {
                             <SignIn size={16} className="mr-2" />
                             Local Sign In
                           </Button>
-                          {esiConfig?.clientId && (
-                            <Button 
-                              onClick={handleESILogin}
-                              className="bg-blue-600 hover:bg-blue-700 text-white"
-                            >
-                              <Rocket size={16} className="mr-2" />
-                              Sign In with EVE Online
-                            </Button>
-                          )}
+                          <EVELoginButton
+                            onClick={handleESILogin}
+                            showCorporationCount={registeredCorps.length}
+                            showValidationStatus={getValidationStatus()}
+                          />
                         </div>
                       </div>
                     </div>
@@ -748,15 +767,11 @@ function AppContent() {
                             <SignIn size={16} className="mr-2" />
                             Local Sign In
                           </Button>
-                          {esiConfig?.clientId && (
-                            <Button 
-                              onClick={handleESILogin}
-                              className="bg-blue-600 hover:bg-blue-700 text-white"
-                            >
-                              <Rocket size={16} className="mr-2" />
-                              Sign In with EVE Online
-                            </Button>
-                          )}
+                          <EVELoginButton
+                            onClick={handleESILogin}
+                            showCorporationCount={registeredCorps.length}
+                            showValidationStatus={getValidationStatus()}
+                          />
                         </div>
                       </div>
                     </div>
