@@ -12,6 +12,7 @@ import { Separator } from '@/components/ui/separator';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { DatabaseSchemaManager } from '@/components/DatabaseSchemaManager';
+import { lmeveSchemas } from '@/lib/database-schemas';
 import { esiRouteManager, useESIRoutes } from '@/lib/esi-routes';
 import { 
   Gear, 
@@ -52,7 +53,8 @@ import {
   FileText,
   Network,
   CaretUp,
-  CaretDown
+  CaretDown,
+  CaretRight
 } from '@phosphor-icons/react';
 import { useKV } from '@github/spark/hooks';
 import { useAuth } from '@/lib/auth-provider';
@@ -258,6 +260,7 @@ export function Settings({ activeTab, onTabChange }: SettingsProps) {
   });
   const [tableInfo, setTableInfo] = useState<any[]>([]);
   const [showDatabaseTables, setShowDatabaseTables] = useKV<boolean>('database-tables-expanded', false);
+  const [showDatabaseSchema, setShowDatabaseSchema] = useKV<boolean>('database-schema-expanded', false);
   
   // Admin configuration state
   const [tempAdminConfig, setTempAdminConfig] = useState(adminConfig);
@@ -2145,9 +2148,32 @@ export function Settings({ activeTab, onTabChange }: SettingsProps) {
                 </div>
               )}
 
-              {/* Database Schema Manager */}
-              <div className="border-t border-border pt-6">
-                <DatabaseSchemaManager />
+              {/* Database Schema Manager - Collapsible */}
+              <div className="border-t border-border pt-6 space-y-4">
+                <div className="flex items-center justify-between">
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="p-0 h-auto hover:bg-transparent"
+                    onClick={() => setShowDatabaseSchema(!showDatabaseSchema)}
+                  >
+                    <div className="flex items-center gap-2">
+                      {showDatabaseSchema ? (
+                        <CaretDown size={16} className="text-muted-foreground" />
+                      ) : (
+                        <CaretRight size={16} className="text-muted-foreground" />
+                      )}
+                      <h4 className="font-medium">Database Schema Manager</h4>
+                      <Badge variant="outline" className="text-xs">
+                        {lmeveSchemas.length} tables
+                      </Badge>
+                    </div>
+                  </Button>
+                </div>
+                
+                {showDatabaseSchema && (
+                  <DatabaseSchemaManager />
+                )}
               </div>
 
               {/* Save Database Settings */}
