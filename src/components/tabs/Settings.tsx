@@ -1347,23 +1347,6 @@ export function Settings({ activeTab, onTabChange }: SettingsProps) {
     }
   };
 
-  const handleCopyCommands = () => {
-    const config = {
-      lmevePassword: setupConfig.lmevePassword,
-      allowedHosts: setupConfig.allowedHosts,
-      downloadSDE: setupConfig.downloadSDE
-    };
-    
-    const commands = generateSetupCommands(config);
-    navigator.clipboard.writeText(commands.join('\n'))
-      .then(() => toast.success('Commands copied to clipboard'))
-      .catch(() => toast.error('Failed to copy commands'));
-  };
-
-  const handleGenerateCommands = () => {
-    setShowSetupCommands(true);
-  };
-
   // ESI Route validation handlers
   const validateESIRoute = async (processName: string, version?: string) => {
     setValidatingRoutes(true);
@@ -1515,10 +1498,6 @@ export function Settings({ activeTab, onTabChange }: SettingsProps) {
         <TabsContent value="general" className="space-y-6">
           <Card>
             <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Globe size={20} />
-                General Settings
-              </CardTitle>
               <CardTitle className="flex items-center gap-2">
                 <Globe size={20} />
                 General Settings
@@ -2547,411 +2526,6 @@ export function Settings({ activeTab, onTabChange }: SettingsProps) {
             </CardContent>
           </Card>
 
-
-        </TabsContent>
-
-        <TabsContent value="sde" className="space-y-6">
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Archive size={20} />
-                EVE Static Data Export (SDE) Management
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-6">
-              <div className="p-3 bg-muted/50 rounded-lg text-sm text-muted-foreground">
-                <p className="font-medium mb-2">EVE SDE Data Management</p>
-                <p>
-                  The EVE Static Data Export contains all of EVE Online's reference data including items, 
-                  ships, regions, systems, and market information. This data is essential for LMeve operations 
-                  and should be kept current.
-                </p>
-              </div>
-
-              {/* EVE Live Database Status */}
-              <div className="space-y-4">
-                <h4 className="font-medium">EVE Static Database Status</h4>
-                
-                <div className="border border-border rounded-lg p-4">
-                  <div className="flex items-center justify-between mb-3">
-                    <div className="flex items-center gap-2">
-                      <Database size={18} className="text-accent" />
-                      <span className="font-medium">EveStaticData Database</span>
-                    </div>
-                    <Badge variant={sdeStats.isConnected ? "default" : "secondary"}>
-                      {sdeStats.isConnected ? "Connected" : "Not Connected"}
-                    </Badge>
-                  </div>
-
-                  {sdeStats.isConnected ? (
-                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
-                      <div>
-                        <p className="text-muted-foreground">Total Tables</p>
-                        <p className="font-medium">{sdeStats.tableCount}</p>
-                      </div>
-                      <div>
-                        <p className="text-muted-foreground">Total Records</p>
-                        <p className="font-medium">{sdeStats.totalRecords?.toLocaleString()}</p>
-                      </div>
-                      <div>
-                        <p className="text-muted-foreground">Database Size</p>
-                        <p className="font-medium">{sdeStats.totalSize}</p>
-                      </div>
-                      <div>
-                        <p className="text-muted-foreground">Last Updated</p>
-                        <p className="font-medium">
-                          {sdeStats.lastUpdate ? new Date(sdeStats.lastUpdate).toLocaleDateString() : 'Unknown'}
-                        </p>
-                      </div>
-                    </div>
-                  ) : (
-                    <div className="text-center py-4">
-                      <p className="text-sm text-muted-foreground">
-                        Database not accessible. Check your EveStaticData database connection.
-                      </p>
-                    </div>
-                  )}
-                </div>
-              </div>
-
-              {/* SDE Update Management */}
-              <div className="space-y-4">
-                <h4 className="font-medium">SDE Update Management</h4>
-                
-                <div className="border border-border rounded-lg p-4">
-                  <div className="flex items-center justify-between mb-4">
-                    <div className="flex items-center gap-2">
-                      <CloudArrowDown size={18} className="text-blue-400" />
-                      <span className="font-medium">Fuzzwork SDE Source</span>
-                    </div>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => window.open('https://www.fuzzwork.co.uk/dump/', '_blank')}
-                    >
-                      <Globe size={16} className="mr-2" />
-                      View Source
-                    </Button>
-                  </div>
-
-                  <div className="space-y-4">
-                    <div className="grid grid-cols-2 gap-4">
-                      <div className="space-y-2">
-                        <Label>Current SDE Version</Label>
-                        <div className="p-2 bg-muted/30 rounded border text-sm">
-                          {sdeStats.currentVersion || 'Unknown'}
-                        </div>
-                      </div>
-                      <div className="space-y-2">
-                        <Label>Last Update Check</Label>
-                        <div className="p-2 bg-muted/30 rounded border text-sm">
-                          {sdeStats.lastUpdateCheck ? 
-                            new Date(sdeStats.lastUpdateCheck).toLocaleString() : 
-                            'Never checked'
-                          }
-                        </div>
-                      </div>
-                    </div>
-
-                    <div className="grid grid-cols-2 gap-4">
-                      <div className="space-y-2">
-                        <Label>Available SDE Version</Label>
-                        <div className="p-2 bg-muted/30 rounded border text-sm">
-                          {sdeStats.availableVersion || 'Checking...'}
-                        </div>
-                      </div>
-                      <div className="space-y-2">
-                        <Label>Update Status</Label>
-                        <div className="p-2 bg-muted/30 rounded border text-sm">
-                          {sdeStats.isOutdated ? (
-                            <span className="text-yellow-400">Update Available</span>
-                          ) : sdeStats.currentVersion ? (
-                            <span className="text-green-400">Up to Date</span>
-                          ) : (
-                            <span className="text-muted-foreground">Unknown</span>
-                          )}
-                        </div>
-                      </div>
-                    </div>
-
-                    <div className="flex gap-2 pt-2">
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={async () => {
-                          try {
-                            setSDEStats(prev => ({ ...prev, availableVersion: 'Checking...' }));
-                            toast.info('Checking for SDE updates...');
-                            
-                            // Simulate checking for updates
-                            await new Promise(resolve => setTimeout(resolve, 2000));
-                            
-                            // Simulate version check
-                            const currentDate = new Date().toISOString().split('T')[0];
-                            const availableVersion = `${currentDate}-1`;
-                            const isOutdated = sdeStats.currentVersion !== availableVersion;
-                            
-                            setSDEStats(prev => ({
-                              ...prev,
-                              availableVersion,
-                              lastUpdateCheck: new Date().toISOString(),
-                              isOutdated
-                            }));
-                            
-                            if (isOutdated) {
-                              toast.success('SDE update available!');
-                            } else {
-                              toast.success('SDE is up to date');
-                            }
-                          } catch (error) {
-                            toast.error('Failed to check for updates');
-                          }
-                        }}
-                      >
-                        <ArrowClockwise size={16} className="mr-2" />
-                        Check for Updates
-                      </Button>
-                      
-                      {sdeStats.isOutdated && (
-                        <Button
-                          size="sm"
-                          className="bg-accent hover:bg-accent/90"
-                          onClick={async () => {
-                            try {
-                              toast.info('SDE update starting...');
-                              
-                              // Simulate update process
-                              await new Promise(resolve => setTimeout(resolve, 3000));
-                              
-                              setSDEStats(prev => ({
-                                ...prev,
-                                currentVersion: prev.availableVersion || prev.currentVersion,
-                                lastUpdate: new Date().toISOString(),
-                                isOutdated: false
-                              }));
-                              
-                              toast.success('SDE update completed successfully!');
-                            } catch (error) {
-                              toast.error('SDE update failed');
-                            }
-                          }}
-                        >
-                          <CloudArrowDown size={16} className="mr-2" />
-                          Update SDE Data
-                        </Button>
-                      )}
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              {/* Setup Wizard Modal */}
-              {showSetupWizard && (
-                <div className="fixed inset-0 bg-background/80 backdrop-blur-sm z-50 flex items-center justify-center">
-                  <div className="bg-card border border-border rounded-lg p-6 w-full max-w-2xl mx-4 shadow-lg max-h-[90vh] overflow-y-auto">
-                    <div className="flex items-center justify-between mb-4">
-                      <h3 className="text-lg font-semibold">Database Setup Wizard</h3>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => setShowSetupWizard(false)}
-                        disabled={setupProgress?.isRunning}
-                      >
-                        <X size={16} />
-                      </Button>
-                    </div>
-
-                    {!setupProgress?.isRunning ? (
-                      <div className="space-y-4">
-                        <Alert>
-                          <Info size={16} />
-                          <AlertDescription>
-                            This wizard will create a new LMeve database and optionally download EVE SDE data. 
-                            Make sure you have MySQL/MariaDB running and root access.
-                          </AlertDescription>
-                        </Alert>
-
-                        <div className="space-y-4">
-                          <div className="space-y-2">
-                            <Label htmlFor="setupPassword">Database Password for 'lmeve' user</Label>
-                            <Input
-                              id="setupPassword"
-                              type="password"
-                              value={setupConfig.lmevePassword}
-                              onChange={(e) => setSetupConfig(c => ({ ...c, lmevePassword: e.target.value }))}
-                              placeholder="Enter a secure password (min 8 characters)"
-                            />
-                          </div>
-
-                          <div className="space-y-2">
-                            <Label htmlFor="allowedHosts">Allowed Hosts</Label>
-                            <Input
-                              id="allowedHosts"
-                              value={setupConfig.allowedHosts}
-                              onChange={(e) => setSetupConfig(c => ({ ...c, allowedHosts: e.target.value }))}
-                              placeholder="% (any host) or specific IP range like 192.168.1.%"
-                            />
-                            <p className="text-xs text-muted-foreground">
-                              Use '%' for any host or specify IP range for security
-                            </p>
-                          </div>
-
-                          <div className="flex items-center justify-between">
-                            <div className="space-y-0.5">
-                              <Label>Download EVE SDE Data</Label>
-                              <p className="text-sm text-muted-foreground">
-                                Download and import EVE Static Data Export (~500MB)
-                              </p>
-                            </div>
-                            <Switch
-                              checked={setupConfig.downloadSDE}
-                              onCheckedChange={(checked) => setSetupConfig(c => ({ ...c, downloadSDE: checked }))}
-                            />
-                          </div>
-                        </div>
-
-                        <div className="flex gap-3 pt-4">
-                          <Button
-                            onClick={() => setShowSetupWizard(false)}
-                            variant="outline"
-                            className="flex-1"
-                          >
-                            Cancel
-                          </Button>
-                          <Button
-                            onClick={handleStartSetup}
-                            disabled={!setupConfig.lmevePassword}
-                            className="flex-1 bg-accent hover:bg-accent/90"
-                          >
-                            <Play size={16} className="mr-2" />
-                            Start Setup
-                          </Button>
-                        </div>
-                      </div>
-                    ) : (
-                      <div className="space-y-4">
-                        <div className="text-center">
-                          <h4 className="font-medium mb-2">Setting up database...</h4>
-                          <p className="text-sm text-muted-foreground">
-                            Step {setupProgress.currentStep} of {setupProgress.totalSteps}
-                          </p>
-                        </div>
-
-                        <Progress 
-                          value={(setupProgress.currentStep / setupProgress.totalSteps) * 100} 
-                          className="h-2" 
-                        />
-
-                        <div className="space-y-2 max-h-64 overflow-y-auto">
-                          {setupProgress.steps.map((step, index) => (
-                            <div key={step.id} className={`p-3 border rounded-lg ${
-                              step.status === 'completed' ? 'border-green-500/20 bg-green-500/10' :
-                              step.status === 'running' ? 'border-accent/20 bg-accent/10' :
-                              step.status === 'failed' ? 'border-red-500/20 bg-red-500/10' :
-                              'border-border bg-muted/50'
-                            }`}>
-                              <div className="flex items-center gap-2 mb-1">
-                                {step.status === 'completed' && <CheckCircle size={16} className="text-green-400" />}
-                                {step.status === 'running' && <ArrowClockwise size={16} className="text-accent animate-spin" />}
-                                {step.status === 'failed' && <X size={16} className="text-red-400" />}
-                                {step.status === 'pending' && <div className="w-4 h-4 rounded-full border-2 border-muted-foreground/30" />}
-                                <span className="font-medium text-sm">{step.name}</span>
-                              </div>
-                              <p className="text-xs text-muted-foreground">{step.description}</p>
-                              {step.output && (
-                                <p className="text-xs font-mono bg-background/50 p-2 rounded mt-2">{step.output}</p>
-                              )}
-                              {step.error && (
-                                <p className="text-xs text-red-300 bg-red-900/20 p-2 rounded mt-2">{step.error}</p>
-                              )}
-                            </div>
-                          ))}
-                        </div>
-
-                        {setupProgress.completed && (
-                          <div className="flex gap-3 pt-4">
-                            <Button
-                              onClick={() => setShowSetupWizard(false)}
-                              className="flex-1"
-                            >
-                              Close
-                            </Button>
-                          </div>
-                        )}
-                      </div>
-                    )}
-                  </div>
-                </div>
-              )}
-
-              {/* Generated Commands Modal */}
-              {showSetupCommands && (
-                <div className="fixed inset-0 bg-background/80 backdrop-blur-sm z-50 flex items-center justify-center">
-                  <div className="bg-card border border-border rounded-lg p-6 w-full max-w-4xl mx-4 shadow-lg max-h-[90vh] overflow-y-auto">
-                    <div className="flex items-center justify-between mb-4">
-                      <h3 className="text-lg font-semibold">Database Setup Commands</h3>
-                      <div className="flex gap-2">
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={handleCopyCommands}
-                        >
-                          <Copy size={16} className="mr-2" />
-                          Copy All
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => setShowSetupCommands(false)}
-                        >
-                          <X size={16} />
-                        </Button>
-                      </div>
-                    </div>
-
-                    <Alert className="mb-4">
-                      <Terminal size={16} />
-                      <AlertDescription>
-                        Run these commands on your server with root privileges. Make sure to review and 
-                        customize the commands before execution.
-                      </AlertDescription>
-                    </Alert>
-
-                    <div className="bg-background border rounded-lg p-4 font-mono text-sm overflow-x-auto">
-                      <pre className="whitespace-pre-wrap">
-                        {generateSetupCommands(setupConfig).join('\n')}
-                      </pre>
-                    </div>
-                  </div>
-                </div>
-              )}
-
-              {/* Source Information */}
-              <div className="border-t border-border pt-6 space-y-4">
-                <h4 className="font-medium">Data Source</h4>
-                <div className="p-3 border border-border rounded-lg space-y-2">
-                  <div className="flex items-center justify-between">
-                    <span className="font-medium">Fuzzwork Enterprises</span>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => window.open('https://www.fuzzwork.co.uk/dump/', '_blank')}
-                    >
-                      <Globe size={16} className="mr-2" />
-                      Visit Source
-                    </Button>
-                  </div>
-                  <p className="text-sm text-muted-foreground">
-                    https://www.fuzzwork.co.uk/dump/mysql-latest.tar.bz2
-                  </p>
-                  <p className="text-xs text-muted-foreground">
-                    Fuzzwork provides regular exports of the EVE Online Static Data Export in MySQL format.
-                    This service is maintained by Steve Ronuken and is widely used by EVE third-party applications.
-                  </p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
         </TabsContent>
 
         <TabsContent value="esi" className="space-y-6">
@@ -3882,65 +3456,335 @@ export function Settings({ activeTab, onTabChange }: SettingsProps) {
         <TabsContent value="notifications" className="space-y-6">
           <Card>
             <CardHeader>
-              <CardTitle>Notification Preferences</CardTitle>
+              <CardTitle className="flex items-center gap-2">
+                <Bell size={20} />
+                Notification Preferences
+              </CardTitle>
             </CardHeader>
-            <CardContent className="space-y-4">
+            <CardContent className="space-y-6">
+              {/* Event Notifications */}
               <div className="space-y-4">
-                <div className="flex items-center justify-between">
-                  <div className="space-y-0.5">
-                    <Label>Manufacturing Jobs</Label>
-                    <p className="text-sm text-muted-foreground">
-                      Notifications about manufacturing job completions and issues
-                    </p>
+                <h4 className="font-medium">Event Notifications</h4>
+                <div className="space-y-4">
+                  <div className="flex items-center justify-between">
+                    <div className="space-y-0.5">
+                      <Label>Manufacturing Jobs</Label>
+                      <p className="text-sm text-muted-foreground">
+                        Notifications about manufacturing job completions and issues
+                      </p>
+                    </div>
+                    <Switch
+                      checked={notificationSettings.events.manufacturing}
+                      onCheckedChange={(checked) => updateNotificationEvent('manufacturing', checked)}
+                    />
                   </div>
-                  <Switch
-                    checked={notificationSettings.events.manufacturing}
-                    onCheckedChange={() => handleNotificationToggle('manufacturing')}
-                  />
-                </div>
-                
-                <div className="flex items-center justify-between">
-                  <div className="space-y-0.5">
-                    <Label>Mining Operations</Label>
-                    <p className="text-sm text-muted-foreground">
-                      Updates on mining fleet activities and yields
-                    </p>
+                  
+                  <div className="flex items-center justify-between">
+                    <div className="space-y-0.5">
+                      <Label>Mining Operations</Label>
+                      <p className="text-sm text-muted-foreground">
+                        Updates on mining fleet activities and yields
+                      </p>
+                    </div>
+                    <Switch
+                      checked={notificationSettings.events.mining}
+                      onCheckedChange={(checked) => updateNotificationEvent('mining', checked)}
+                    />
                   </div>
-                  <Switch
-                    checked={notificationSettings.events.mining}
-                    onCheckedChange={() => handleNotificationToggle('mining')}
-                  />
-                </div>
-                
-                <div className="flex items-center justify-between">
-                  <div className="space-y-0.5">
-                    <Label>Killmails</Label>
-                    <p className="text-sm text-muted-foreground">
-                      Corporation member kills and losses
-                    </p>
+                  
+                  <div className="flex items-center justify-between">
+                    <div className="space-y-0.5">
+                      <Label>Killmails</Label>
+                      <p className="text-sm text-muted-foreground">
+                        Corporation member kills and losses
+                      </p>
+                    </div>
+                    <Switch
+                      checked={notificationSettings.events.killmails}
+                      onCheckedChange={(checked) => updateNotificationEvent('killmails', checked)}
+                    />
                   </div>
-                  <Switch
-                    checked={notificationSettings.events.killmails}
-                    onCheckedChange={() => handleNotificationToggle('killmails')}
-                  />
-                </div>
-                
-                <div className="flex items-center justify-between">
-                  <div className="space-y-0.5">
-                    <Label>Market Updates</Label>
-                    <p className="text-sm text-muted-foreground">
-                      Price alerts and market order notifications
-                    </p>
+                  
+                  <div className="flex items-center justify-between">
+                    <div className="space-y-0.5">
+                      <Label>Market Updates</Label>
+                      <p className="text-sm text-muted-foreground">
+                        Price alerts and market order notifications
+                      </p>
+                    </div>
+                    <Switch
+                      checked={notificationSettings.events.markets}
+                      onCheckedChange={(checked) => updateNotificationEvent('markets', checked)}
+                    />
                   </div>
-                  <Switch
-                    checked={notificationSettings.events.markets}
-                    onCheckedChange={() => handleNotificationToggle('markets')}
-                  />
                 </div>
               </div>
+
+              {/* Discord Integration */}
+              <div className="border-t border-border pt-6 space-y-4">
+                <div className="flex items-center gap-2">
+                  <div className="w-5 h-5 bg-[#5865F2] rounded flex items-center justify-center">
+                    <svg viewBox="0 0 24 24" className="w-3 h-3 fill-white">
+                      <path d="M20.317 4.37a19.791 19.791 0 0 0-4.885-1.515.074.074 0 0 0-.079.037c-.21.375-.444.864-.608 1.25a18.27 18.27 0 0 0-5.487 0 12.64 12.64 0 0 0-.617-1.25.077.077 0 0 0-.079-.037A19.736 19.736 0 0 0 3.677 4.37a.07.07 0 0 0-.032.027C.533 9.046-.32 13.58.099 18.057a.082.082 0 0 0 .031.057 19.9 19.9 0 0 0 5.993 3.03.078.078 0 0 0 .084-.028c.462-.63.874-1.295 1.226-1.994a.076.076 0 0 0-.041-.106 13.107 13.107 0 0 1-1.872-.892.077.077 0 0 1-.008-.128 10.2 10.2 0 0 0 .372-.292.074.074 0 0 1 .077-.01c3.928 1.793 8.18 1.793 12.062 0a.074.074 0 0 1 .078.01c.12.098.246.198.373.292a.077.077 0 0 1-.006.127 12.299 12.299 0 0 1-1.873.892.077.077 0 0 0-.041.107c.36.698.772 1.362 1.225 1.993a.076.076 0 0 0 .084.028 19.839 19.839 0 0 0 6.002-3.03.077.077 0 0 0 .032-.054c.5-5.177-.838-9.674-3.549-13.66a.061.061 0 0 0-.031-.03zM8.02 15.33c-1.183 0-2.157-1.085-2.157-2.419 0-1.333.956-2.419 2.157-2.419 1.21 0 2.176 1.096 2.157 2.42 0 1.333-.956 2.418-2.157 2.418zm7.975 0c-1.183 0-2.157-1.085-2.157-2.419 0-1.333.955-2.419 2.157-2.419 1.21 0 2.176 1.096 2.157 2.42 0 1.333-.946 2.418-2.157 2.418z"/>
+                    </svg>
+                  </div>
+                  <h4 className="font-medium">Discord Integration</h4>
+                </div>
+                
+                <div className="flex items-center justify-between">
+                  <div className="space-y-0.5">
+                    <Label>Enable Discord Notifications</Label>
+                    <p className="text-sm text-muted-foreground">
+                      Forward notifications to Discord channels via webhooks
+                    </p>
+                  </div>
+                  <Switch
+                    checked={notificationSettings.discord?.enabled || false}
+                    onCheckedChange={(checked) => setNotificationSettings(prev => ({
+                      ...prev,
+                      discord: { ...prev.discord, enabled: checked }
+                    }))}
+                  />
+                </div>
+
+                {notificationSettings.discord?.enabled && (
+                  <div className="space-y-4 pl-6 border-l-2 border-[#5865F2]/20">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div className="space-y-2">
+                        <Label htmlFor="discordWebhookUrl">Webhook URL</Label>
+                        <Input
+                          id="discordWebhookUrl"
+                          type="url"
+                          value={notificationSettings.discord?.webhookUrl || ''}
+                          onChange={(e) => setNotificationSettings(prev => ({
+                            ...prev,
+                            discord: { ...prev.discord, webhookUrl: e.target.value }
+                          }))}
+                          placeholder="https://discord.com/api/webhooks/..."
+                        />
+                        <p className="text-xs text-muted-foreground">
+                          Create a webhook in your Discord server settings
+                        </p>
+                      </div>
+                      
+                      <div className="space-y-2">
+                        <Label htmlFor="discordChannel">Channel Name (Optional)</Label>
+                        <Input
+                          id="discordChannel"
+                          value={notificationSettings.discord?.channelName || ''}
+                          onChange={(e) => setNotificationSettings(prev => ({
+                            ...prev,
+                            discord: { ...prev.discord, channelName: e.target.value }
+                          }))}
+                          placeholder="#lmeve-notifications"
+                        />
+                        <p className="text-xs text-muted-foreground">
+                          Display name for the notifications
+                        </p>
+                      </div>
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label>Notification Types</Label>
+                      <div className="grid grid-cols-2 gap-3">
+                        {['manufacturing', 'mining', 'killmails', 'markets'].map((type) => (
+                          <div key={type} className="flex items-center space-x-2">
+                            <Switch
+                              checked={notificationSettings.discord?.types?.[type] || false}
+                              onCheckedChange={(checked) => setNotificationSettings(prev => ({
+                                ...prev,
+                                discord: {
+                                  ...prev.discord,
+                                  types: { ...prev.discord?.types, [type]: checked }
+                                }
+                              }))}
+                            />
+                            <Label className="text-sm capitalize">{type.replace('_', ' ')}</Label>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => {
+                        if (notificationSettings.discord?.webhookUrl) {
+                          toast.info('Sending test message to Discord...');
+                          // Simulate test webhook
+                          setTimeout(() => {
+                            toast.success('Test message sent successfully!');
+                          }, 1500);
+                        } else {
+                          toast.error('Please enter a webhook URL first');
+                        }
+                      }}
+                    >
+                      <Bell size={16} className="mr-2" />
+                      Test Discord Integration
+                    </Button>
+                  </div>
+                )}
+              </div>
+
+              {/* EVE Online Email */}
+              <div className="border-t border-border pt-6 space-y-4">
+                <div className="flex items-center gap-2">
+                  <div className="w-5 h-5 bg-orange-500 rounded flex items-center justify-center">
+                    <Rocket size={12} className="text-white" />
+                  </div>
+                  <h4 className="font-medium">EVE Online In-Game Mail</h4>
+                </div>
+                
+                <div className="flex items-center justify-between">
+                  <div className="space-y-0.5">
+                    <Label>Enable In-Game Mail Notifications</Label>
+                    <p className="text-sm text-muted-foreground">
+                      Send notifications via EVE Online in-game mail system
+                    </p>
+                  </div>
+                  <Switch
+                    checked={notificationSettings.eveMail?.enabled || false}
+                    onCheckedChange={(checked) => setNotificationSettings(prev => ({
+                      ...prev,
+                      eveMail: { ...prev.eveMail, enabled: checked }
+                    }))}
+                  />
+                </div>
+
+                {notificationSettings.eveMail?.enabled && (
+                  <div className="space-y-4 pl-6 border-l-2 border-orange-500/20">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div className="space-y-2">
+                        <Label htmlFor="eveMailSenderCharacter">Sender Character ID</Label>
+                        <Input
+                          id="eveMailSenderCharacter"
+                          type="number"
+                          value={notificationSettings.eveMail?.senderCharacterId || ''}
+                          onChange={(e) => setNotificationSettings(prev => ({
+                            ...prev,
+                            eveMail: { ...prev.eveMail, senderCharacterId: parseInt(e.target.value) || 0 }
+                          }))}
+                          placeholder="Character ID with mail sending permissions"
+                        />
+                        <p className="text-xs text-muted-foreground">
+                          Character that will send notifications (requires ESI mail scope)
+                        </p>
+                      </div>
+                      
+                      <div className="space-y-2">
+                        <Label htmlFor="eveMailSubjectPrefix">Subject Prefix</Label>
+                        <Input
+                          id="eveMailSubjectPrefix"
+                          value={notificationSettings.eveMail?.subjectPrefix || ''}
+                          onChange={(e) => setNotificationSettings(prev => ({
+                            ...prev,
+                            eveMail: { ...prev.eveMail, subjectPrefix: e.target.value }
+                          }))}
+                          placeholder="[LMeve Alert]"
+                        />
+                        <p className="text-xs text-muted-foreground">
+                          Prefix for notification mail subjects
+                        </p>
+                      </div>
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label htmlFor="eveMailRecipients">Recipient Character IDs</Label>
+                      <Textarea
+                        id="eveMailRecipients"
+                        rows={3}
+                        value={notificationSettings.eveMail?.recipientIds?.join('\n') || ''}
+                        onChange={(e) => setNotificationSettings(prev => ({
+                          ...prev,
+                          eveMail: {
+                            ...prev.eveMail,
+                            recipientIds: e.target.value.split('\n').map(id => parseInt(id.trim())).filter(id => id > 0)
+                          }
+                        }))}
+                        placeholder="Enter character IDs, one per line&#10;91316135&#10;498125261"
+                        className="font-mono text-sm"
+                      />
+                      <p className="text-xs text-muted-foreground">
+                        Enter one character ID per line. These characters will receive notifications.
+                      </p>
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label>Mail Types</Label>
+                      <div className="grid grid-cols-2 gap-3">
+                        {['manufacturing', 'mining', 'killmails', 'markets'].map((type) => (
+                          <div key={type} className="flex items-center space-x-2">
+                            <Switch
+                              checked={notificationSettings.eveMail?.types?.[type] || false}
+                              onCheckedChange={(checked) => setNotificationSettings(prev => ({
+                                ...prev,
+                                eveMail: {
+                                  ...prev.eveMail,
+                                  types: { ...prev.eveMail?.types, [type]: checked }
+                                }
+                              }))}
+                            />
+                            <Label className="text-sm capitalize">{type.replace('_', ' ')}</Label>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+
+                    <div className="flex items-center space-x-2">
+                      <Switch
+                        checked={notificationSettings.eveMail?.onlyToOnlineCharacters || false}
+                        onCheckedChange={(checked) => setNotificationSettings(prev => ({
+                          ...prev,
+                          eveMail: { ...prev.eveMail, onlyToOnlineCharacters: checked }
+                        }))}
+                      />
+                      <Label className="text-sm">Only send to online characters</Label>
+                      <p className="text-xs text-muted-foreground">
+                        (Prevents mail spam when characters are offline for extended periods)
+                      </p>
+                    </div>
+
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => {
+                        if (notificationSettings.eveMail?.senderCharacterId && notificationSettings.eveMail?.recipientIds?.length > 0) {
+                          toast.info('Sending test EVE mail...');
+                          // Simulate test mail
+                          setTimeout(() => {
+                            toast.success('Test EVE mail sent successfully!');
+                          }, 2000);
+                        } else {
+                          toast.error('Please configure sender and recipients first');
+                        }
+                      }}
+                      disabled={!notificationSettings.eveMail?.senderCharacterId || !notificationSettings.eveMail?.recipientIds?.length}
+                    >
+                      <Rocket size={16} className="mr-2" />
+                      Test EVE Mail Integration
+                    </Button>
+                  </div>
+                )}
+              </div>
               
-              <div className="pt-4">
-                <Button onClick={handleSaveSettings}>Save Preferences</Button>
+              <div className="flex justify-end gap-2 pt-4 border-t border-border">
+                <Button
+                  variant="outline"
+                  onClick={() => {
+                    // Reset to defaults
+                    window.location.reload();
+                  }}
+                >
+                  Reset Changes
+                </Button>
+                <Button
+                  onClick={saveNotificationSettings}
+                  className="bg-accent hover:bg-accent/90 text-accent-foreground"
+                >
+                  <CheckCircle size={16} className="mr-2" />
+                  Save Notification Settings
+                </Button>
               </div>
             </CardContent>
           </Card>

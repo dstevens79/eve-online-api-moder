@@ -312,7 +312,6 @@ function AppContent() {
   const settingsTabs = [
     { id: 'general', label: 'General', icon: Globe },
     { id: 'database', label: 'Database', icon: Database },
-    { id: 'sde', label: 'EVE SDE', icon: Archive },
     { id: 'esi', label: 'Corporations', icon: Building },
     { id: 'sync', label: 'Data Sync', icon: Clock },
     { id: 'notifications', label: 'Notifications', icon: Bell },
