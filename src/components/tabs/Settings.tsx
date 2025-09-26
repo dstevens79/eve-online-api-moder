@@ -1635,271 +1635,134 @@ export function Settings({ activeTab, onTabChange }: SettingsProps) {
                 </div>
               </div>
 
-              {/* Database Connection Configuration */}
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                {/* Database Connection - Left Column */}
-                <div className="space-y-4">
-                  <div className="border border-border rounded-lg p-4">
-                    <div className="flex items-center gap-2 mb-4">
+              {/* Compact Database Connection Configuration */}
+              <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
+                {/* Database Connection - Compact */}
+                <div className="lg:col-span-1 space-y-4">
+                  <div className="border border-border rounded-lg p-3">
+                    <div className="flex items-center gap-2 mb-3">
                       <div className={`w-2 h-2 rounded-full ${dbStatus.connected ? 'bg-green-500' : 'bg-red-500'}`} />
-                      <h4 className="font-medium">Database Connection</h4>
+                      <h4 className="text-sm font-medium">Database Connection</h4>
                     </div>
                     
-                    <div className="space-y-4">
-                      <div className="grid grid-cols-2 gap-4">
-                        <div className="space-y-2">
-                          <Label htmlFor="dbHost">Host</Label>
-                          <Input
-                            id="dbHost"
-                            value={databaseSettings.host || ''}
-                            onChange={(e) => {
-                              updateDatabaseSetting('host', e.target.value);
-                              updateDatabaseSetting('sudoHost', e.target.value);
-                            }}
-                            placeholder="localhost"
-                          />
-                        </div>
-                        <div className="space-y-2">
-                          <Label htmlFor="dbPort">Port</Label>
-                          <Input
-                            id="dbPort"
-                            type="number"
-                            value={databaseSettings.port || ''}
-                            onChange={(e) => {
-                              const port = parseInt(e.target.value) || 3306;
-                              updateDatabaseSetting('port', port);
-                              updateDatabaseSetting('sudoPort', port);
-                            }}
-                            placeholder="3306"
-                          />
-                        </div>
+                    <div className="space-y-3">
+                      <div className="space-y-2">
+                        <Label htmlFor="dbHost" className="text-xs">Host</Label>
+                        <Input
+                          id="dbHost"
+                          value={databaseSettings.host || ''}
+                          onChange={(e) => {
+                            updateDatabaseSetting('host', e.target.value);
+                            updateDatabaseSetting('sudoHost', e.target.value);
+                          }}
+                          placeholder="localhost"
+                          className="h-8 text-sm"
+                        />
                       </div>
-                      <div className="grid grid-cols-2 gap-4">
-                        <div className="space-y-2">
-                          <Label htmlFor="dbName">LMeve Database</Label>
-                          <Input
-                            id="dbName"
-                            value={databaseSettings.database || ''}
-                            onChange={(e) => updateDatabaseSetting('database', e.target.value)}
-                            placeholder="lmeve"
-                          />
-                        </div>
-                        <div className="space-y-2">
-                          <Label htmlFor="sdeDbName">SDE Database</Label>
-                          <Input
-                            id="sdeDbName"
-                            value="EveStaticData"
-                            placeholder="EveStaticData"
-                            disabled
-                          />
-                        </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="dbPort" className="text-xs">Port</Label>
+                        <Input
+                          id="dbPort"
+                          type="number"
+                          value={databaseSettings.port || ''}
+                          onChange={(e) => {
+                            const port = parseInt(e.target.value) || 3306;
+                            updateDatabaseSetting('port', port);
+                            updateDatabaseSetting('sudoPort', port);
+                          }}
+                          placeholder="3306"
+                          className="h-8 text-sm"
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="dbName" className="text-xs">Database</Label>
+                        <Input
+                          id="dbName"
+                          value={databaseSettings.database || ''}
+                          onChange={(e) => updateDatabaseSetting('database', e.target.value)}
+                          placeholder="lmeve"
+                          className="h-8 text-sm"
+                        />
                       </div>
                     </div>
                   </div>
                 </div>
 
-                {/* Database Users - Right Column */}
-                <div className="space-y-4">
-                  <div className="border border-border rounded-lg p-4">
-                    <div className="flex items-center gap-2 mb-4">
+                {/* Database Users - Compact */}
+                <div className="lg:col-span-1 space-y-4">
+                  <div className="border border-border rounded-lg p-3">
+                    <div className="flex items-center gap-2 mb-3">
                       <div className={`w-2 h-2 rounded-full ${databaseSettings.sudoUsername && databaseSettings.sudoPassword ? 'bg-green-500' : 'bg-red-500'}`} />
-                      <h4 className="font-medium">Database Users</h4>
+                      <h4 className="text-sm font-medium">Database Users</h4>
                     </div>
                     
-                    <div className="space-y-4">
+                    <div className="space-y-3">
                       {/* Admin User */}
-                      <div className="space-y-3">
-                        <div className="flex items-center gap-2">
-                          <Badge variant="outline" className="text-xs">Admin</Badge>
-                          <span className="text-sm font-medium">Sudo User</span>
-                        </div>
-                        <div className="grid grid-cols-2 gap-2">
+                      <div className="space-y-2">
+                        <Label className="text-xs text-muted-foreground">Sudo User</Label>
+                        <Input
+                          value={databaseSettings.sudoUsername || ''}
+                          onChange={(e) => updateDatabaseSetting('sudoUsername', e.target.value)}
+                          placeholder="root"
+                          className="h-8 text-sm"
+                        />
+                        <div className="relative">
                           <Input
-                            value={databaseSettings.sudoUsername || ''}
-                            onChange={(e) => updateDatabaseSetting('sudoUsername', e.target.value)}
-                            placeholder="root"
-                            className="text-sm"
+                            type={showSudoPassword ? "text" : "password"}
+                            value={databaseSettings.sudoPassword || ''}
+                            onChange={(e) => updateDatabaseSetting('sudoPassword', e.target.value)}
+                            placeholder="Admin password"
+                            className="h-8 text-sm pr-8"
                           />
-                          <div className="relative">
-                            <Input
-                              type={showSudoPassword ? "text" : "password"}
-                              value={databaseSettings.sudoPassword || ''}
-                              onChange={(e) => updateDatabaseSetting('sudoPassword', e.target.value)}
-                              placeholder="Admin password"
-                              className="text-sm pr-8"
-                            />
-                            <Button
-                              type="button"
-                              variant="ghost"
-                              size="sm"
-                              className="absolute right-0 top-0 h-full px-2"
-                              onClick={() => setShowSudoPassword(!showSudoPassword)}
-                            >
-                              {showSudoPassword ? <EyeSlash size={12} /> : <Eye size={12} />}
-                            </Button>
-                          </div>
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="sm"
+                            className="absolute right-0 top-0 h-8 w-8 p-0"
+                            onClick={() => setShowSudoPassword(!showSudoPassword)}
+                          >
+                            {showSudoPassword ? <EyeSlash size={12} /> : <Eye size={12} />}
+                          </Button>
                         </div>
                       </div>
 
                       {/* App User */}
-                      <div className="space-y-3">
-                        <div className="flex items-center gap-2">
-                          <Badge variant="outline" className="text-xs">App</Badge>
-                          <span className="text-sm font-medium">LMeve User</span>
-                        </div>
-                        <div className="grid grid-cols-2 gap-2">
+                      <div className="space-y-2">
+                        <Label className="text-xs text-muted-foreground">LMeve User</Label>
+                        <Input
+                          value={databaseSettings.username || ''}
+                          onChange={(e) => updateDatabaseSetting('username', e.target.value)}
+                          placeholder="lmeve_user"
+                          className="h-8 text-sm"
+                        />
+                        <div className="relative">
                           <Input
-                            value={databaseSettings.username || ''}
-                            onChange={(e) => updateDatabaseSetting('username', e.target.value)}
-                            placeholder="lmeve_user"
-                            className="text-sm"
+                            type={showDbPassword ? "text" : "password"}
+                            value={databaseSettings.password || ''}
+                            onChange={(e) => updateDatabaseSetting('password', e.target.value)}
+                            placeholder="App password"
+                            className="h-8 text-sm pr-8"
                           />
-                          <div className="relative">
-                            <Input
-                              type={showDbPassword ? "text" : "password"}
-                              value={databaseSettings.password || ''}
-                              onChange={(e) => updateDatabaseSetting('password', e.target.value)}
-                              placeholder="App password"
-                              className="text-sm pr-8"
-                            />
-                            <Button
-                              type="button"
-                              variant="ghost"
-                              size="sm"
-                              className="absolute right-0 top-0 h-full px-2"
-                              onClick={() => setShowDbPassword(!showDbPassword)}
-                            >
-                              {showDbPassword ? <EyeSlash size={12} /> : <Eye size={12} />}
-                            </Button>
-                          </div>
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="sm"
+                            className="absolute right-0 top-0 h-8 w-8 p-0"
+                            onClick={() => setShowDbPassword(!showDbPassword)}
+                          >
+                            {showDbPassword ? <EyeSlash size={12} /> : <Eye size={12} />}
+                          </Button>
                         </div>
                       </div>
                     </div>
                   </div>
                 </div>
-              </div>
 
-              {/* Connection Controls and Status - Full Width */}
-              <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                {/* Connection Controls - Left */}
-                <div className="lg:col-span-2">
-                  <div className="flex gap-3">
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => {
-                        console.log('🧪 Test connection button clicked');
-                        handleTestDbConnection();
-                      }}
-                      disabled={testingConnection}
-                      className="flex-1 hover:bg-accent/10 active:bg-accent/20 transition-colors"
-                    >
-                      {testingConnection ? (
-                        <>
-                          <ArrowClockwise size={16} className="mr-2 animate-spin" />
-                          Testing...
-                        </>
-                      ) : (
-                        <>
-                          <Play size={16} className="mr-2" />
-                          Test Connection
-                        </>
-                      )}
-                    </Button>
-                    
-                    {dbStatus.connected ? (
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={handleDisconnectDb}
-                        className="flex-1 border-red-500/50 text-red-400 hover:bg-red-500/10"
-                      >
-                        <Stop size={16} className="mr-2" />
-                        Disconnect
-                      </Button>
-                    ) : (
-                      <Button
-                        size="sm"
-                        onClick={handleConnectDb}
-                        className="flex-1 bg-accent hover:bg-accent/90"
-                      >
-                        <Play size={16} className="mr-2" />
-                        Connect
-                      </Button>
-                    )}
-                    
-                    <Button
-                      onClick={saveDatabaseSettings}
-                      variant="secondary"
-                      size="sm"
-                      className="flex-1"
-                    >
-                      Save
-                    </Button>
-                  </div>
-                </div>
-
-                {/* Status Overview Panel - Right Column */}
-                <div className="space-y-4">
-                  <div className="border border-border rounded-lg p-4">
-                    <div className="flex items-center gap-2 mb-4">
-                      <Activity size={18} />
-                      <h4 className="font-medium">System Status</h4>
-                    </div>
-                    
-                    {/* Status Indicators */}
-                    <div className="space-y-3 mb-4">
-                      <StatusIndicator 
-                        label="Database Status" 
-                        status={dbStatus.connected ? 'online' : 'offline'} 
-                      />
-                      <StatusIndicator 
-                        label="Remote Access" 
-                        status={databaseSettings.host && databaseSettings.host !== 'localhost' && databaseSettings.host !== '127.0.0.1' ? (dbStatus.connected ? 'online' : 'offline') : 'unknown'} 
-                      />
-                      <StatusIndicator 
-                        label="ESI Status" 
-                        status={esiConfig?.clientId ? 'online' : 'offline'} 
-                      />
-                      <StatusIndicator 
-                        label="EVE Online API" 
-                        status="unknown" 
-                      />
-                      <StatusIndicator 
-                        label="Overall Status" 
-                        status={dbStatus.connected && esiConfig?.clientId ? 'online' : 'offline'} 
-                      />
-                    </div>
-
-                    <div className="border-t border-border pt-4 space-y-3 mb-4">
-                      <Button
-                        onClick={() => {
-                          toast.info('Application management coming soon');
-                        }}
-                        variant="outline"
-                        size="sm"
-                        className="w-full"
-                      >
-                        <SettingsIcon size={14} className="mr-2" />
-                        Manage Apps
-                      </Button>
-                      
-                      <Button
-                        onClick={() => {
-                          handleTestDbConnection();
-                          toast.success('Status refreshed');
-                        }}
-                        variant="outline"
-                        size="sm"
-                        className="w-full"
-                      >
-                        <RefreshCw size={14} className="mr-2" />
-                        Refresh Status
-                      </Button>
-                    </div>
-
-                    {/* Configuration Dropdowns */}
-                    <div className="border-t border-border pt-4 space-y-3 mb-4">
+                {/* Configuration Dropdowns */}
+                <div className="lg:col-span-1 space-y-4">
+                  <div className="border border-border rounded-lg p-3">
+                    <h4 className="text-sm font-medium mb-3">Configuration</h4>
+                    <div className="space-y-3">
                       <div>
                         <Label className="text-xs text-muted-foreground">Schema Source</Label>
                         <Select value="default" onValueChange={() => {}}>
@@ -1926,71 +1789,244 @@ export function Settings({ activeTab, onTabChange }: SettingsProps) {
                         </Select>
                       </div>
                     </div>
+                  </div>
+                </div>
+
+                {/* Status Overview Panel */}
+                <div className="lg:col-span-1 space-y-4">
+                  <div className="border border-border rounded-lg p-3">
+                    <div className="flex items-center gap-2 mb-3">
+                      <Activity size={16} />
+                      <h4 className="text-sm font-medium">System Status</h4>
+                    </div>
                     
-                    <div className="border-t border-border pt-4 space-y-2 mb-4">
-                      <div className="flex items-center justify-between text-xs">
-                        <span className="text-muted-foreground">SDE Latest Version Check</span>
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => toast.info('Version check coming soon')}
-                          className="h-6 px-2 text-xs"
-                        >
-                          Check
-                        </Button>
-                      </div>
+                    {/* Status Indicators */}
+                    <div className="space-y-2 mb-3">
+                      <StatusIndicator 
+                        label="Database Status" 
+                        status={dbStatus.connected ? 'online' : 'offline'} 
+                      />
+                      <StatusIndicator 
+                        label="Remote Access" 
+                        status={databaseSettings.host && databaseSettings.host !== 'localhost' && databaseSettings.host !== '127.0.0.1' ? (dbStatus.connected ? 'online' : 'offline') : 'unknown'} 
+                      />
+                      <StatusIndicator 
+                        label="ESI Status" 
+                        status={esiConfig?.clientId ? 'online' : 'offline'} 
+                      />
+                      <StatusIndicator 
+                        label="EVE Online API" 
+                        status="unknown" 
+                      />
                       <div className="flex items-center justify-between text-xs">
                         <span className="text-muted-foreground">SDE Version:</span>
                         <span className="text-foreground">Unknown</span>
                       </div>
+                      <StatusIndicator 
+                        label="Overall Status" 
+                        status={dbStatus.connected && esiConfig?.clientId ? 'online' : 'offline'} 
+                      />
                     </div>
 
-                    {/* Compact Debug Logs */}
-                    <div className="border-t border-border pt-4">
-                      <div className="flex items-center justify-between mb-2">
-                        <Label className="text-xs text-muted-foreground">Debug Logs</Label>
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={clearConnectionLogs}
-                          disabled={connectionLogs.length === 0}
-                          className="h-6 px-2 text-xs"
-                        >
-                          <X size={12} className="mr-1" />
-                          Clear
-                        </Button>
-                      </div>
-                      <div className="bg-muted/30 border border-border rounded p-3 h-48 overflow-y-auto font-mono text-xs">
-                        {connectionLogs.length === 0 ? (
-                          <div className="flex items-center justify-center h-full text-muted-foreground">
-                            No logs available
-                          </div>
-                        ) : (
-                          <div className="space-y-1">
-                            {connectionLogs.map((log, index) => (
-                              <div 
-                                key={index} 
-                                className={`leading-relaxed ${
-                                  log.includes('❌') || log.includes('💥') ? 'text-red-300' :
-                                  log.includes('⚠️') ? 'text-yellow-300' :
-                                  log.includes('✅') || log.includes('🎉') ? 'text-green-300' :
-                                  log.includes('🔍') || log.includes('🌐') || log.includes('🔌') || 
-                                  log.includes('🔐') || log.includes('🗄️') || log.includes('🔑') || 
-                                  log.includes('🎯') ? 'text-blue-300' :
-                                  log.includes('⚡') ? 'text-purple-300' :
-                                  log.includes('🏁') ? 'text-gray-400' :
-                                  'text-foreground'
-                                }`}
-                              >
-                                {log}
-                              </div>
-                            ))}
-                          </div>
-                        )}
-                      </div>
+                    <div className="space-y-2">
+                      <Button
+                        onClick={() => {
+                          toast.info('Application management coming soon');
+                        }}
+                        variant="outline"
+                        size="sm"
+                        className="w-full text-xs h-8"
+                      >
+                        <SettingsIcon size={12} className="mr-1" />
+                        Manage Apps
+                      </Button>
+                      
+                      <Button
+                        onClick={() => {
+                          handleTestDbConnection();
+                          toast.success('Status refreshed');
+                        }}
+                        variant="outline"
+                        size="sm"
+                        className="w-full text-xs h-8"
+                      >
+                        <RefreshCw size={12} className="mr-1" />
+                        Refresh Status
+                      </Button>
+                      
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => toast.info('Version check coming soon')}
+                        className="w-full text-xs h-8"
+                      >
+                        <CloudArrowDown size={12} className="mr-1" />
+                        Check SDE
+                      </Button>
                     </div>
                   </div>
                 </div>
+              </div>
+
+              {/* Connection Controls Row */}
+              <div className="flex gap-3 max-w-2xl">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => {
+                    console.log('🧪 Test connection button clicked');
+                    handleTestDbConnection();
+                  }}
+                  disabled={testingConnection}
+                  className="flex-1 hover:bg-accent/10 active:bg-accent/20 transition-colors"
+                >
+                  {testingConnection ? (
+                    <>
+                      <ArrowClockwise size={16} className="mr-2 animate-spin" />
+                      Testing...
+                    </>
+                  ) : (
+                    <>
+                      <Play size={16} className="mr-2" />
+                      Test Connection
+                    </>
+                  )}
+                </Button>
+                
+                {dbStatus.connected ? (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={handleDisconnectDb}
+                    className="flex-1 border-red-500/50 text-red-400 hover:bg-red-500/10"
+                  >
+                    <Stop size={16} className="mr-2" />
+                    Disconnect
+                  </Button>
+                ) : (
+                  <Button
+                    size="sm"
+                    onClick={handleConnectDb}
+                    className="flex-1 bg-accent hover:bg-accent/90"
+                  >
+                    <Play size={16} className="mr-2" />
+                    Connect
+                  </Button>
+                )}
+                
+                <Button
+                  onClick={saveDatabaseSettings}
+                  variant="secondary"
+                  size="sm"
+                  className="flex-1"
+                >
+                  Save
+                </Button>
+                
+                <Button
+                  variant="outline"
+                  onClick={() => {
+                    // Reset to current saved values
+                    window.location.reload();
+                  }}
+                  size="sm"
+                  className="flex-1"
+                >
+                  Reset
+                </Button>
+              </div>
+
+              {/* Connection Logs - Full Width */}
+              <div className="space-y-4">
+                <div className="flex items-center justify-between">
+                  <Label className="text-sm font-medium">Connection Logs</Label>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={clearConnectionLogs}
+                    disabled={connectionLogs.length === 0}
+                    className="h-8 px-3 text-xs"
+                  >
+                    <X size={12} className="mr-1" />
+                    Clear
+                  </Button>
+                </div>
+                <div className="bg-muted/30 border border-border rounded p-4 h-64 overflow-y-auto font-mono text-xs">
+                  {connectionLogs.length === 0 ? (
+                    <div className="flex items-center justify-center h-full text-muted-foreground">
+                      No logs available
+                    </div>
+                  ) : (
+                    <div className="space-y-1">
+                      {connectionLogs.map((log, index) => (
+                        <div 
+                          key={index} 
+                          className={`leading-relaxed ${
+                            log.includes('❌') || log.includes('💥') ? 'text-red-300' :
+                            log.includes('⚠️') ? 'text-yellow-300' :
+                            log.includes('✅') || log.includes('🎉') ? 'text-green-300' :
+                            log.includes('🔍') || log.includes('🌐') || log.includes('🔌') || 
+                            log.includes('🔐') || log.includes('🗄️') || log.includes('🔑') || 
+                            log.includes('🎯') ? 'text-blue-300' :
+                            log.includes('⚡') ? 'text-purple-300' :
+                            log.includes('🏁') ? 'text-gray-400' :
+                            'text-foreground'
+                          }`}
+                        >
+                          {log}
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* Complete Database Setup Section - Based on your image */}
+              <div className="border border-green-500/20 bg-green-500/5 rounded-lg p-4">
+                <div className="flex items-center justify-between mb-3">
+                  <div className="flex items-center gap-3">
+                    <div className="flex items-center justify-center w-8 h-8 bg-green-500/20 rounded-full">
+                      <Wrench size={16} className="text-green-400" />
+                    </div>
+                    <div>
+                      <h3 className="font-semibold text-green-300">Complete Database Setup</h3>
+                      <p className="text-sm text-muted-foreground">
+                        Creates both lmeve and EveStaticData databases, downloads EVE SDE data, imports schema, and configures database users with proper privileges. Requires sudo database access configured above.
+                      </p>
+                    </div>
+                  </div>
+                  <Button 
+                    variant="default"
+                    size="sm"
+                    className="bg-green-600 hover:bg-green-700 text-white shrink-0"
+                    onClick={() => setShowSetupWizard(true)}
+                  >
+                    Setting Up...
+                  </Button>
+                </div>
+                
+                {setupProgress?.isRunning && (
+                  <div className="mt-4 space-y-3">
+                    <div className="flex items-center justify-between text-sm">
+                      <span>Downloading EVE Static Data Export (this may take several minutes)...</span>
+                      <span className="text-accent font-mono">27%</span>
+                    </div>
+                    <Progress value={27} className="h-2 bg-muted" />
+                    <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                      <span>Step 3 of 11</span>
+                      <div className="flex gap-1">
+                        <Button variant="ghost" size="sm" className="h-6 px-2 text-xs">
+                          <Terminal size={12} className="mr-1" />
+                          Generate Commands
+                        </Button>
+                        <Button variant="ghost" size="sm" className="h-6 px-2 text-xs">
+                          <CheckCircle size={12} className="mr-1" />
+                          Step-by-Step Wizard
+                        </Button>
+                      </div>
+                    </div>
+                  </div>
+                )}
               </div>
 
               {/* Database Tables - Collapsible Section */}
@@ -2084,26 +2120,6 @@ export function Settings({ activeTab, onTabChange }: SettingsProps) {
                 {showDatabaseSchema && (
                   <DatabaseSchemaManager />
                 )}
-              </div>
-
-              {/* Save Database Settings */}
-              <div className="flex justify-end gap-2 pt-4 border-t border-border">
-                <Button
-                  variant="outline"
-                  onClick={() => {
-                    // Reset to current saved values
-                    window.location.reload();
-                  }}
-                >
-                  Reset Changes
-                </Button>
-                <Button
-                  onClick={saveDatabaseSettings}
-                  className="bg-accent hover:bg-accent/90 text-accent-foreground"
-                >
-                  <CheckCircle size={16} className="mr-2" />
-                  Save Database Settings
-                </Button>
               </div>
             </CardContent>
           </Card>
