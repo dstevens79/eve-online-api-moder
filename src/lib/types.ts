@@ -142,37 +142,46 @@ export interface ProductionPlan {
 // Manufacturing Job Assignment types - LMeve style task management
 export interface ManufacturingTask {
   id: string;
-  title: string;
-  description: string;
-  taskType: 'manufacturing' | 'research' | 'invention' | 'copy' | 'reaction';
-  priority: 'low' | 'normal' | 'high' | 'urgent';
-  status: 'pending' | 'assigned' | 'in_progress' | 'completed' | 'cancelled';
   
-  // Task definition
+  // Task definition - simplified
   targetItem: {
     typeId: number;
     typeName: string;
     quantity: number;
   };
-  blueprintId?: number;
-  blueprintName?: string;
-  runs: number;
-  materialEfficiency?: number;
-  timeEfficiency?: number;
   
-  // Assignment details
-  createdBy: string;
-  createdByName: string;
-  createdDate: string;
+  // Assignment details - simplified
   assignedTo?: string;
   assignedToName?: string;
+  status: 'assigned' | 'in_progress' | 'completed';
+  
+  // Pay modifier - simplified (only one can be applied)
+  payModifier?: 'qualityBonus' | 'speedBonus' | 'difficultyBonus' | null;
+  
+  // Time tracking
+  estimatedDuration: number; // in seconds
+  createdDate: string;
+  startedDate?: string;
+  completedDate?: string;
+  
+  // Corporation tracking
+  corporationId?: number;
+  
+  // Optional fields for backward compatibility with complex tasks
+  title?: string;
+  description?: string;
+  taskType?: 'manufacturing' | 'research' | 'invention' | 'copy' | 'reaction';
+  priority?: 'low' | 'normal' | 'high' | 'urgent';
+  blueprintId?: number;
+  blueprintName?: string;
+  runs?: number;
+  materialEfficiency?: number;
+  timeEfficiency?: number;
+  createdBy?: string;
+  createdByName?: string;
   assignedDate?: string;
   assignedBy?: string;
   assignedByName?: string;
-  
-  // Progress tracking
-  startedDate?: string;
-  completedDate?: string;
   deliveredDate?: string;
   progressNotes?: string[];
   completionProof?: {
@@ -181,20 +190,15 @@ export interface ManufacturingTask {
     deliveryLocation?: string;
     actualQuantity?: number;
   };
-  
-  // Resources and requirements
-  materials: MaterialRequirement[];
-  estimatedCost: number;
-  estimatedDuration: number; // in seconds
+  materials?: MaterialRequirement[];
+  estimatedCost?: number;
   suggestedLocation?: string;
   requiredSkills?: Array<{
     skillId: number;
     skillName: string;
     level: number;
   }>;
-  
-  // Rewards and payments
-  reward: {
+  reward?: {
     type: 'fixed' | 'percentage' | 'market_rate' | 'points';
     amount: number;
     paymentStatus: 'pending' | 'approved' | 'paid';
@@ -203,14 +207,9 @@ export interface ManufacturingTask {
       bonus: number;
     }>;
   };
-  
-  // Deadline and scheduling
   deadline?: string;
   preferredStartTime?: string;
   canDelayUntil?: string;
-  
-  // Corporation tracking
-  corporationId?: number;
   corporationName?: string;
   tags?: string[];
   relatedTasks?: string[]; // IDs of related tasks
