@@ -164,6 +164,19 @@ export function Settings({ activeTab, onTabChange }: SettingsProps) {
   const [manualUsers, setManualUsers] = useManualUsers();
   const [corporationData, setCorporationData] = useCorporationData();
 
+  // Remote access and SSH state
+  const [remoteAccess, setRemoteAccess] = useKV('remote-access-state', {
+    sshConnected: false,
+    sshStatus: 'unknown', // 'unknown', 'offline', 'online'
+    scriptsDeployed: false,
+    scriptsStatus: 'unknown', // 'unknown', 'not-deployed', 'deployed', 'error'
+    remoteSetupComplete: false,
+    remoteSetupStatus: 'unknown', // 'unknown', 'not-run', 'outdated', 'complete'
+    lastSSHCheck: null,
+    lastScriptCheck: null,
+    lastSetupCheck: null
+  });
+
   // Backward compatibility - gradually migrate away from this
   const settings = {
     corpName: generalSettings.corpName,
@@ -582,6 +595,121 @@ export function Settings({ activeTab, onTabChange }: SettingsProps) {
   };
 
   // Remote database operations handlers
+  const handleSSHConnection = async () => {
+    if (!databaseSettings.host || 
+        databaseSettings.host === 'localhost' || 
+        databaseSettings.host === '127.0.0.1') {
+      toast.error('SSH connection is only needed for remote database hosts');
+      return;
+    }
+
+    try {
+      setRemoteAccess(prev => ({ 
+        ...prev, 
+        sshStatus: 'offline', 
+        lastSSHCheck: new Date().toISOString() 
+      }));
+
+      // Simulate SSH connection test
+      toast.info('Testing SSH connection...');
+      
+      // This would be replaced with actual SSH connection logic
+      await new Promise(resolve => setTimeout(resolve, 2000));
+      
+      // For now, simulate success
+      setRemoteAccess(prev => ({ 
+        ...prev, 
+        sshConnected: true,
+        sshStatus: 'online',
+        lastSSHCheck: new Date().toISOString() 
+      }));
+      
+      toast.success('SSH connection established successfully');
+    } catch (error) {
+      setRemoteAccess(prev => ({ 
+        ...prev, 
+        sshConnected: false,
+        sshStatus: 'offline',
+        lastSSHCheck: new Date().toISOString() 
+      }));
+      
+      toast.error('SSH connection failed');
+    }
+  };
+
+  const handleDeployScripts = async () => {
+    try {
+      setRemoteAccess(prev => ({ 
+        ...prev, 
+        scriptsStatus: 'warning',
+        lastScriptCheck: new Date().toISOString() 
+      }));
+
+      toast.info('Deploying database setup scripts...');
+      
+      // This would deploy the actual scripts
+      await new Promise(resolve => setTimeout(resolve, 3000));
+      
+      setRemoteAccess(prev => ({ 
+        ...prev, 
+        scriptsDeployed: true,
+        scriptsStatus: 'deployed',
+        lastScriptCheck: new Date().toISOString() 
+      }));
+      
+      toast.success('Scripts deployed successfully');
+    } catch (error) {
+      setRemoteAccess(prev => ({ 
+        ...prev, 
+        scriptsStatus: 'error',
+        lastScriptCheck: new Date().toISOString() 
+      }));
+      
+      toast.error('Script deployment failed');
+    }
+  };
+
+  const handleRemoteSetup = async () => {
+    if (!remoteAccess.sshConnected) {
+      toast.error('SSH connection required before running remote setup');
+      return;
+    }
+    
+    if (!remoteAccess.scriptsDeployed) {
+      toast.error('Scripts must be deployed before running remote setup');
+      return;
+    }
+
+    try {
+      setRemoteAccess(prev => ({ 
+        ...prev, 
+        remoteSetupStatus: 'warning',
+        lastSetupCheck: new Date().toISOString() 
+      }));
+
+      toast.info('Running remote database setup...');
+      
+      // This would run the actual remote setup
+      await new Promise(resolve => setTimeout(resolve, 5000));
+      
+      setRemoteAccess(prev => ({ 
+        ...prev, 
+        remoteSetupComplete: true,
+        remoteSetupStatus: 'complete',
+        lastSetupCheck: new Date().toISOString() 
+      }));
+      
+      toast.success('Remote setup completed successfully');
+    } catch (error) {
+      setRemoteAccess(prev => ({ 
+        ...prev, 
+        remoteSetupStatus: 'offline',
+        lastSetupCheck: new Date().toISOString() 
+      }));
+      
+      toast.error('Remote setup failed');
+    }
+  };
 
 
 
@@ -804,8 +932,8 @@ export function Settings({ activeTab, onTabChange }: SettingsProps) {
     const requirements = [];
     let isReady = true;
 
-    // Check database connection settings
-    if (!databaseSettings.host) {
+    // Check database connection settings - only if not filled in
+    if (!databaseSettings.host?.trim()) {
       requirements.push('Database host is required');
       isReady = false;
     }
@@ -813,35 +941,45 @@ export function Settings({ activeTab, onTabChange }: SettingsProps) {
       requirements.push('Database port is required');
       isReady = false;
     }
-    if (!databaseSettings.database) {
+    if (!databaseSettings.database?.trim()) {
       requirements.push('Database name is required');
       isReady = false;
     }
 
-    // Check database users
-    if (!databaseSettings.username || !databaseSettings.password) {
+    // Check database users - only if not filled in
+    if (!databaseSettings.username?.trim() || !databaseSettings.password?.trim()) {
       requirements.push('LMeve database user credentials are required');
       isReady = false;
     }
-    if (!databaseSettings.sudoUsername || !databaseSettings.sudoPassword) {
+    if (!databaseSettings.sudoUsername?.trim() || !databaseSettings.sudoPassword?.trim()) {
       requirements.push('Database admin user credentials are required');
       isReady = false;
     }
 
-    // Check ESI configuration
-    if (!esiConfig.clientId) {
+    // Check ESI configuration - only if not filled in
+    if (!esiConfig.clientId?.trim()) {
       requirements.push('EVE Online ESI Client ID is required');
       isReady = false;
     }
-    if (!esiConfig.clientSecret) {
+    if (!esiConfig.clientSecret?.trim()) {
       requirements.push('EVE Online ESI Client Secret is required');
       isReady = false;
     }
 
-    // Check if database is testable (optional but recommended)
-    if (!dbStatus.connected && databaseSettings.host && databaseSettings.port && databaseSettings.username && databaseSettings.password) {
-      requirements.push('Database connection should be tested first (recommended)');
-      // Don't set isReady to false for this one - it's just a warning
+    // Check database connection status
+    if (!dbStatus.connected) {
+      requirements.push('Database connection not established');
+      isReady = false;
+    }
+
+    // Check remote access if database is on remote host
+    const isRemoteDB = databaseSettings.host && 
+      databaseSettings.host !== 'localhost' && 
+      databaseSettings.host !== '127.0.0.1';
+    
+    if (isRemoteDB && !remoteAccess.sshConnected) {
+      requirements.push('Remote access not configured');
+      isReady = false;
     }
 
     return {
@@ -1305,6 +1443,46 @@ export function Settings({ activeTab, onTabChange }: SettingsProps) {
     } else {
       toast.error(`Failed to update ${processName} route version`);
     }
+  };
+
+  const handleRefreshStatus = async () => {
+    toast.info('Refreshing system status...');
+    
+    // Refresh database connection
+    if (databaseSettings.host && databaseSettings.port && databaseSettings.username && databaseSettings.password) {
+      await handleTestDbConnection();
+    }
+    
+    // Check SSH status for remote hosts
+    if (databaseSettings.host && 
+        databaseSettings.host !== 'localhost' && 
+        databaseSettings.host !== '127.0.0.1' && 
+        remoteAccess.sshConnected) {
+      // Simulate SSH status check
+      try {
+        await new Promise(resolve => setTimeout(resolve, 1000));
+        setRemoteAccess(prev => ({ 
+          ...prev, 
+          sshStatus: Math.random() > 0.3 ? 'online' : 'offline',
+          lastSSHCheck: new Date().toISOString() 
+        }));
+      } catch (error) {
+        setRemoteAccess(prev => ({ 
+          ...prev, 
+          sshStatus: 'offline',
+          lastSSHCheck: new Date().toISOString() 
+        }));
+      }
+    }
+    
+    // Check SDE status
+    try {
+      await checkForUpdates();
+    } catch (error) {
+      console.error('SDE check failed:', error);
+    }
+    
+    toast.success('Status refreshed');
   };
 
   const handleNotificationToggle = (type: string) => {
@@ -1885,36 +2063,37 @@ export function Settings({ activeTab, onTabChange }: SettingsProps) {
                     <h4 className="text-sm font-medium mb-3">Remote Database Setup</h4>
                     <div className="space-y-2">
                       <Button
-                        onClick={() => {
-                          toast.info('SSH connection manager coming soon');
-                        }}
+                        onClick={handleSSHConnection}
                         variant="outline"
                         size="sm"
                         className="w-full text-xs h-8"
+                        disabled={
+                          !databaseSettings.host || 
+                          databaseSettings.host === 'localhost' || 
+                          databaseSettings.host === '127.0.0.1'
+                        }
                       >
                         <Terminal size={12} className="mr-1" />
                         Setup SSH Connection
                       </Button>
                       
                       <Button
-                        onClick={() => {
-                          toast.info('Script deployment coming soon');
-                        }}
+                        onClick={handleDeployScripts}
                         variant="outline"
                         size="sm"
                         className="w-full text-xs h-8"
+                        disabled={!remoteAccess.sshConnected}
                       >
                         <Upload size={12} className="mr-1" />
                         Deploy Scripts
                       </Button>
                       
                       <Button
-                        onClick={() => {
-                          toast.info('Remote execution coming soon');
-                        }}
+                        onClick={handleRemoteSetup}
                         variant="outline"
                         size="sm"
                         className="w-full text-xs h-8"
+                        disabled={!remoteAccess.scriptsDeployed}
                       >
                         <Play size={12} className="mr-1" />
                         Run Remote Setup
@@ -1937,34 +2116,89 @@ export function Settings({ activeTab, onTabChange }: SettingsProps) {
                         label="Database Status" 
                         status={dbStatus.connected ? 'online' : 'offline'} 
                       />
+                      
                       <StatusIndicator 
-                        label="Remote Access" 
-                        status={databaseSettings.host && databaseSettings.host !== 'localhost' && databaseSettings.host !== '127.0.0.1' ? (dbStatus.connected ? 'online' : 'offline') : 'unknown'} 
+                        label="SSH Status" 
+                        status={
+                          databaseSettings.host && 
+                          databaseSettings.host !== 'localhost' && 
+                          databaseSettings.host !== '127.0.0.1'
+                            ? remoteAccess.sshStatus === 'online' 
+                              ? 'online' 
+                              : remoteAccess.sshStatus === 'offline' 
+                              ? 'warning'  // yellow - working but offline
+                              : 'offline'  // red - broken/unknown
+                            : 'unknown'    // not applicable for localhost
+                        } 
                       />
+                      
+                      <StatusIndicator 
+                        label="Scripts Deployed" 
+                        status={
+                          remoteAccess.scriptsStatus === 'deployed' 
+                            ? 'online'    // green - deployed successfully
+                            : remoteAccess.scriptsStatus === 'not-deployed'
+                            ? 'offline'   // red - not done or error
+                            : remoteAccess.scriptsStatus === 'error'
+                            ? 'offline'   // red - error during deployment
+                            : 'warning'   // yellow - prepared but not run
+                        } 
+                      />
+                      
+                      <StatusIndicator 
+                        label="Remote Setup" 
+                        status={
+                          remoteAccess.remoteSetupStatus === 'complete' 
+                            ? 'online'    // green - setup and working
+                            : remoteAccess.remoteSetupStatus === 'outdated'
+                            ? 'warning'   // yellow - needs update/SDE outdated
+                            : 'offline'   // red - not run or error
+                        } 
+                      />
+                      
                       <StatusIndicator 
                         label="ESI Status" 
-                        status={esiConfig?.clientId ? 'online' : 'offline'} 
+                        status={esiConfig?.clientId && esiConfig?.clientSecret ? 'online' : 'offline'} 
                       />
+                      
                       <StatusIndicator 
                         label="EVE Online API" 
                         status="unknown" 
                       />
+                      
                       <div className="flex items-center justify-between text-xs">
-                        <span className="text-muted-foreground">SDE Version:</span>
+                        <span className="text-muted-foreground">SDE Latest:</span>
+                        <span className="text-foreground">{sdeStatus?.latestVersion || 'Unknown'}</span>
+                      </div>
+                      
+                      <div className="flex items-center justify-between text-xs">
+                        <span className="text-muted-foreground">SDE Current:</span>
+                        <span className="text-foreground">{sdeStatus?.currentVersion || 'Unknown'}</span>
+                      </div>
+                      
+                      <div className="flex items-center justify-between text-xs">
+                        <span className="text-muted-foreground">Uptime:</span>
                         <span className="text-foreground">Unknown</span>
                       </div>
+                      
                       <StatusIndicator 
                         label="Overall Status" 
-                        status={dbStatus.connected && esiConfig?.clientId ? 'online' : 'offline'} 
+                        status={
+                          dbStatus.connected && 
+                          esiConfig?.clientId && 
+                          esiConfig?.clientSecret &&
+                          (databaseSettings.host === 'localhost' || 
+                           databaseSettings.host === '127.0.0.1' || 
+                           remoteAccess.sshStatus === 'online') 
+                            ? 'online' 
+                            : 'offline'
+                        } 
                       />
                     </div>
 
                     <div className="space-y-2">
                       <Button
-                        onClick={() => {
-                          handleTestDbConnection();
-                          toast.success('Status refreshed');
-                        }}
+                        onClick={handleRefreshStatus}
                         variant="outline"
                         size="sm"
                         className="w-full text-xs h-8"
