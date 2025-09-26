@@ -195,7 +195,7 @@ export interface ManufacturingTask {
   
   // Rewards and payments
   reward: {
-    type: 'fixed' | 'percentage' | 'market_rate';
+    type: 'fixed' | 'percentage' | 'market_rate' | 'points';
     amount: number;
     paymentStatus: 'pending' | 'approved' | 'paid';
     bonusConditions?: Array<{

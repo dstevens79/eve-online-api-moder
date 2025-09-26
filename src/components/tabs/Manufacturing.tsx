@@ -33,6 +33,7 @@ import { BlueprintDetailsDialog } from '@/components/manufacturing/BlueprintDeta
 import { ProductionPlanDialog } from '@/components/manufacturing/ProductionPlanDialog';
 import { TaskAssignmentDialog } from '@/components/manufacturing/TaskAssignmentDialog';
 import { TaskManagementView } from '@/components/manufacturing/TaskManagementView';
+import { PointsManagement } from '@/components/manufacturing/PointsManagement';
 import { toast } from 'sonner';
 
 interface ManufacturingProps {
@@ -764,10 +765,11 @@ export function Manufacturing({ onLoginClick, isMobileView }: ManufacturingProps
 
             {/* Task Management Subtabs */}
             <Tabs defaultValue="tasks" className="space-y-4">
-              <TabsList className="grid grid-cols-3 w-fit bg-muted/50">
+              <TabsList className="grid grid-cols-4 w-fit bg-muted/50">
                 <TabsTrigger value="tasks">Task Assignment</TabsTrigger>
                 <TabsTrigger value="blueprints">Blueprints</TabsTrigger>
                 <TabsTrigger value="plans">Production Plans</TabsTrigger>
+                <TabsTrigger value="points">Points System</TabsTrigger>
               </TabsList>
 
               <TabsContent value="tasks">
@@ -980,6 +982,13 @@ export function Manufacturing({ onLoginClick, isMobileView }: ManufacturingProps
                     </div>
                   )}
                 </div>
+              </TabsContent>
+
+              <TabsContent value="points">
+                <PointsManagement 
+                  members={members || []}
+                  isMobileView={isMobileView}
+                />
               </TabsContent>
             </Tabs>
           </div>

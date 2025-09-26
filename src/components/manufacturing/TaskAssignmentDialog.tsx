@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -9,6 +9,8 @@ import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem } from '@/components/ui/command';
 import { 
   User, 
   Package, 
@@ -19,10 +21,17 @@ import {
   Tag,
   CheckCircle,
   AlertTriangle,
-  Info
+  Info,
+  CaretUpDown,
+  Check,
+  Eye,
+  MagnifyingGlass,
+  Users
 } from '@phosphor-icons/react';
 import { ManufacturingTask, Blueprint, MaterialRequirement, Member } from '@/lib/types';
 import { useAuth } from '@/lib/auth-provider';
+import { useKV } from '@github/spark/hooks';
+import { PointsRate } from '@/components/manufacturing/PointsManagement';
 import { toast } from 'sonner';
 
 interface TaskAssignmentDialogProps {
@@ -43,6 +52,7 @@ export function TaskAssignmentDialog({
   editTask 
 }: TaskAssignmentDialogProps) {
   const { user } = useAuth();
+  const [pointsRates] = useKV<PointsRate[]>('points-rates', []);
   const [formData, setFormData] = useState<Partial<ManufacturingTask>>({
     title: '',
     description: '',
@@ -64,6 +74,13 @@ export function TaskAssignmentDialog({
   });
   const [selectedBlueprint, setSelectedBlueprint] = useState<Blueprint | null>(null);
   const [currentTab, setCurrentTab] = useState('basic');
+  
+  // Autocomplete states
+  const [itemSearchOpen, setItemSearchOpen] = useState(false);
+  const [pilotSearchOpen, setPilotSearchOpen] = useState(false);
+  const [itemSearchValue, setItemSearchValue] = useState('');
+  const [pilotSearchValue, setPilotSearchValue] = useState('');
+  const [showItemDetails, setShowItemDetails] = useState(false);
 
   // Reset form when dialog opens/closes or edit task changes
   useEffect(() => {
@@ -71,6 +88,14 @@ export function TaskAssignmentDialog({
       setFormData(editTask);
       const blueprint = blueprints.find(bp => bp.id === editTask.blueprintId?.toString());
       setSelectedBlueprint(blueprint || null);
+      setItemSearchValue(blueprint?.productTypeName || '');
+      
+      // Set pilot search value if task is assigned
+      const assignedMember = members.find(m => 
+        m.characterId.toString() === editTask.assignedTo || 
+        m.characterName === editTask.assignedToName
+      );
+      setPilotSearchValue(assignedMember?.characterName || editTask.assignedToName || '');
     } else if (open && !editTask) {
       setFormData({
         title: '',
@@ -92,8 +117,26 @@ export function TaskAssignmentDialog({
         tags: []
       });
       setSelectedBlueprint(null);
+      setItemSearchValue('');
+      setPilotSearchValue('');
     }
-  }, [open, editTask, blueprints]);
+  }, [open, editTask, blueprints, members]);
+
+  // Filtered options for autocomplete
+  const filteredBlueprints = useMemo(() => {
+    return blueprints.filter(bp => 
+      bp.productTypeName.toLowerCase().includes(itemSearchValue.toLowerCase()) ||
+      bp.typeName.toLowerCase().includes(itemSearchValue.toLowerCase())
+    );
+  }, [blueprints, itemSearchValue]);
+
+  const filteredMembers = useMemo(() => {
+    return members.filter(member => 
+      member.isActive &&
+      (member.characterName?.toLowerCase().includes(pilotSearchValue.toLowerCase()) ||
+       member.name?.toLowerCase().includes(pilotSearchValue.toLowerCase()))
+    );
+  }, [members, pilotSearchValue]);
 
   // Update target item and materials when blueprint changes
   useEffect(() => {
@@ -120,6 +163,103 @@ export function TaskAssignmentDialog({
       }));
     }
   }, [selectedBlueprint, formData.runs]);
+
+  const handleItemSelect = (blueprint: Blueprint) => {
+    setSelectedBlueprint(blueprint);
+    setItemSearchValue(blueprint.productTypeName);
+    setItemSearchOpen(false);
+  };
+
+  const handlePilotSelect = (member: Member) => {
+    const isAssigning = true;
+    setFormData(prev => ({ 
+      ...prev, 
+      assignedTo: member.characterId.toString(),
+      assignedToName: member.characterName || member.name,
+      assignedDate: new Date().toISOString(),
+      assignedBy: user?.characterId?.toString() || user?.characterName || 'unknown',
+      assignedByName: user?.characterName || 'Unknown User',
+      status: 'assigned'
+    }));
+    setPilotSearchValue(member.characterName || member.name || '');
+    setPilotSearchOpen(false);
+  };
+
+  const handlePilotClear = () => {
+    setFormData(prev => ({ 
+      ...prev, 
+      assignedTo: undefined,
+      assignedToName: undefined,
+      assignedDate: undefined,
+      assignedBy: undefined,
+      assignedByName: undefined,
+      status: 'pending'
+    }));
+    setPilotSearchValue('');
+  };
+
+  // Calculate points for the task based on duration and job type
+  const calculateTaskPoints = (jobType: string, duration: number): number => {
+    // Find appropriate rate based on job type and estimated category
+    let category = 'Modules & Equipment'; // Default
+    
+    if (selectedBlueprint) {
+      if (selectedBlueprint.category.toLowerCase().includes('ship')) {
+        category = selectedBlueprint.category.includes('Capital') ? 'Capital Ships' : 'Subcapital Ships';
+      }
+    }
+    
+    const rate = (pointsRates || []).find(r => 
+      r.jobType === jobType && 
+      r.category === category && 
+      r.enabled
+    ) || (pointsRates || []).find(r => r.jobType === jobType && r.enabled);
+    
+    if (!rate) return 0;
+    
+    const hoursWorked = duration / 3600; // Convert seconds to hours
+    const basePoints = rate.pointsPerHour * hoursWorked;
+    const multiplier = rate.multiplier || 1;
+    return Math.round(basePoints * multiplier);
+  };
+
+  // Update form when points are calculated
+  useEffect(() => {
+    if (formData.taskType && formData.estimatedDuration) {
+      const points = calculateTaskPoints(formData.taskType, formData.estimatedDuration);
+      
+      // Auto-set reward if it's currently 0 or not set
+      if (!formData.reward || formData.reward.amount === 0) {
+        setFormData(prev => ({
+          ...prev,
+          reward: {
+            ...prev.reward!,
+            type: 'points',
+            amount: points,
+            paymentStatus: 'pending'
+          }
+        }));
+      }
+    }
+  }, [formData.taskType, formData.estimatedDuration, pointsRates]);
+
+  const getItemIcon = () => {
+    if (!selectedBlueprint) return <Package size={16} />;
+    
+    // Use EVE Online typeID to get item icon from ESI
+    const iconUrl = `https://images.evetech.net/types/${selectedBlueprint.productTypeId}/icon?size=32`;
+    return (
+      <img 
+        src={iconUrl} 
+        alt={selectedBlueprint.productTypeName} 
+        className="w-4 h-4"
+        onError={(e) => {
+          // Fallback to generic package icon
+          (e.target as HTMLImageElement).style.display = 'none';
+        }}
+      />
+    );
+  };
 
   const handleSubmit = () => {
     if (!formData.title || !formData.targetItem || !user) {
@@ -301,25 +441,78 @@ export function TaskAssignmentDialog({
 
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <Label htmlFor="blueprint">Blueprint</Label>
-                <Select 
-                  value={selectedBlueprint?.id || ''} 
-                  onValueChange={(value) => {
-                    const blueprint = blueprints.find(bp => bp.id === value);
-                    setSelectedBlueprint(blueprint || null);
-                  }}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select a blueprint..." />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {blueprints.map((blueprint) => (
-                      <SelectItem key={blueprint.id} value={blueprint.id}>
-                        {blueprint.typeName} → {blueprint.productTypeName}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                <Label htmlFor="blueprint">Select Item to Manufacture *</Label>
+                <Popover open={itemSearchOpen} onOpenChange={setItemSearchOpen}>
+                  <PopoverTrigger asChild>
+                    <Button
+                      variant="outline"
+                      role="combobox"
+                      aria-expanded={itemSearchOpen}
+                      className="w-full justify-between h-10"
+                    >
+                      <div className="flex items-center gap-2">
+                        {getItemIcon()}
+                        <span className="truncate">
+                          {selectedBlueprint ? selectedBlueprint.productTypeName : "Search for an item..."}
+                        </span>
+                      </div>
+                      <div className="flex items-center gap-1">
+                        {selectedBlueprint && (
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="h-6 w-6 p-0 hover:bg-muted"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setShowItemDetails(true);
+                            }}
+                          >
+                            <Eye size={14} />
+                          </Button>
+                        )}
+                        <CaretUpDown size={14} className="shrink-0 opacity-50" />
+                      </div>
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-full p-0" align="start">
+                    <Command>
+                      <CommandInput 
+                        placeholder="Type item name to search..." 
+                        value={itemSearchValue}
+                        onValueChange={setItemSearchValue}
+                      />
+                      <CommandEmpty>No items found matching your search.</CommandEmpty>
+                      <CommandGroup className="max-h-64 overflow-y-auto">
+                        {filteredBlueprints.map((blueprint) => (
+                          <CommandItem
+                            key={blueprint.id}
+                            value={blueprint.productTypeName}
+                            onSelect={() => handleItemSelect(blueprint)}
+                            className="flex items-center gap-2 p-2 cursor-pointer"
+                          >
+                            <img 
+                              src={`https://images.evetech.net/types/${blueprint.productTypeId}/icon?size=32`}
+                              alt={blueprint.productTypeName}
+                              className="w-6 h-6 rounded"
+                              onError={(e) => {
+                                (e.target as HTMLImageElement).src = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjQiIGhlaWdodD0iMjQiIHZpZXdCb3g9IjAgMCAyNCAyNCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHJlY3Qgd2lkdGg9IjI0IiBoZWlnaHQ9IjI0IiBmaWxsPSIjMzMzIiByeD0iNCIvPgo8cGF0aCBkPSJNMTIgN2EzIDMgMCAwIDAtMyAzdjRhMyAzIDAgMCAwIDMgM2EzIDMgMCAwIDAgMy0zdi00YTMgMyAwIDAgMC0zLTN6bTAgMTBhMSAxIDAgMCAxLTEtMXYtNGExIDEgMCAwIDEgMi0zeiIgZmlsbD0iIzk5OSIvPgo8L3N2Zz4=';
+                              }}
+                            />
+                            <div className="flex-1">
+                              <div className="font-medium text-sm">{blueprint.productTypeName}</div>
+                              <div className="text-xs text-muted-foreground">
+                                {blueprint.category} • ME: {blueprint.materialEfficiency} • TE: {blueprint.timeEfficiency}
+                              </div>
+                            </div>
+                            <Check
+                              className={`ml-auto h-4 w-4 ${selectedBlueprint?.id === blueprint.id ? "opacity-100" : "opacity-0"}`}
+                            />
+                          </CommandItem>
+                        ))}
+                      </CommandGroup>
+                    </Command>
+                  </PopoverContent>
+                </Popover>
               </div>
               <div>
                 <Label htmlFor="runs">Number of Runs *</Label>
@@ -365,37 +558,97 @@ export function TaskAssignmentDialog({
           <TabsContent value="assignment" className="space-y-4">
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <Label htmlFor="assignedTo">Assign To</Label>
-                <Select 
-                  value={formData.assignedTo || 'unassigned'} 
-                  onValueChange={(value) => {
-                    const isAssigning = value !== 'unassigned';
-                    const member = members.find(m => m.characterId.toString() === value);
-                    setFormData(prev => ({ 
-                      ...prev, 
-                      assignedTo: isAssigning ? value : undefined,
-                      assignedToName: isAssigning ? (member?.characterName || member?.name) : undefined,
-                      assignedDate: isAssigning ? new Date().toISOString() : undefined,
-                      assignedBy: user?.characterId?.toString() || user?.characterName || 'unknown',
-                      assignedByName: user?.characterName || 'Unknown User',
-                      status: isAssigning ? 'assigned' : 'pending'
-                    }));
-                  }}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select a pilot or leave unassigned..." />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="unassigned">Leave Unassigned</SelectItem>
-                    {members
-                      .filter(member => member.isActive)
-                      .map((member) => (
-                        <SelectItem key={member.characterId} value={member.characterId.toString()}>
-                          {member.characterName || member.name} ({member.corporationName})
-                        </SelectItem>
-                      ))}
-                  </SelectContent>
-                </Select>
+                <Label htmlFor="assignedTo">Assign to Pilot</Label>
+                <Popover open={pilotSearchOpen} onOpenChange={setPilotSearchOpen}>
+                  <PopoverTrigger asChild>
+                    <Button
+                      variant="outline"
+                      role="combobox"
+                      aria-expanded={pilotSearchOpen}
+                      className="w-full justify-between h-10"
+                    >
+                      <div className="flex items-center gap-2">
+                        <Users size={16} />
+                        <span className="truncate">
+                          {formData.assignedToName ? formData.assignedToName : "Select a pilot or leave unassigned..."}
+                        </span>
+                      </div>
+                      <div className="flex items-center gap-1">
+                        {formData.assignedToName && (
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="h-6 w-6 p-0 hover:bg-muted"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handlePilotClear();
+                            }}
+                          >
+                            ×
+                          </Button>
+                        )}
+                        <CaretUpDown size={14} className="shrink-0 opacity-50" />
+                      </div>
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-full p-0" align="start">
+                    <Command>
+                      <CommandInput 
+                        placeholder="Type pilot name to search..." 
+                        value={pilotSearchValue}
+                        onValueChange={setPilotSearchValue}
+                      />
+                      <CommandEmpty>No pilots found matching your search.</CommandEmpty>
+                      <CommandGroup className="max-h-64 overflow-y-auto">
+                        <CommandItem
+                          value="unassigned"
+                          onSelect={() => handlePilotClear()}
+                          className="flex items-center gap-2 p-2 cursor-pointer"
+                        >
+                          <div className="w-6 h-6 rounded-full bg-muted flex items-center justify-center">
+                            <User size={14} />
+                          </div>
+                          <div className="flex-1">
+                            <div className="font-medium text-sm">Leave Unassigned</div>
+                            <div className="text-xs text-muted-foreground">Task will remain available for assignment</div>
+                          </div>
+                        </CommandItem>
+                        {filteredMembers.map((member) => (
+                          <CommandItem
+                            key={member.characterId}
+                            value={member.characterName || member.name}
+                            onSelect={() => handlePilotSelect(member)}
+                            className="flex items-center gap-2 p-2 cursor-pointer"
+                          >
+                            {member.characterId ? (
+                              <img 
+                                src={`https://images.evetech.net/characters/${member.characterId}/portrait?size=64`}
+                                alt={member.characterName}
+                                className="w-6 h-6 rounded-full"
+                                onError={(e) => {
+                                  (e.target as HTMLImageElement).src = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjQiIGhlaWdodD0iMjQiIHZpZXdCb3g9IjAgMCAyNCAyNCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPGNpcmNsZSBjeD0iMTIiIGN5PSIxMiIgcj0iMTIiIGZpbGw9IiMzMzMiLz4KPHN2ZyB3aWR0aD0iMTIiIGhlaWdodD0iMTIiIHZpZXdCb3g9IjAgMCAxMiAxMiIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIiB4PSI2IiB5PSI2Ij4KPHBhdGggZD0iTTYgN0M1IDcgNCA2IDQgNUM0IDQgNSAzIDYgM0M3IDMgOCA0IDggNUM4IDYgNyA3IDYgN1oiIGZpbGw9IiM5OTkiLz4KPHN2ZyBcL3N2Zz4KPC9zdmc+';
+                                }}
+                              />
+                            ) : (
+                              <div className="w-6 h-6 rounded-full bg-muted flex items-center justify-center">
+                                <User size={14} />
+                              </div>
+                            )}
+                            <div className="flex-1">
+                              <div className="font-medium text-sm">{member.characterName || member.name}</div>
+                              <div className="text-xs text-muted-foreground">
+                                {member.title} • {member.corporationName}
+                              </div>
+                            </div>
+                            <Check
+                              className={`ml-auto h-4 w-4 ${formData.assignedTo === member.characterId.toString() ? "opacity-100" : "opacity-0"}`}
+                            />
+                          </CommandItem>
+                        ))}
+                      </CommandGroup>
+                    </Command>
+                  </PopoverContent>
+                </Popover>
               </div>
               <div>
                 <Label htmlFor="preferredStart">Preferred Start Time</Label>
@@ -513,8 +766,9 @@ export function TaskAssignmentDialog({
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="fixed">Fixed Amount</SelectItem>
+                    <SelectItem value="fixed">Fixed ISK Amount</SelectItem>
                     <SelectItem value="percentage">Percentage of Materials</SelectItem>
+                    <SelectItem value="points">Manufacturing Points</SelectItem>
                     <SelectItem value="market_rate">Market Rate</SelectItem>
                   </SelectContent>
                 </Select>
@@ -522,7 +776,9 @@ export function TaskAssignmentDialog({
               <div>
                 <Label htmlFor="rewardAmount">
                   {formData.reward?.type === 'fixed' ? 'Amount (ISK)' : 
-                   formData.reward?.type === 'percentage' ? 'Percentage (%)' : 'Rate Multiplier'}
+                   formData.reward?.type === 'percentage' ? 'Percentage (%)' : 
+                   formData.reward?.type === 'points' ? 'Points' :
+                   'Rate Multiplier'}
                 </Label>
                 <Input
                   id="rewardAmount"
@@ -571,6 +827,14 @@ export function TaskAssignmentDialog({
                     </div>
                   </>
                 )}
+                {formData.reward?.type === 'points' && (
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm text-muted-foreground">Manufacturing Points:</span>
+                    <span className="font-medium text-accent">
+                      {Math.round(formData.reward.amount)} pts
+                    </span>
+                  </div>
+                )}
                 {formData.reward?.type === 'market_rate' && (
                   <div className="flex items-center justify-between">
                     <span className="text-sm text-muted-foreground">Market Rate (estimated):</span>
@@ -606,6 +870,159 @@ export function TaskAssignmentDialog({
           </Button>
         </DialogFooter>
       </DialogContent>
+      
+      {/* Item Details Popup */}
+      {selectedBlueprint && (
+        <Dialog open={showItemDetails} onOpenChange={setShowItemDetails}>
+          <DialogContent className="max-w-2xl">
+            <DialogHeader>
+              <DialogTitle className="flex items-center gap-3">
+                <img 
+                  src={`https://images.evetech.net/types/${selectedBlueprint.productTypeId}/icon?size=64`}
+                  alt={selectedBlueprint.productTypeName}
+                  className="w-8 h-8 rounded"
+                  onError={(e) => {
+                    (e.target as HTMLImageElement).style.display = 'none';
+                  }}
+                />
+                <Package size={20} className="text-accent" />
+                {selectedBlueprint.productTypeName}
+              </DialogTitle>
+            </DialogHeader>
+            
+            <div className="space-y-6">
+              {/* Basic Information */}
+              <div className="grid grid-cols-2 gap-6">
+                <Card>
+                  <CardHeader className="pb-3">
+                    <CardTitle className="text-sm">Blueprint Information</CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-2">
+                    <div className="flex justify-between text-sm">
+                      <span className="text-muted-foreground">Blueprint:</span>
+                      <span>{selectedBlueprint.typeName}</span>
+                    </div>
+                    <div className="flex justify-between text-sm">
+                      <span className="text-muted-foreground">Category:</span>
+                      <span>{selectedBlueprint.category}</span>
+                    </div>
+                    <div className="flex justify-between text-sm">
+                      <span className="text-muted-foreground">Type:</span>
+                      <span className="flex items-center gap-1">
+                        {selectedBlueprint.isOriginal ? 'Original' : 'Copy'}
+                        {selectedBlueprint.isOriginal && <Star size={14} className="text-accent" />}
+                      </span>
+                    </div>
+                    <div className="flex justify-between text-sm">
+                      <span className="text-muted-foreground">Location:</span>
+                      <span className="text-right">{selectedBlueprint.location}</span>
+                    </div>
+                  </CardContent>
+                </Card>
+                
+                <Card>
+                  <CardHeader className="pb-3">
+                    <CardTitle className="text-sm">Production Details</CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-2">
+                    <div className="flex justify-between text-sm">
+                      <span className="text-muted-foreground">Base Time:</span>
+                      <span>{Math.round(selectedBlueprint.baseTime / 60)} minutes</span>
+                    </div>
+                    <div className="flex justify-between text-sm">
+                      <span className="text-muted-foreground">Material Efficiency:</span>
+                      <span className="text-blue-400">{selectedBlueprint.materialEfficiency}%</span>
+                    </div>
+                    <div className="flex justify-between text-sm">
+                      <span className="text-muted-foreground">Time Efficiency:</span>
+                      <span className="text-green-400">{selectedBlueprint.timeEfficiency}%</span>
+                    </div>
+                    <div className="flex justify-between text-sm">
+                      <span className="text-muted-foreground">Runs Available:</span>
+                      <span>{selectedBlueprint.runs === -1 ? 'Unlimited' : `${selectedBlueprint.runs}/${selectedBlueprint.maxRuns || selectedBlueprint.runs}`}</span>
+                    </div>
+                  </CardContent>
+                </Card>
+              </div>
+              
+              {/* Materials Required */}
+              <Card>
+                <CardHeader className="pb-3">
+                  <CardTitle className="text-sm flex items-center gap-2">
+                    <Package size={16} />
+                    Materials Required (per run)
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="overflow-x-auto">
+                    <Table className="data-table">
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead>Material</TableHead>
+                          <TableHead>Quantity</TableHead>
+                          <TableHead>Unit Price</TableHead>
+                          <TableHead>Total Value</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {selectedBlueprint.baseMaterials.map((material, index) => (
+                          <TableRow key={index}>
+                            <TableCell className="font-medium">{material.typeName}</TableCell>
+                            <TableCell>{material.quantity.toLocaleString()}</TableCell>
+                            <TableCell>{formatISK(material.unitPrice || (material.totalValue / material.quantity))}</TableCell>
+                            <TableCell>{formatISK(material.totalValue)}</TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  </div>
+                  
+                  <div className="mt-4 pt-4 border-t border-border">
+                    <div className="flex justify-between font-medium">
+                      <span>Total Cost per Run:</span>
+                      <span className="text-accent">
+                        {formatISK(selectedBlueprint.baseMaterials.reduce((sum, mat) => sum + mat.totalValue, 0))}
+                      </span>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+              
+              {/* Production Projections */}
+              {formData.runs && formData.runs > 1 && (
+                <Card>
+                  <CardHeader className="pb-3">
+                    <CardTitle className="text-sm flex items-center gap-2">
+                      <Factory size={16} />
+                      Production Projection ({formData.runs} runs)
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-2">
+                    <div className="flex justify-between text-sm">
+                      <span className="text-muted-foreground">Total Output:</span>
+                      <span className="font-medium">{formData.runs} x {selectedBlueprint.productTypeName}</span>
+                    </div>
+                    <div className="flex justify-between text-sm">
+                      <span className="text-muted-foreground">Total Cost:</span>
+                      <span className="font-medium text-accent">{formatISK(formData.estimatedCost || 0)}</span>
+                    </div>
+                    <div className="flex justify-between text-sm">
+                      <span className="text-muted-foreground">Total Duration:</span>
+                      <span className="font-medium">{formatDuration(formData.estimatedDuration || 0)}</span>
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
+            </div>
+            
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setShowItemDetails(false)}>
+                Close
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+      )}
     </Dialog>
   );
 }
