@@ -1227,7 +1227,7 @@ export class DatabaseSetupManager {
         const command = commands[i];
         console.log(`🔧 Executing MySQL command ${i + 1}/${commands.length}:`, command.substring(0, 100) + '...');
         
-        const result = await dbManager.executeQuery(command);
+        const result = await dbManager.query(command);
         if (!result.success) {
           await dbManager.disconnect();
           return {

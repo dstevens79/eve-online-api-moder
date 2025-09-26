@@ -71,6 +71,7 @@ import { AdminLoginTest } from '@/components/AdminLoginTest';
 import { SimpleLoginTest } from '@/components/SimpleLoginTest';
 import { runDatabaseValidationTests } from '@/lib/databaseTestCases';
 import { EnhancedDatabaseSetupManager, validateSetupConfig, type DatabaseSetupConfig } from '@/lib/database-setup-scripts';
+import { DatabaseManager } from '@/lib/database';
 
 // Status Indicator Component
 const StatusIndicator: React.FC<{
@@ -243,20 +244,25 @@ export function Settings({ activeTab, onTabChange }: SettingsProps) {
   });
 
   // Setup progress state
+  interface DatabaseSetupProgress {
+    isRunning: boolean;
+    progress: number;
+    currentStep: string;
+    currentStepNumber: number;
+    totalSteps: number;
+    stepLogs: string[];
+    errors: string[];
+    completed: boolean;
+  }
+
   const [setupProgress, setSetupProgress] = useState<DatabaseSetupProgress>({
     isRunning: false,
     progress: 0,
-    currentStage: 'Idle',
-    currentStep: 0,
-    totalSteps: 6,
-    steps: [
-      { id: '1', name: 'Create directories', status: 'pending', description: 'Creating required directories' },
-      { id: '2', name: 'Download SDE data', status: 'pending', description: 'Downloading EVE Static Data Export' },
-      { id: '3', name: 'Extract archive', status: 'pending', description: 'Extracting downloaded files' },
-      { id: '4', name: 'Create databases', status: 'pending', description: 'Creating MySQL databases' },
-      { id: '5', name: 'Import schemas', status: 'pending', description: 'Importing database schemas' },
-      { id: '6', name: 'Configure users', status: 'pending', description: 'Setting up database users' }
-    ],
+    currentStep: 'Ready to begin setup',
+    currentStepNumber: 0,
+    totalSteps: 11,
+    stepLogs: [],
+    errors: [],
     completed: false
   });
   
@@ -793,11 +799,55 @@ export function Settings({ activeTab, onTabChange }: SettingsProps) {
     console.log('Table info loading not implemented yet');
   };
 
+  // Database setup readiness check
+  const getDatabaseSetupReadiness = () => {
+    const requirements = [];
+    let isReady = true;
 
+    // Check database connection settings
+    if (!databaseSettings.host) {
+      requirements.push('Database host is required');
+      isReady = false;
+    }
+    if (!databaseSettings.port) {
+      requirements.push('Database port is required');
+      isReady = false;
+    }
+    if (!databaseSettings.database) {
+      requirements.push('Database name is required');
+      isReady = false;
+    }
 
-  // Database setup handlers
-  const handleRunDatabaseSetup = async () => {
-    setShowSetupWizard(true);
+    // Check database users
+    if (!databaseSettings.username || !databaseSettings.password) {
+      requirements.push('LMeve database user credentials are required');
+      isReady = false;
+    }
+    if (!databaseSettings.sudoUsername || !databaseSettings.sudoPassword) {
+      requirements.push('Database admin user credentials are required');
+      isReady = false;
+    }
+
+    // Check ESI configuration
+    if (!esiConfig.clientId) {
+      requirements.push('EVE Online ESI Client ID is required');
+      isReady = false;
+    }
+    if (!esiConfig.clientSecret) {
+      requirements.push('EVE Online ESI Client Secret is required');
+      isReady = false;
+    }
+
+    // Check if database is testable (optional but recommended)
+    if (!dbStatus.connected && databaseSettings.host && databaseSettings.port && databaseSettings.username && databaseSettings.password) {
+      requirements.push('Database connection should be tested first (recommended)');
+      // Don't set isReady to false for this one - it's just a warning
+    }
+
+    return {
+      isReady,
+      missingRequirements: requirements
+    };
   };
 
   const handleShowSetupCommands = () => {
@@ -1044,7 +1094,14 @@ export function Settings({ activeTab, onTabChange }: SettingsProps) {
   };
 
   // Real database setup function using configured database connections
-  const handleStartSetup = async () => {
+  const handleRunDatabaseSetup = async () => {
+    // Check readiness first
+    const readiness = getDatabaseSetupReadiness();
+    if (!readiness.isReady) {
+      toast.error('Setup requirements not met. Please check the configuration.');
+      return;
+    }
+
     if (!setupConfig.lmevePassword) {
       toast.error('Please enter a database password');
       return;
@@ -1060,19 +1117,28 @@ export function Settings({ activeTab, onTabChange }: SettingsProps) {
       return;
     }
 
-    setSetupProgress(prev => ({
-      ...prev,
+    setSetupProgress({
       isRunning: true,
       progress: 0,
-      currentStep: 1,
-      currentStage: 'Starting database setup using configured connections...',
-      steps: prev.steps.map(step => ({ ...step, status: 'pending' }))
-    }));
+      currentStep: 'Starting database setup using configured connections...',
+      currentStepNumber: 1,
+      totalSteps: 11,
+      stepLogs: ['🚀 Starting complete database setup process'],
+      errors: [],
+      completed: false
+    });
 
     try {
       // Use the DatabaseSetupManager with real database connections
       const setupManager = new DatabaseSetupManager((progress) => {
-        setSetupProgress(progress);
+        // Convert old progress format to new format
+        setSetupProgress(prev => ({
+          ...prev,
+          progress: progress.progress || 0,
+          currentStep: progress.currentStage || 'Processing...',
+          currentStepNumber: progress.currentStep || 1,
+          stepLogs: [...prev.stepLogs, `Step ${progress.currentStep}: ${progress.currentStage}`]
+        }));
       });
 
       const setupConfig_full = {
@@ -1091,6 +1157,14 @@ export function Settings({ activeTab, onTabChange }: SettingsProps) {
       const result = await setupManager.setupNewDatabase(setupConfig_full);
 
       if (result.success) {
+        setSetupProgress(prev => ({
+          ...prev,
+          completed: true,
+          progress: 100,
+          currentStep: 'Database setup completed successfully!',
+          stepLogs: [...prev.stepLogs, '🎉 Complete database setup finished successfully!']
+        }));
+        
         toast.success('Database setup completed successfully');
         
         // Update the lmeve database config with the new setup
@@ -1105,18 +1179,33 @@ export function Settings({ activeTab, onTabChange }: SettingsProps) {
           handleTestDbConnection();
         }, 1000);
         
+        // Reset progress after delay
+        setTimeout(() => {
+          setSetupProgress({
+            isRunning: false,
+            progress: 0,
+            currentStep: 'Ready to begin setup',
+            currentStepNumber: 0,
+            totalSteps: 11,
+            stepLogs: [],
+            errors: [],
+            completed: false
+          });
+        }, 5000);
+        
       } else {
         throw new Error(result.error || 'Setup failed');
       }
     } catch (error) {
       console.error('Setup failed:', error);
+      const errorMsg = error instanceof Error ? error.message : 'Setup failed';
       setSetupProgress(prev => ({
         ...prev,
         isRunning: false,
-        error: error instanceof Error ? error.message : 'Setup failed',
-        currentStage: 'Setup failed'
+        errors: [...prev.errors, errorMsg],
+        stepLogs: [...prev.stepLogs, `❌ Setup failed: ${errorMsg}`]
       }));
-      toast.error(`Database setup failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      toast.error(`Database setup failed: ${errorMsg}`);
     }
   };
 
@@ -2011,50 +2100,119 @@ export function Settings({ activeTab, onTabChange }: SettingsProps) {
                 </div>
               </div>
 
-              {/* Complete Database Setup Section - Based on your image */}
-              <div className="border border-green-500/20 bg-green-500/5 rounded-lg p-4">
+              {/* Complete Database Setup Section */}
+              <div className={`border rounded-lg p-4 ${
+                getDatabaseSetupReadiness().isReady 
+                  ? setupProgress?.isRunning 
+                    ? "border-green-500/50 bg-green-500/10" 
+                    : "border-green-500/20 bg-green-500/5"
+                  : "border-yellow-500/50 bg-yellow-500/10"
+              }`}>
                 <div className="flex items-center justify-between mb-3">
                   <div className="flex items-center gap-3">
-                    <div className="flex items-center justify-center w-8 h-8 bg-green-500/20 rounded-full">
-                      <Wrench size={16} className="text-green-400" />
+                    <div className={`flex items-center justify-center w-8 h-8 rounded-full ${
+                      getDatabaseSetupReadiness().isReady 
+                        ? setupProgress?.isRunning 
+                          ? "bg-green-500/30" 
+                          : "bg-green-500/20"
+                        : "bg-yellow-500/20"
+                    }`}>
+                      <Wrench size={16} className={
+                        getDatabaseSetupReadiness().isReady 
+                          ? "text-green-400" 
+                          : "text-yellow-400"
+                      } />
                     </div>
                     <div>
-                      <h3 className="font-semibold text-green-300">Complete Database Setup</h3>
-                      <p className="text-sm text-muted-foreground">
-                        Creates both lmeve and EveStaticData databases, downloads EVE SDE data, imports schema, and configures database users with proper privileges. Requires sudo database access configured above.
-                      </p>
+                      <h3 className={`font-semibold ${
+                        getDatabaseSetupReadiness().isReady 
+                          ? "text-green-300" 
+                          : "text-yellow-300"
+                      }`}>Complete Database Setup</h3>
+                      <div className="text-sm text-muted-foreground">
+                        {setupProgress?.isRunning ? (
+                          <div className="flex items-center gap-2">
+                            <ArrowClockwise size={14} className="animate-spin" />
+                            <span>{setupProgress.currentStep}</span>
+                          </div>
+                        ) : getDatabaseSetupReadiness().isReady ? (
+                          "Ready to configure EVE ESI data, databases, and users with proper privileges."
+                        ) : (
+                          <div className="space-y-1">
+                            {getDatabaseSetupReadiness().missingRequirements.map((req, index) => (
+                              <div key={index} className="flex items-start gap-1">
+                                <X size={12} className="text-red-400 mt-0.5 shrink-0" />
+                                <span>{req}</span>
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                      </div>
                     </div>
                   </div>
+                  
                   <Button 
                     variant="default"
                     size="sm"
-                    className="bg-green-600 hover:bg-green-700 text-white shrink-0"
-                    onClick={() => setShowSetupWizard(true)}
+                    className={
+                      getDatabaseSetupReadiness().isReady 
+                        ? "bg-green-600 hover:bg-green-700 text-white shrink-0"
+                        : "bg-red-600 hover:bg-red-700 text-white shrink-0 cursor-not-allowed"
+                    }
+                    disabled={!getDatabaseSetupReadiness().isReady || setupProgress?.isRunning}
+                    onClick={handleRunDatabaseSetup}
                   >
-                    Setting Up...
+                    {setupProgress?.isRunning ? (
+                      <>
+                        <ArrowClockwise size={16} className="mr-2 animate-spin" />
+                        Setting Up...
+                      </>
+                    ) : getDatabaseSetupReadiness().isReady ? (
+                      <>
+                        <Play size={16} className="mr-2" />
+                        Begin
+                      </>
+                    ) : (
+                      "Not Ready"
+                    )}
                   </Button>
                 </div>
                 
                 {setupProgress?.isRunning && (
                   <div className="mt-4 space-y-3">
                     <div className="flex items-center justify-between text-sm">
-                      <span>Downloading EVE Static Data Export (this may take several minutes)...</span>
-                      <span className="text-accent font-mono">27%</span>
+                      <span>{setupProgress.currentStep}</span>
+                      <span className="text-accent font-mono">
+                        {setupProgress.progress}%
+                      </span>
                     </div>
-                    <Progress value={27} className="h-2 bg-muted" />
+                    <Progress value={setupProgress.progress} className="h-2 bg-muted" />
                     <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                      <span>Step 3 of 11</span>
-                      <div className="flex gap-1">
-                        <Button variant="ghost" size="sm" className="h-6 px-2 text-xs">
-                          <Terminal size={12} className="mr-1" />
-                          Generate Commands
-                        </Button>
-                        <Button variant="ghost" size="sm" className="h-6 px-2 text-xs">
-                          <CheckCircle size={12} className="mr-1" />
-                          Step-by-Step Wizard
-                        </Button>
-                      </div>
+                      <span>Step {setupProgress.currentStepNumber} of {setupProgress.totalSteps}</span>
+                      {setupProgress.errors.length > 0 && (
+                        <Badge variant="destructive" className="text-xs">
+                          {setupProgress.errors.length} error{setupProgress.errors.length !== 1 ? 's' : ''}
+                        </Badge>
+                      )}
                     </div>
+                    
+                    {/* Real-time step log */}
+                    {setupProgress.stepLogs.length > 0 && (
+                      <div className="bg-background/50 border border-border rounded p-3 max-h-32 overflow-y-auto">
+                        <div className="space-y-1 font-mono text-xs">
+                          {setupProgress.stepLogs.slice(-10).map((log, index) => (
+                            <div key={index} className={`${
+                              log.includes('✅') ? 'text-green-400' :
+                              log.includes('❌') ? 'text-red-400' :
+                              log.includes('⚠️') ? 'text-yellow-400' :
+                              'text-foreground'
+                            }`}>
+                              {log}
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
                   </div>
                 )}
               </div>
@@ -4005,4 +4163,6 @@ export function Settings({ activeTab, onTabChange }: SettingsProps) {
         </Tabs>
     </div>
   );
-}
+};
+
+export default Settings;
