@@ -59,8 +59,7 @@ import {
   Question,
   Activity,
   Settings as SettingsIcon,
-  RefreshCw,
-  Wrench
+  RefreshCw
 } from '@phosphor-icons/react';
 import { useKV } from '@github/spark/hooks';
 import { useAuth } from '@/lib/auth-provider';
