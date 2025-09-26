@@ -19,7 +19,7 @@ import {
   Clock
 } from '@phosphor-icons/react';
 import { toast } from 'sonner';
-import { useGeneralSettings } from '@/lib/persistenceService';
+import { useGeneralSettings, GeneralSettings } from '@/lib/persistenceService';
 import { useAuth } from '@/lib/auth-provider';
 import { useKV } from '@github/spark/hooks';
 
@@ -83,6 +83,16 @@ export function GeneralSettings({ isMobileView = false }: GeneralSettingsProps) 
       toast.success('System status refreshed');
     } catch (error) {
       toast.error('Failed to refresh status');
+    }
+  };
+
+  const handleSaveSettings = () => {
+    try {
+      // Settings are automatically persisted via useKV, so just show confirmation
+      toast.success('General settings saved successfully!');
+    } catch (error) {
+      console.error('Error saving general settings:', error);
+      toast.error('Failed to save general settings');
     }
   };
 
