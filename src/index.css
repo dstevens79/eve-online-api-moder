@@ -91,6 +91,24 @@
   @apply bg-muted/30;
 }
 
+/* Enhanced input field visibility */
+input[type="text"], input[type="number"], input[type="password"], textarea, select {
+  background-color: oklch(0.20 0.02 220) !important;
+  border-color: oklch(0.3 0.02 220) !important;
+  color: oklch(0.98 0.01 220) !important;
+}
+
+input[type="text"]:focus, input[type="number"]:focus, input[type="password"]:focus, textarea:focus, select:focus {
+  background-color: oklch(0.24 0.02 220) !important;
+  border-color: oklch(0.65 0.2 35) !important;
+}
+
+input[readonly], textarea[readonly] {
+  background-color: oklch(0.16 0.02 220) !important;
+  color: oklch(0.7 0.02 220) !important;
+  cursor: not-allowed;
+}
+
 /* Professional scrollbars */
 * {
   scrollbar-width: thin;

@@ -30,6 +30,7 @@ import { JobDetailsDialog } from '@/components/manufacturing/JobDetailsDialog';
 import { AdministrationView } from '@/components/manufacturing/AdministrationView';
 import { JobActivityView } from '@/components/manufacturing/JobActivityView';
 import { AssignTaskView } from '@/components/manufacturing/AssignTaskView';
+import { UnassignedJobsView } from '@/components/manufacturing/UnassignedJobsView';
 import { toast } from 'sonner';
 
 interface ManufacturingProps {
@@ -44,13 +45,21 @@ export function Manufacturing({ onLoginClick, isMobileView }: ManufacturingProps
   const [productionPlans, setProductionPlans] = useKV<ProductionPlan[]>('production-plans', []);
   const [manufacturingTasks, setManufacturingTasks] = useKV<ManufacturingTask[]>('manufacturing-tasks', []);
   const [members] = useKV<Member[]>('corp-members', []);
-  const [payModifiers] = useKV('manufacturing-pay-modifiers', {
-    qualityBonus: 1.2,
-    speedBonus: 1.15,
-    difficultyBonus: 1.1
+  const [payModifiers, setPayModifiers] = useKV('manufacturing-pay-modifiers', {
+    rush: 1.25,
+    specialDelivery: 1.15,
+    excessWork: 1.1
   });
 
-  const [currentView, setCurrentView] = useState<'administration' | 'jobs' | 'assign-task'>('administration');
+  const [payRatesPerHour, setPayRatesPerHour] = useKV('manufacturing-pay-rates', {
+    manufacturing: 50000, // ISK per hour
+    copying: 25000,
+    reactions: 75000,
+    research: 30000,
+    invention: 40000
+  });
+
+  const [currentView, setCurrentView] = useState<'administration' | 'jobs' | 'assign-task' | 'unassigned'>('administration');
   const [newJobDialogOpen, setNewJobDialogOpen] = useState(false);
   const [jobDetailsOpen, setJobDetailsOpen] = useState(false);
   const [selectedJob, setSelectedJob] = useState<ManufacturingJob | null>(null);
@@ -134,7 +143,7 @@ export function Manufacturing({ onLoginClick, isMobileView }: ManufacturingProps
           assignedTo: '91316135',
           assignedToName: 'Director Smith',
           status: 'in_progress',
-          payModifier: 'qualityBonus',
+          payModifier: 'rush',
           estimatedDuration: 90000,
           startedDate: new Date(Date.now() - 12 * 60 * 60 * 1000).toISOString(),
           createdDate: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000).toISOString(),
@@ -150,11 +159,26 @@ export function Manufacturing({ onLoginClick, isMobileView }: ManufacturingProps
           assignedTo: '456789123',
           assignedToName: 'Pilot Johnson', 
           status: 'completed',
-          payModifier: 'speedBonus',
+          payModifier: 'specialDelivery',
           estimatedDuration: 10800,
           completedDate: new Date(Date.now() - 6 * 60 * 60 * 1000).toISOString(),
           startedDate: new Date(Date.now() - 18 * 60 * 60 * 1000).toISOString(),
           createdDate: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000).toISOString(),
+          corporationId: 498125261
+        },
+        {
+          id: 'task-4',
+          targetItem: {
+            typeId: 0, // Placeholder for unassigned
+            typeName: 'Unassigned Manufacturing Job',
+            quantity: 10
+          },
+          assignedTo: null,
+          assignedToName: 'Unassigned',
+          status: 'unassigned',
+          payModifier: null,
+          estimatedDuration: 14400,
+          createdDate: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString(),
           corporationId: 498125261
         }
       ];
@@ -188,12 +212,15 @@ export function Manufacturing({ onLoginClick, isMobileView }: ManufacturingProps
     const colors = {
       assigned: 'bg-blue-500/20 text-blue-400 border-blue-500/50',
       in_progress: 'bg-green-500/20 text-green-400 border-green-500/50', 
-      completed: 'bg-gray-500/20 text-gray-400 border-gray-500/50'
+      completed: 'bg-gray-500/20 text-gray-400 border-gray-500/50',
+      unassigned: 'bg-orange-500/20 text-orange-400 border-orange-500/50'
     };
 
     return (
       <Badge variant="outline" className={colors[status as keyof typeof colors] || colors.assigned}>
-        {status === 'in_progress' ? 'In Progress' : status.charAt(0).toUpperCase() + status.slice(1)}
+        {status === 'in_progress' ? 'In Progress' : 
+         status === 'unassigned' ? 'Unassigned' :
+         status.charAt(0).toUpperCase() + status.slice(1)}
       </Badge>
     );
   };
@@ -201,9 +228,9 @@ export function Manufacturing({ onLoginClick, isMobileView }: ManufacturingProps
   const getPayModifierDisplay = (modifier: string | null) => {
     if (!modifier) return null;
     const modifiers: Record<string, string> = {
-      qualityBonus: 'Quality +20%',
-      speedBonus: 'Speed +15%', 
-      difficultyBonus: 'Difficulty +10%'
+      rush: 'RUSH +25%',
+      specialDelivery: 'Special Delivery +15%',
+      excessWork: 'Excess Work +10%'
     };
     return modifiers[modifier] || modifier;
   };
@@ -239,6 +266,20 @@ export function Manufacturing({ onLoginClick, isMobileView }: ManufacturingProps
     setCurrentView('jobs');
   };
 
+  const handleClaimTask = (taskId: string, pilotId: string, pilotName: string) => {
+    setManufacturingTasks(current => 
+      (current || []).map(task => 
+        task.id === taskId ? { 
+          ...task, 
+          assignedTo: pilotId,
+          assignedToName: pilotName,
+          status: 'assigned'
+        } : task
+      )
+    );
+    toast.success(`Task claimed by ${pilotName}`);
+  };
+
   return (
     <div className="space-y-6">
       <div>
@@ -267,6 +308,22 @@ export function Manufacturing({ onLoginClick, isMobileView }: ManufacturingProps
           <Factory size={16} className="mr-2" />
           Job Activity
         </Button>
+        <Button
+          variant={currentView === 'unassigned' ? 'default' : 'ghost'}
+          onClick={() => setCurrentView('unassigned')}
+          className="relative"
+        >
+          <Wrench size={16} className="mr-2" />
+          Unassigned Jobs
+          {(manufacturingTasks || []).filter(t => t.status === 'unassigned').length > 0 && (
+            <Badge 
+              variant="secondary" 
+              className="ml-2 bg-orange-500/20 text-orange-400 border-orange-500/50"
+            >
+              {(manufacturingTasks || []).filter(t => t.status === 'unassigned').length}
+            </Badge>
+          )}
+        </Button>
         {currentView === 'assign-task' && (
           <Button variant="default" disabled>
             <Plus size={16} className="mr-2" />
@@ -276,7 +333,7 @@ export function Manufacturing({ onLoginClick, isMobileView }: ManufacturingProps
       </div>
 
       {/* Stats Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
         <Card className="bg-card border-border">
           <CardContent className="p-4">
             <div className="flex items-center justify-between">
@@ -309,6 +366,20 @@ export function Manufacturing({ onLoginClick, isMobileView }: ManufacturingProps
           <CardContent className="p-4">
             <div className="flex items-center justify-between">
               <div>
+                <p className="text-sm text-muted-foreground">Unassigned</p>
+                <p className="text-2xl font-bold text-orange-400">
+                  {(manufacturingTasks || []).filter(t => t.status === 'unassigned').length}
+                </p>
+              </div>
+              <Wrench size={24} className="text-muted-foreground" />
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card className="bg-card border-border">
+          <CardContent className="p-4">
+            <div className="flex items-center justify-between">
+              <div>
                 <p className="text-sm text-muted-foreground">Completed</p>
                 <p className="text-2xl font-bold text-gray-400">
                   {(manufacturingTasks || []).filter(t => t.status === 'completed').length}
@@ -325,7 +396,7 @@ export function Manufacturing({ onLoginClick, isMobileView }: ManufacturingProps
               <div>
                 <p className="text-sm text-muted-foreground">Active Pilots</p>
                 <p className="text-2xl font-bold text-accent">
-                  {new Set((manufacturingTasks || []).filter(t => t.status !== 'completed').map(t => t.assignedTo)).size}
+                  {new Set((manufacturingTasks || []).filter(t => t.status !== 'completed' && t.assignedTo).map(t => t.assignedTo)).size}
                 </p>
               </div>
               <Globe size={24} className="text-muted-foreground" />
@@ -340,6 +411,9 @@ export function Manufacturing({ onLoginClick, isMobileView }: ManufacturingProps
           members={members || []}
           onAssignTask={() => setCurrentView('assign-task')}
           payModifiers={payModifiers}
+          payRatesPerHour={payRatesPerHour}
+          onUpdatePayModifiers={setPayModifiers}
+          onUpdatePayRates={setPayRatesPerHour}
           isMobileView={isMobileView}
         />
       )}
@@ -352,6 +426,18 @@ export function Manufacturing({ onLoginClick, isMobileView }: ManufacturingProps
           onFilterChange={setTaskFilter}
           onUpdateTask={handleUpdateTask}
           getJobProgress={getJobProgress}
+          getStatusBadge={getStatusBadge}
+          getPayModifierDisplay={getPayModifierDisplay}
+          isMobileView={isMobileView}
+        />
+      )}
+
+      {currentView === 'unassigned' && (
+        <UnassignedJobsView
+          tasks={(manufacturingTasks || []).filter(t => t.status === 'unassigned')}
+          currentUser={user}
+          members={members || []}
+          onClaimTask={handleClaimTask}
           getStatusBadge={getStatusBadge}
           getPayModifierDisplay={getPayModifierDisplay}
           isMobileView={isMobileView}

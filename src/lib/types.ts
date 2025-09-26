@@ -151,12 +151,12 @@ export interface ManufacturingTask {
   };
   
   // Assignment details - simplified
-  assignedTo?: string;
+  assignedTo?: string | null;
   assignedToName?: string;
-  status: 'assigned' | 'in_progress' | 'completed';
+  status: 'assigned' | 'in_progress' | 'completed' | 'unassigned';
   
   // Pay modifier - simplified (only one can be applied)
-  payModifier?: 'qualityBonus' | 'speedBonus' | 'difficultyBonus' | null;
+  payModifier?: 'rush' | 'specialDelivery' | 'excessWork' | null;
   
   // Time tracking
   estimatedDuration: number; // in seconds

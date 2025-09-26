@@ -17,19 +17,35 @@ interface AssignTaskViewProps {
   isMobileView?: boolean;
 }
 
-// Sample EVE items for autocomplete
+// Sample EVE items for autocomplete - including more job types
 const sampleItems = [
-  { typeId: 621, typeName: 'Caracal' },
-  { typeId: 1031, typeName: 'Vexor' },
-  { typeId: 12742, typeName: 'Hammerhead II' },
-  { typeId: 644, typeName: 'Caracal Blueprint' },
-  { typeId: 1034, typeName: 'Vexor Blueprint' },
-  { typeId: 12745, typeName: 'Hammerhead II Blueprint' },
-  { typeId: 34, typeName: 'Tritanium' },
-  { typeId: 35, typeName: 'Pyerite' },
-  { typeId: 36, typeName: 'Mexallon' },
-  { typeId: 37, typeName: 'Isogen' },
-  { typeId: 38, typeName: 'Nocxium' }
+  // Manufacturing
+  { typeId: 621, typeName: 'Caracal', jobType: 'manufacturing' },
+  { typeId: 1031, typeName: 'Vexor', jobType: 'manufacturing' },
+  { typeId: 12742, typeName: 'Hammerhead II', jobType: 'manufacturing' },
+  { typeId: 34, typeName: 'Tritanium', jobType: 'manufacturing' },
+  { typeId: 35, typeName: 'Pyerite', jobType: 'manufacturing' },
+  { typeId: 36, typeName: 'Mexallon', jobType: 'manufacturing' },
+  { typeId: 37, typeName: 'Isogen', jobType: 'manufacturing' },
+  { typeId: 38, typeName: 'Nocxium', jobType: 'manufacturing' },
+  
+  // Copying
+  { typeId: 644, typeName: 'Caracal Blueprint Copy', jobType: 'copying' },
+  { typeId: 1034, typeName: 'Vexor Blueprint Copy', jobType: 'copying' },
+  { typeId: 12745, typeName: 'Hammerhead II Blueprint Copy', jobType: 'copying' },
+  
+  // Reactions
+  { typeId: 16670, typeName: 'Coolant', jobType: 'reactions' },
+  { typeId: 16671, typeName: 'Superconductors', jobType: 'reactions' },
+  { typeId: 16672, typeName: 'Transmitter', jobType: 'reactions' },
+  
+  // Research
+  { typeId: 645, typeName: 'Caracal Blueprint ME Research', jobType: 'research' },
+  { typeId: 1035, typeName: 'Vexor Blueprint TE Research', jobType: 'research' },
+  
+  // Invention
+  { typeId: 646, typeName: 'Caracal T2 Invention', jobType: 'invention' },
+  { typeId: 1036, typeName: 'Vexor T2 Invention', jobType: 'invention' }
 ];
 
 export function AssignTaskView({ 
@@ -40,11 +56,12 @@ export function AssignTaskView({
   isMobileView 
 }: AssignTaskViewProps) {
   const [itemSearch, setItemSearch] = useState('');
-  const [selectedItem, setSelectedItem] = useState<{typeId: number, typeName: string} | null>(null);
+  const [selectedItem, setSelectedItem] = useState<{typeId: number, typeName: string, jobType: string} | null>(null);
   const [quantity, setQuantity] = useState('1');
   const [pilotSearch, setPilotSearch] = useState('');
   const [selectedPilot, setSelectedPilot] = useState<Member | null>(null);
   const [selectedPayModifier, setSelectedPayModifier] = useState<string | null>(null);
+  const [selectedStation, setSelectedStation] = useState('');
 
   // Filter items based on search
   const filteredItems = sampleItems.filter(item =>
@@ -90,6 +107,7 @@ export function AssignTaskView({
     setPilotSearch('');
     setSelectedPilot(null);
     setSelectedPayModifier(null);
+    setSelectedStation('');
   };
 
   return (
@@ -128,7 +146,7 @@ export function AssignTaskView({
                     placeholder="Type item name..."
                     value={itemSearch}
                     onChange={(e) => setItemSearch(e.target.value)}
-                    className="pl-10"
+                    className="pl-10 bg-input border-border text-foreground"
                   />
                 </div>
                 
@@ -154,7 +172,12 @@ export function AssignTaskView({
                         />
                         <div>
                           <p className="text-sm font-medium">{item.typeName}</p>
-                          <p className="text-xs text-muted-foreground">Type ID: {item.typeId}</p>
+                          <div className="flex items-center gap-2">
+                            <p className="text-xs text-muted-foreground">Type ID: {item.typeId}</p>
+                            <Badge variant="outline" className="text-xs">
+                              {item.jobType}
+                            </Badge>
+                          </div>
                         </div>
                       </button>
                     ))}
@@ -174,7 +197,12 @@ export function AssignTaskView({
                     />
                     <div className="flex-1">
                       <p className="font-medium">{selectedItem.typeName}</p>
-                      <p className="text-xs text-muted-foreground">Type ID: {selectedItem.typeId}</p>
+                      <div className="flex items-center gap-2">
+                        <p className="text-xs text-muted-foreground">Type ID: {selectedItem.typeId}</p>
+                        <Badge variant="outline" className="text-xs">
+                          {selectedItem.jobType}
+                        </Badge>
+                      </div>
                     </div>
                     <Button
                       variant="ghost"
@@ -200,8 +228,49 @@ export function AssignTaskView({
                   value={quantity}
                   onChange={(e) => setQuantity(e.target.value)}
                   placeholder="Enter quantity"
+                  className="bg-input border-border text-foreground"
                 />
               </div>
+
+              {/* Station Selection */}
+              <div>
+                <Label htmlFor="station">Manufacturing Station</Label>
+                <Input
+                  id="station"
+                  type="text"
+                  value={selectedStation}
+                  onChange={(e) => setSelectedStation(e.target.value)}
+                  placeholder="e.g., Jita IV - Moon 4 - Caldari Navy Assembly Plant"
+                  className="bg-input border-border text-foreground"
+                />
+              </div>
+
+              {/* Materials Cost Estimate */}
+              {selectedItem && parseInt(quantity) > 0 && (
+                <div className="p-4 bg-muted/30 rounded-lg border border-border">
+                  <h5 className="text-sm font-medium mb-2">Estimated Materials Cost</h5>
+                  <div className="space-y-2 text-sm">
+                    <div className="flex justify-between">
+                      <span className="text-muted-foreground">Base Materials:</span>
+                      <span className="text-foreground font-medium">
+                        {(parseInt(quantity) * 2.5e6).toLocaleString()} ISK
+                      </span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-muted-foreground">Job Type:</span>
+                      <Badge variant="outline" className="text-xs">
+                        {selectedItem.jobType}
+                      </Badge>
+                    </div>
+                    <div className="flex justify-between border-t border-border pt-2">
+                      <span className="text-muted-foreground font-medium">Total Estimate:</span>
+                      <span className="text-accent font-bold">
+                        {(parseInt(quantity) * 2.5e6 * 1.1).toLocaleString()} ISK
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              )}
             </div>
           </CardContent>
         </Card>
@@ -226,7 +295,7 @@ export function AssignTaskView({
                     placeholder="Type pilot name..."
                     value={pilotSearch}
                     onChange={(e) => setPilotSearch(e.target.value)}
-                    className="pl-10"
+                    className="pl-10 bg-input border-border text-foreground"
                   />
                 </div>
                 
@@ -269,7 +338,7 @@ export function AssignTaskView({
                       alt={selectedPilot.characterName}
                       className="w-10 h-10 rounded-full"
                       onError={(e) => {
-                        (e.target as HTMLImageImage).src = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDAiIGhlaWdodD0iNDAiIHZpZXdCb3g9IjAgMCA0MCA0MCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPGNpcmNsZSBjeD0iMjAiIGN5PSIyMCIgcj0iMjAiIGZpbGw9IiMzMzMiLz4KPHN2ZyB3aWR0aD0iMjAiIGhlaWdodD0iMjAiIHZpZXdCb3g9IjAgMCAyMCAyMCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIiB4PSIxMCIgeT0iMTAiPgo8cGF0aCBkPSJNMTAgMTJDOC45IDEyIDggMTEuMSA4IDEwQzggOC45IDguOSA4IDEwIDhDMTEuMSA4IDEyIDguOSAxMiAxMEMxMiAxMS4xIDExLjEgMTIgMTAgMTJaIiBmaWxsPSIjOTk5Ii8+CjxwYXRoIGQ9Ik0xMCAxNEM3LjggMTQgNiAxMi4yIDYgMTBDNiA3LjggNy44IDYgMTAgNkMxMi4yIDYgMTQgNy44IDE0IDEwQzE0IDEyLjIgMTIuMiAxNCAxMCAxNFoiIGZpbGw9IiM5OTkiLz4KPC9zdmc+Cjwvc3ZnPgo=';
+                        (e.target as HTMLImageElement).src = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDAiIGhlaWdodD0iNDAiIHZpZXdCb3g9IjAgMCA0MCA0MCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPGNpcmNsZSBjeD0iMjAiIGN5PSIyMCIgcj0iMjAiIGZpbGw9IiMzMzMiLz4KPHN2ZyB3aWR0aD0iMjAiIGhlaWdodD0iMjAiIHZpZXdCb3g9IjAgMCAyMCAyMCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIiB4PSIxMCIgeT0iMTAiPgo8cGF0aCBkPSJNMTAgMTJDOC45IDEyIDggMTEuMSA4IDEwQzggOC45IDguOSA4IDEwIDhDMTEuMSA4IDEyIDguOSAxMiAxMEMxMiAxMS4xIDExLjEgMTIgMTAgMTJaIiBmaWxsPSIjOTk5Ii8+CjxwYXRoIGQ9Ik0xMCAxNEM3LjggMTQgNiAxMi4yIDYgMTBDNiA3LjggNy44IDYgMTAgNkMxMi4yIDYgMTQgNy44IDE0IDEwQzE0IDEyLjIgMTIuMiAxNCAxMCAxNFoiIGZpbGw9IiM5OTkiLz4KPC9zdmc+Cjwvc3ZnPgo=';
                       }}
                     />
                     <div className="flex-1">
@@ -310,20 +379,20 @@ export function AssignTaskView({
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             {Object.entries(payModifiers).map(([key, multiplier]) => {
               const labels: Record<string, {title: string, description: string, color: string}> = {
-                qualityBonus: {
-                  title: 'Quality Bonus',
-                  description: 'For high-quality work and attention to detail',
-                  color: 'text-green-400 border-green-500/50'
+                rush: {
+                  title: 'RUSH',
+                  description: 'For urgent priority manufacturing tasks',
+                  color: 'text-orange-400 border-orange-500/50'
                 },
-                speedBonus: {
-                  title: 'Speed Bonus', 
-                  description: 'For completing tasks ahead of schedule',
+                specialDelivery: {
+                  title: 'Special Delivery', 
+                  description: 'For special delivery requirements',
                   color: 'text-blue-400 border-blue-500/50'
                 },
-                difficultyBonus: {
-                  title: 'Difficulty Bonus',
-                  description: 'For complex or challenging manufacturing jobs',
-                  color: 'text-orange-400 border-orange-500/50'
+                excessWork: {
+                  title: 'Excess Work',
+                  description: 'For high volume or overtime work',
+                  color: 'text-green-400 border-green-500/50'
                 }
               };
               
