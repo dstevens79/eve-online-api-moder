@@ -29,12 +29,7 @@ interface GeneralSettingsProps {
 
 export function GeneralSettings({ isMobileView = false }: GeneralSettingsProps) {
   const { user } = useAuth();
-  const { 
-    settings: generalSettings, 
-    updateSettings: updateGeneralSettings, 
-    saveSettings: saveGeneralSettings,
-    loadSettings: loadGeneralSettings
-  } = useGeneralSettings();
+  const [generalSettings, setGeneralSettings] = useGeneralSettings();
 
   // Overall system status state
   const [systemStatus, setSystemStatus] = useState<{
@@ -57,15 +52,14 @@ export function GeneralSettings({ isMobileView = false }: GeneralSettingsProps) 
 
   // Load settings on component mount
   useEffect(() => {
-    loadGeneralSettings();
-  }, []);
+    // Settings are automatically loaded by useKV
+    console.log('General settings loaded:', generalSettings);
+  }, [generalSettings]);
 
-  const handleSaveSettings = async () => {
-    try {
-      await saveGeneralSettings();
-      toast.success('General settings saved successfully');
-    } catch (error) {
-      toast.error('Failed to save general settings');
+  const updateSetting = (updates: Partial<GeneralSettings>) => {
+    if (generalSettings) {
+      setGeneralSettings(prev => ({ ...prev, ...updates }));
+      toast.success('Settings updated');
     }
   };
 
@@ -178,16 +172,16 @@ export function GeneralSettings({ isMobileView = false }: GeneralSettingsProps) 
               <Label htmlFor="appName">Application Name</Label>
               <Input
                 id="appName"
-                value={generalSettings.applicationName || 'LMeve'}
-                onChange={(e) => updateGeneralSettings({ applicationName: e.target.value })}
+                value={generalSettings?.applicationName || 'LMeve'}
+                onChange={(e) => updateSetting({ applicationName: e.target.value })}
               />
             </div>
             
             <div className="space-y-2">
               <Label htmlFor="timezone">Timezone</Label>
               <Select 
-                value={generalSettings.timezone || 'UTC'} 
-                onValueChange={(value) => updateGeneralSettings({ timezone: value })}
+                value={generalSettings?.timezone || 'UTC'} 
+                onValueChange={(value) => updateSetting({ timezone: value })}
               >
                 <SelectTrigger>
                   <SelectValue placeholder="Select timezone" />
@@ -211,8 +205,8 @@ export function GeneralSettings({ isMobileView = false }: GeneralSettingsProps) 
               type="number"
               min="5"
               max="1440"
-              value={generalSettings.sessionTimeout || 120}
-              onChange={(e) => updateGeneralSettings({ sessionTimeout: parseInt(e.target.value) || 120 })}
+              value={generalSettings?.sessionTimeout || 120}
+              onChange={(e) => updateSetting({ sessionTimeout: parseInt(e.target.value) || 120 })}
             />
             <p className="text-xs text-muted-foreground">
               How long users stay logged in without activity (5-1440 minutes)
@@ -231,8 +225,8 @@ export function GeneralSettings({ isMobileView = false }: GeneralSettingsProps) 
               </div>
               <Switch
                 id="enableLogging"
-                checked={generalSettings.enableLogging || false}
-                onCheckedChange={(checked) => updateGeneralSettings({ enableLogging: checked })}
+                checked={generalSettings?.enableLogging || false}
+                onCheckedChange={(checked) => updateSetting({ enableLogging: checked })}
               />
             </div>
 
@@ -245,8 +239,8 @@ export function GeneralSettings({ isMobileView = false }: GeneralSettingsProps) 
               </div>
               <Switch
                 id="enableAutoBackup"
-                checked={generalSettings.enableAutoBackup || false}
-                onCheckedChange={(checked) => updateGeneralSettings({ enableAutoBackup: checked })}
+                checked={generalSettings?.enableAutoBackup || false}
+                onCheckedChange={(checked) => updateSetting({ enableAutoBackup: checked })}
               />
             </div>
           </div>

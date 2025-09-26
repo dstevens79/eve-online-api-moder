@@ -53,12 +53,14 @@ interface SyncProcess {
 }
 
 export function DataSyncSettings({ isMobileView = false }: DataSyncSettingsProps) {
-  const { 
-    settings: syncSettings, 
-    updateSettings: updateSyncSettings, 
-    saveSettings: saveSyncSettings,
-    loadSettings: loadSyncSettings
-  } = useSyncSettings();
+  const [syncSettings, setSyncSettings] = useSyncSettings();
+
+  // Update function
+  const updateSyncSettings = (updates: Partial<typeof syncSettings>) => {
+    if (syncSettings) {
+      setSyncSettings(prev => ({ ...prev, ...updates }));
+    }
+  };
 
   const esiRoutes = useESIRoutes();
   
@@ -74,8 +76,8 @@ export function DataSyncSettings({ isMobileView = false }: DataSyncSettingsProps
       name: 'Corporation Members',
       description: 'Sync corporation member list and roles',
       icon: Users,
-      enabled: syncSettings.corporationMembers?.enabled ?? true,
-      interval: syncSettings.corporationMembers?.interval ?? 60,
+      enabled: syncSettings?.corporationMembers?.enabled ?? true,
+      interval: syncSettings?.corporationMembers?.interval ?? 60,
       lastSync: null,
       status: 'idle',
       currentVersion: 'v1',
@@ -87,8 +89,8 @@ export function DataSyncSettings({ isMobileView = false }: DataSyncSettingsProps
       name: 'Corporation Assets',
       description: 'Sync corporation assets and locations',
       icon: Package,
-      enabled: syncSettings.corporationAssets?.enabled ?? true,
-      interval: syncSettings.corporationAssets?.interval ?? 30,
+      enabled: syncSettings?.corporationAssets?.enabled ?? true,
+      interval: syncSettings?.corporationAssets?.interval ?? 30,
       lastSync: null,
       status: 'idle',
       currentVersion: 'v1',
@@ -100,8 +102,8 @@ export function DataSyncSettings({ isMobileView = false }: DataSyncSettingsProps
       name: 'Industry Jobs',
       description: 'Sync active and completed industry jobs',
       icon: Factory,
-      enabled: syncSettings.industryJobs?.enabled ?? true,
-      interval: syncSettings.industryJobs?.interval ?? 15,
+      enabled: syncSettings?.industryJobs?.enabled ?? true,
+      interval: syncSettings?.industryJobs?.interval ?? 15,
       lastSync: null,
       status: 'idle',
       currentVersion: 'v1',
@@ -113,8 +115,8 @@ export function DataSyncSettings({ isMobileView = false }: DataSyncSettingsProps
       name: 'Mining Ledger',
       description: 'Sync corporation mining operations',
       icon: HardHat,
-      enabled: syncSettings.miningLedger?.enabled ?? false,
-      interval: syncSettings.miningLedger?.interval ?? 120,
+      enabled: syncSettings?.miningLedger?.enabled ?? false,
+      interval: syncSettings?.miningLedger?.interval ?? 120,
       lastSync: null,
       status: 'idle',
       currentVersion: 'v1',
@@ -126,8 +128,8 @@ export function DataSyncSettings({ isMobileView = false }: DataSyncSettingsProps
       name: 'Market Orders',
       description: 'Sync corporation market orders',
       icon: TrendUp,
-      enabled: syncSettings.marketOrders?.enabled ?? false,
-      interval: syncSettings.marketOrders?.interval ?? 30,
+      enabled: syncSettings?.marketOrders?.enabled ?? false,
+      interval: syncSettings?.marketOrders?.interval ?? 30,
       lastSync: null,
       status: 'idle',
       currentVersion: 'v1',
@@ -139,8 +141,8 @@ export function DataSyncSettings({ isMobileView = false }: DataSyncSettingsProps
       name: 'Killmails',
       description: 'Sync corporation killmails and losses',
       icon: Crosshair,
-      enabled: syncSettings.killmails?.enabled ?? false,
-      interval: syncSettings.killmails?.interval ?? 60,
+      enabled: syncSettings?.killmails?.enabled ?? false,
+      interval: syncSettings?.killmails?.interval ?? 60,
       lastSync: null,
       status: 'idle',
       currentVersion: 'v1',
@@ -152,8 +154,8 @@ export function DataSyncSettings({ isMobileView = false }: DataSyncSettingsProps
       name: 'Corporation Wallets',
       description: 'Sync corporation wallet transactions',
       icon: CurrencyDollar,
-      enabled: syncSettings.corporationWallets?.enabled ?? true,
-      interval: syncSettings.corporationWallets?.interval ?? 30,
+      enabled: syncSettings?.corporationWallets?.enabled ?? true,
+      interval: syncSettings?.corporationWallets?.interval ?? 30,
       lastSync: null,
       status: 'idle',
       currentVersion: 'v1',
@@ -165,8 +167,8 @@ export function DataSyncSettings({ isMobileView = false }: DataSyncSettingsProps
       name: 'Structures',
       description: 'Sync corporation structures and services',
       icon: Building,
-      enabled: syncSettings.structures?.enabled ?? false,
-      interval: syncSettings.structures?.interval ?? 240,
+      enabled: syncSettings?.structures?.enabled ?? false,
+      interval: syncSettings?.structures?.interval ?? 240,
       lastSync: null,
       status: 'idle',
       currentVersion: 'v1',
@@ -177,7 +179,7 @@ export function DataSyncSettings({ isMobileView = false }: DataSyncSettingsProps
 
   // Load settings on component mount
   useEffect(() => {
-    loadSyncSettings();
+    // Settings are loaded automatically by useKV
   }, []);
 
   // Update sync processes when settings change
@@ -271,13 +273,8 @@ export function DataSyncSettings({ isMobileView = false }: DataSyncSettingsProps
     }
   };
 
-  const handleSaveSettings = async () => {
-    try {
-      await saveSyncSettings();
-      toast.success('Data sync settings saved successfully');
-    } catch (error) {
-      toast.error('Failed to save data sync settings');
-    }
+  const handleSaveSettings = () => {
+    toast.success('Data sync settings saved successfully');
   };
 
   const getStatusColor = (status: string) => {
@@ -548,7 +545,7 @@ export function DataSyncSettings({ isMobileView = false }: DataSyncSettingsProps
                 type="number"
                 min="1"
                 max="10"
-                value={syncSettings.maxConcurrentSyncs || 3}
+                value={syncSettings?.maxConcurrentSyncs || 3}
                 onChange={(e) => updateSyncSettings({ 
                   maxConcurrentSyncs: parseInt(e.target.value) || 3 
                 })}
@@ -565,7 +562,7 @@ export function DataSyncSettings({ isMobileView = false }: DataSyncSettingsProps
                 type="number"
                 min="0"
                 max="5"
-                value={syncSettings.retryAttempts || 3}
+                value={syncSettings?.retryAttempts || 3}
                 onChange={(e) => updateSyncSettings({ 
                   retryAttempts: parseInt(e.target.value) || 3 
                 })}
