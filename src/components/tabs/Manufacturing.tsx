@@ -1,13 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Progress } from '@/components/ui/progress';
 import { LoginPrompt } from '@/components/LoginPrompt';
 import { useKV } from '@github/spark/hooks';
@@ -25,16 +20,14 @@ import {
   Eye,
   Calendar,
   Wrench,
-  Flask,
   Copy,
   Star,
-  Warning,
   CheckCircle,
   ArrowClockwise,
   Globe,
   Users
 } from '@phosphor-icons/react';
-import { ManufacturingJob, Blueprint, ProductionPlan, MaterialRequirement, CorpSettings, ManufacturingTask, Member } from '@/lib/types';
+import { ManufacturingJob, Blueprint, ProductionPlan, CorpSettings, ManufacturingTask, Member } from '@/lib/types';
 import { JobDetailsDialog } from '@/components/manufacturing/JobDetailsDialog';
 import { BlueprintDetailsDialog } from '@/components/manufacturing/BlueprintDetailsDialog';
 import { ProductionPlanDialog } from '@/components/manufacturing/ProductionPlanDialog';
@@ -105,7 +98,7 @@ export function Manufacturing({ onLoginClick, isMobileView }: ManufacturingProps
     }
   });
 
-  const [selectedTab, setSelectedTab] = useState('tasks'); // Start with tasks tab
+  const [selectedTab, setSelectedTab] = useState('administration'); // Start with administration tab
   const [newJobDialogOpen, setNewJobDialogOpen] = useState(false);
   const [jobDetailsOpen, setJobDetailsOpen] = useState(false);
   const [blueprintDetailsOpen, setBlueprintDetailsOpen] = useState(false);
@@ -749,18 +742,16 @@ export function Manufacturing({ onLoginClick, isMobileView }: ManufacturingProps
 
       {/* Main Tabs */}
       <Tabs value={selectedTab} onValueChange={setSelectedTab}>
-        <TabsList className="grid grid-cols-4 w-fit bg-muted">
-          <TabsTrigger value="tasks">Task Management</TabsTrigger>
-          <TabsTrigger value="jobs">Active Jobs</TabsTrigger>
-          <TabsTrigger value="blueprints">Blueprints</TabsTrigger>
-          <TabsTrigger value="schedule">Plans</TabsTrigger>
+        <TabsList className="grid grid-cols-2 w-fit bg-muted">
+          <TabsTrigger value="administration">Administration</TabsTrigger>
+          <TabsTrigger value="jobs">Job Activity</TabsTrigger>
         </TabsList>
 
-        <TabsContent value="tasks">
+        <TabsContent value="administration">
           <div className="space-y-6">
             <div className="flex justify-between items-center">
               <div>
-                <h3 className="text-lg font-semibold">Manufacturing Task Assignment</h3>
+                <h3 className="text-lg font-semibold">Manufacturing Administration</h3>
                 <p className="text-sm text-muted-foreground">
                   Create and assign manufacturing tasks to corporation members
                 </p>
@@ -771,13 +762,226 @@ export function Manufacturing({ onLoginClick, isMobileView }: ManufacturingProps
               </Button>
             </div>
 
-            <TaskManagementView
-              tasks={manufacturingTasks || []}
-              members={members || []}
-              onUpdateTask={handleUpdateTask}
-              onEditTask={handleEditTask}
-              isMobileView={isMobileView}
-            />
+            {/* Task Management Subtabs */}
+            <Tabs defaultValue="tasks" className="space-y-4">
+              <TabsList className="grid grid-cols-3 w-fit bg-muted/50">
+                <TabsTrigger value="tasks">Task Assignment</TabsTrigger>
+                <TabsTrigger value="blueprints">Blueprints</TabsTrigger>
+                <TabsTrigger value="plans">Production Plans</TabsTrigger>
+              </TabsList>
+
+              <TabsContent value="tasks">
+                <TaskManagementView
+                  tasks={manufacturingTasks || []}
+                  members={members || []}
+                  onUpdateTask={handleUpdateTask}
+                  onEditTask={handleEditTask}
+                  isMobileView={isMobileView}
+                />
+              </TabsContent>
+
+              <TabsContent value="blueprints">
+                <div className="space-y-6">
+                  <div className="flex justify-between items-center">
+                    <div>
+                      <h4 className="font-semibold">Blueprint Library</h4>
+                      <p className="text-sm text-muted-foreground">Manage blueprints and research</p>
+                    </div>
+                    <Button variant="outline">
+                      <Plus size={16} className="mr-2" />
+                      Add Blueprint
+                    </Button>
+                  </div>
+
+                  {(blueprints || []).length === 0 ? (
+                    <Card className="bg-card border-border">
+                      <CardContent className="p-6">
+                        <div className="text-center py-12">
+                          <Package size={48} className="mx-auto text-muted-foreground mb-4" />
+                          <h4 className="text-lg font-semibold mb-2">No Blueprints</h4>
+                          <p className="text-muted-foreground mb-4">
+                            Add blueprints to your library to start manufacturing
+                          </p>
+                          <Button variant="outline">
+                            <Plus size={16} className="mr-2" />
+                            Add Blueprint
+                          </Button>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  ) : (
+                    <div className="grid gap-4">
+                      {(blueprints || []).map((blueprint) => (
+                        <Card key={blueprint.id} className="bg-card border-border">
+                          <CardContent className="p-6">
+                            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                              <div>
+                                <h4 className="font-semibold text-foreground flex items-center gap-2">
+                                  <Package size={18} />
+                                  {blueprint.typeName}
+                                  {blueprint.isOriginal && <Star size={14} className="text-accent" />}
+                                </h4>
+                                <p className="text-sm text-muted-foreground">Produces: {blueprint.productTypeName}</p>
+                                <p className="text-xs text-muted-foreground mt-1">{blueprint.location}</p>
+                                
+                                <div className="flex gap-2 mt-3">
+                                  <Badge variant="outline" className="text-xs">
+                                    {blueprint.category}
+                                  </Badge>
+                                  <Badge variant="outline" className="text-xs">
+                                    {blueprint.jobType}
+                                  </Badge>
+                                </div>
+                              </div>
+
+                              <div className="space-y-3">
+                                <div className="text-sm">
+                                  <p className="text-muted-foreground">Research Levels</p>
+                                  <div className="flex gap-4 mt-1">
+                                    <span className="text-blue-400">ME: {blueprint.materialEfficiency}</span>
+                                    <span className="text-green-400">TE: {blueprint.timeEfficiency}</span>
+                                  </div>
+                                </div>
+                                <div className="text-sm">
+                                  <p className="text-muted-foreground">Runs</p>
+                                  <p className="text-foreground">{blueprint.runs === -1 ? 'Original' : `${blueprint.runs}/${blueprint.maxRuns}`}</p>
+                                </div>
+                                <div className="text-sm">
+                                  <p className="text-muted-foreground">Base Time</p>
+                                  <p className="text-foreground">{Math.round(blueprint.baseTime / 60)} minutes</p>
+                                </div>
+                              </div>
+
+                              <div className="flex flex-col gap-2">
+                                <Button 
+                                  variant="outline" 
+                                  size="sm" 
+                                  className="justify-start"
+                                  onClick={() => handleBlueprintDetails(blueprint)}
+                                >
+                                  <Factory size={14} className="mr-2" />
+                                  Start Job
+                                </Button>
+                                <Button variant="outline" size="sm" className="justify-start">
+                                  <Wrench size={14} className="mr-2" />
+                                  Research
+                                </Button>
+                                <Button variant="outline" size="sm" className="justify-start">
+                                  <Copy size={14} className="mr-2" />
+                                  Copy
+                                </Button>
+                              </div>
+                            </div>
+                          </CardContent>
+                        </Card>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </TabsContent>
+
+              <TabsContent value="plans">
+                <div className="space-y-6">
+                  <div className="flex justify-between items-center">
+                    <div>
+                      <h4 className="font-semibold">Production Plans</h4>
+                      <p className="text-sm text-muted-foreground">Plan and schedule manufacturing operations</p>
+                    </div>
+                    <Button onClick={() => setPlanDialogOpen(true)}>
+                      <Plus size={16} className="mr-2" />
+                      New Plan
+                    </Button>
+                  </div>
+
+                  {(productionPlans || []).length === 0 ? (
+                    <Card className="bg-card border-border">
+                      <CardContent className="p-6">
+                        <div className="text-center py-12">
+                          <Calendar size={48} className="mx-auto text-muted-foreground mb-4" />
+                          <h4 className="text-lg font-semibold mb-2">No Production Plans</h4>
+                          <p className="text-muted-foreground mb-4">
+                            Create your first production plan to optimize manufacturing operations
+                          </p>
+                          <Button onClick={() => setPlanDialogOpen(true)}>
+                            <Plus size={16} className="mr-2" />
+                            Create Plan
+                          </Button>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  ) : (
+                    <div className="grid gap-4">
+                      {(productionPlans || []).map((plan) => (
+                        <Card key={plan.id} className="bg-card border-border">
+                          <CardContent className="p-6">
+                            <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
+                              <div className="lg:col-span-2">
+                                <div className="flex items-start justify-between mb-4">
+                                  <div>
+                                    <h4 className="font-semibold text-foreground flex items-center gap-2">
+                                      <Package size={18} />
+                                      {plan.name}
+                                    </h4>
+                                    <p className="text-sm text-muted-foreground">
+                                      Target: {plan.targetProduct.quantity}x {plan.targetProduct.typeName}
+                                    </p>
+                                    <p className="text-xs text-muted-foreground mt-1">
+                                      {plan.blueprints.length} blueprint(s) | Created {new Date(plan.createdDate).toLocaleDateString()}
+                                    </p>
+                                  </div>
+                                  <Badge variant="outline" className={`text-xs ${
+                                    plan.status === 'draft' ? 'border-yellow-500/50 text-yellow-400' :
+                                    plan.status === 'approved' ? 'border-blue-500/50 text-blue-400' :
+                                    plan.status === 'in_progress' ? 'border-green-500/50 text-green-400' :
+                                    'border-gray-500/50 text-gray-400'
+                                  }`}>
+                                    {plan.status.charAt(0).toUpperCase() + plan.status.slice(1).replace('_', ' ')}
+                                  </Badge>
+                                </div>
+                              </div>
+
+                              <div className="space-y-3">
+                                <div className="text-sm">
+                                  <p className="text-muted-foreground">Estimated Cost</p>
+                                  <p className="text-foreground font-medium">{formatISK(plan.estimatedCost)}</p>
+                                </div>
+                                <div className="text-sm">
+                                  <p className="text-muted-foreground">Estimated Profit</p>
+                                  <p className={`font-medium ${plan.estimatedProfit >= 0 ? 'text-green-400' : 'text-red-400'}`}>
+                                    {formatISK(plan.estimatedProfit)}
+                                  </p>
+                                </div>
+                                <div className="text-sm">
+                                  <p className="text-muted-foreground">Duration</p>
+                                  <p className="text-foreground">{Math.round(plan.estimatedDuration / 3600)}h</p>
+                                </div>
+                              </div>
+
+                              <div className="flex flex-col gap-2">
+                                <Button variant="outline" size="sm" className="justify-start">
+                                  <Eye size={14} className="mr-2" />
+                                  View Details
+                                </Button>
+                                {plan.status === 'draft' && (
+                                  <Button variant="outline" size="sm" className="justify-start">
+                                    <Factory size={14} className="mr-2" />
+                                    Start Production
+                                  </Button>
+                                )}
+                                <Button variant="outline" size="sm" className="justify-start">
+                                  <Copy size={14} className="mr-2" />
+                                  Duplicate
+                                </Button>
+                              </div>
+                            </div>
+                          </CardContent>
+                        </Card>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </TabsContent>
+            </Tabs>
           </div>
         </TabsContent>
 
@@ -785,9 +989,9 @@ export function Manufacturing({ onLoginClick, isMobileView }: ManufacturingProps
           <div className="space-y-6">
             <div className="flex justify-between items-center">
               <div>
-                <h3 className="text-lg font-semibold">Manufacturing Jobs</h3>
+                <h3 className="text-lg font-semibold">Manufacturing Job Activity</h3>
                 <p className="text-sm text-muted-foreground">
-                  Monitor ongoing production activities
+                  Monitor ongoing production activities and assigned tasks
                 </p>
               </div>
               <Button onClick={() => setNewJobDialogOpen(true)}>
@@ -796,310 +1000,386 @@ export function Manufacturing({ onLoginClick, isMobileView }: ManufacturingProps
               </Button>
             </div>
 
-            {(activeJobs || []).length === 0 ? (
-              <Card className="bg-card border-border">
-                <CardContent className="p-6">
-                  <div className="text-center py-12">
-                    <Factory size={48} className="mx-auto text-muted-foreground mb-4" />
-                    <h4 className="text-lg font-semibold mb-2">No Active Jobs</h4>
-                    <p className="text-muted-foreground mb-4">
-                      Start your first manufacturing job to begin production
-                    </p>
-                    <Button onClick={() => setNewJobDialogOpen(true)}>
-                      <Plus size={16} className="mr-2" />
-                      Start Manufacturing
-                    </Button>
+            {/* Job Activity Tabs with Filters */}
+            <Tabs defaultValue="my-tasks" className="space-y-4">
+              <TabsList className="grid grid-cols-3 w-fit bg-muted/50">
+                <TabsTrigger value="my-tasks">My Tasks</TabsTrigger>
+                <TabsTrigger value="all-tasks">All Corp Tasks</TabsTrigger>
+                <TabsTrigger value="manufacturing-jobs">Active Jobs</TabsTrigger>
+              </TabsList>
+
+              {/* My assigned tasks */}
+              <TabsContent value="my-tasks">
+                <div className="space-y-4">
+                  <div className="flex items-center gap-4">
+                    <Badge variant="outline" className="text-green-400 border-green-500/50">
+                      Tasks assigned to {user?.characterName || 'me'}
+                    </Badge>
                   </div>
-                </CardContent>
-              </Card>
-            ) : (
-              <div className="grid gap-4">
-                {(activeJobs || []).map((job) => (
-                  <Card key={job.id} className="bg-card border-border">
-                    <CardContent className="p-6">
-                      <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
-                        <div className="lg:col-span-2">
-                          <div className="flex items-start justify-between mb-4">
-                            <div>
-                              <h4 className="font-semibold text-foreground flex items-center gap-2">
-                                <Factory size={18} />
-                                {job.productTypeName} 
-                                <span className="text-muted-foreground">x{job.productQuantity}</span>
-                              </h4>
-                              <p className="text-sm text-muted-foreground">{job.blueprintName}</p>
-                              <p className="text-xs text-muted-foreground mt-1">{job.facility}</p>
-                            </div>
-                            {getStatusBadge(job.status, job.priority)}
-                          </div>
-                          
-                          <div className="space-y-2">
-                            <div className="flex justify-between text-sm">
-                              <span>Progress</span>
-                              <span>{Math.round(getJobProgress(job))}%</span>
-                            </div>
-                            <Progress value={getJobProgress(job)} className="h-2" />
-                            <div className="flex justify-between text-xs text-muted-foreground">
-                              <span>Started: {new Date(job.startDate).toLocaleDateString()}</span>
-                              <span>Remaining: {getTimeRemaining(job.endDate)}</span>
-                            </div>
-                          </div>
-                        </div>
-
-                        <div className="space-y-3">
-                          <div className="text-sm">
-                            <p className="text-muted-foreground">Efficiency</p>
-                            <div className="flex gap-4 mt-1">
-                              <span className="text-blue-400">ME: {job.materialEfficiency}%</span>
-                              <span className="text-green-400">TE: {job.timeEfficiency}%</span>
-                            </div>
-                          </div>
-                          <div className="text-sm">
-                            <p className="text-muted-foreground">Cost</p>
-                            <p className="text-foreground font-medium">{formatISK(job.cost)}</p>
-                          </div>
-                          <div className="text-sm">
-                            <p className="text-muted-foreground">Installer</p>
-                            <p className="text-foreground">{job.installerName}</p>
-                          </div>
-                        </div>
-
-                        <div className="flex flex-col gap-2">
-                          <Button 
-                            variant="outline" 
-                            size="sm" 
-                            className="justify-start"
-                            onClick={() => handleJobDetails(job)}
-                          >
-                            <Eye size={14} className="mr-2" />
-                            Details
-                          </Button>
-                          {job.status === 'active' && (
-                            <Button variant="outline" size="sm" className="justify-start">
-                              <Pause size={14} className="mr-2" />
-                              Pause
-                            </Button>
-                          )}
-                          {job.status === 'paused' && (
-                            <Button variant="outline" size="sm" className="justify-start">
-                              <Play size={14} className="mr-2" />
-                              Resume
-                            </Button>
-                          )}
-                          <Button variant="outline" size="sm" className="justify-start text-red-400 hover:text-red-300">
-                            <Stop size={14} className="mr-2" />
-                            Cancel
-                          </Button>
-                        </div>
-                      </div>
-                    </CardContent>
-                  </Card>
-                ))}
-              </div>
-            )}
-          </div>
-        </TabsContent>
-
-        <TabsContent value="blueprints">
-          <div className="space-y-6">
-            <div className="flex justify-between items-center">
-              <div>
-                <h3 className="text-lg font-semibold">Blueprint Library</h3>
-                <p className="text-sm text-muted-foreground">Manage blueprints and research</p>
-              </div>
-              <Button variant="outline">
-                <Plus size={16} className="mr-2" />
-                Add Blueprint
-              </Button>
-            </div>
-
-            {(blueprints || []).length === 0 ? (
-              <Card className="bg-card border-border">
-                <CardContent className="p-6">
-                  <div className="text-center py-12">
-                    <Package size={48} className="mx-auto text-muted-foreground mb-4" />
-                    <h4 className="text-lg font-semibold mb-2">No Blueprints</h4>
-                    <p className="text-muted-foreground mb-4">
-                      Add blueprints to your library to start manufacturing
-                    </p>
-                    <Button variant="outline">
-                      <Plus size={16} className="mr-2" />
-                      Add Blueprint
-                    </Button>
-                  </div>
-                </CardContent>
-              </Card>
-            ) : (
-              <div className="grid gap-4">
-                {(blueprints || []).map((blueprint) => (
-                  <Card key={blueprint.id} className="bg-card border-border">
-                    <CardContent className="p-6">
-                      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                        <div>
-                          <h4 className="font-semibold text-foreground flex items-center gap-2">
-                            <Package size={18} />
-                            {blueprint.typeName}
-                            {blueprint.isOriginal && <Star size={14} className="text-accent" />}
-                          </h4>
-                          <p className="text-sm text-muted-foreground">Produces: {blueprint.productTypeName}</p>
-                          <p className="text-xs text-muted-foreground mt-1">{blueprint.location}</p>
-                          
-                          <div className="flex gap-2 mt-3">
-                            <Badge variant="outline" className="text-xs">
-                              {blueprint.category}
-                            </Badge>
-                            <Badge variant="outline" className="text-xs">
-                              {blueprint.jobType}
-                            </Badge>
-                          </div>
-                        </div>
-
-                        <div className="space-y-3">
-                          <div className="text-sm">
-                            <p className="text-muted-foreground">Research Levels</p>
-                            <div className="flex gap-4 mt-1">
-                              <span className="text-blue-400">ME: {blueprint.materialEfficiency}</span>
-                              <span className="text-green-400">TE: {blueprint.timeEfficiency}</span>
-                            </div>
-                          </div>
-                          <div className="text-sm">
-                            <p className="text-muted-foreground">Runs</p>
-                            <p className="text-foreground">{blueprint.runs === -1 ? 'Original' : `${blueprint.runs}/${blueprint.maxRuns}`}</p>
-                          </div>
-                          <div className="text-sm">
-                            <p className="text-muted-foreground">Base Time</p>
-                            <p className="text-foreground">{Math.round(blueprint.baseTime / 60)} minutes</p>
-                          </div>
-                        </div>
-
-                        <div className="flex flex-col gap-2">
-                          <Button 
-                            variant="outline" 
-                            size="sm" 
-                            className="justify-start"
-                            onClick={() => handleBlueprintDetails(blueprint)}
-                          >
-                            <Factory size={14} className="mr-2" />
-                            Start Job
-                          </Button>
-                          <Button variant="outline" size="sm" className="justify-start">
-                            <Wrench size={14} className="mr-2" />
-                            Research
-                          </Button>
-                          <Button variant="outline" size="sm" className="justify-start">
-                            <Copy size={14} className="mr-2" />
-                            Copy
-                          </Button>
-                        </div>
-                      </div>
-                    </CardContent>
-                  </Card>
-                ))}
-              </div>
-            )}
-          </div>
-        </TabsContent>
-
-        <TabsContent value="schedule">
-          <div className="space-y-6">
-            <div className="flex justify-between items-center">
-              <div>
-                <h3 className="text-lg font-semibold">Production Plans</h3>
-                <p className="text-sm text-muted-foreground">Plan and schedule manufacturing operations</p>
-              </div>
-              <Button onClick={() => setPlanDialogOpen(true)}>
-                <Plus size={16} className="mr-2" />
-                New Plan
-              </Button>
-            </div>
-
-            {(productionPlans || []).length === 0 ? (
-              <Card className="bg-card border-border">
-                <CardContent className="p-6">
-                  <div className="text-center py-12">
-                    <Calendar size={48} className="mx-auto text-muted-foreground mb-4" />
-                    <h4 className="text-lg font-semibold mb-2">No Production Plans</h4>
-                    <p className="text-muted-foreground mb-4">
-                      Create your first production plan to optimize manufacturing operations
-                    </p>
-                    <Button onClick={() => setPlanDialogOpen(true)}>
-                      <Plus size={16} className="mr-2" />
-                      Create Plan
-                    </Button>
-                  </div>
-                </CardContent>
-              </Card>
-            ) : (
-              <div className="grid gap-4">
-                {(productionPlans || []).map((plan) => (
-                  <Card key={plan.id} className="bg-card border-border">
-                    <CardContent className="p-6">
-                      <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
-                        <div className="lg:col-span-2">
-                          <div className="flex items-start justify-between mb-4">
-                            <div>
-                              <h4 className="font-semibold text-foreground flex items-center gap-2">
-                                <Package size={18} />
-                                {plan.name}
-                              </h4>
-                              <p className="text-sm text-muted-foreground">
-                                Target: {plan.targetProduct.quantity}x {plan.targetProduct.typeName}
-                              </p>
-                              <p className="text-xs text-muted-foreground mt-1">
-                                {plan.blueprints.length} blueprint(s) | Created {new Date(plan.createdDate).toLocaleDateString()}
+                  
+                  {(() => {
+                    const myTasks = (manufacturingTasks || []).filter(task => 
+                      task.assignedTo && (task.assignedTo === user?.characterId?.toString() || task.assignedToName === user?.characterName)
+                    );
+                    
+                    if (myTasks.length === 0) {
+                      return (
+                        <Card className="bg-card border-border">
+                          <CardContent className="p-6">
+                            <div className="text-center py-12">
+                              <Users size={48} className="mx-auto text-muted-foreground mb-4" />
+                              <h4 className="text-lg font-semibold mb-2">No Tasks Assigned</h4>
+                              <p className="text-muted-foreground">
+                                You don't have any manufacturing tasks assigned to you yet.
                               </p>
                             </div>
-                            <Badge variant="outline" className={`text-xs ${
-                              plan.status === 'draft' ? 'border-yellow-500/50 text-yellow-400' :
-                              plan.status === 'approved' ? 'border-blue-500/50 text-blue-400' :
-                              plan.status === 'in_progress' ? 'border-green-500/50 text-green-400' :
-                              'border-gray-500/50 text-gray-400'
-                            }`}>
-                              {plan.status.charAt(0).toUpperCase() + plan.status.slice(1).replace('_', ' ')}
-                            </Badge>
-                          </div>
-                        </div>
+                          </CardContent>
+                        </Card>
+                      );
+                    }
 
-                        <div className="space-y-3">
-                          <div className="text-sm">
-                            <p className="text-muted-foreground">Estimated Cost</p>
-                            <p className="text-foreground font-medium">{formatISK(plan.estimatedCost)}</p>
-                          </div>
-                          <div className="text-sm">
-                            <p className="text-muted-foreground">Estimated Profit</p>
-                            <p className={`font-medium ${plan.estimatedProfit >= 0 ? 'text-green-400' : 'text-red-400'}`}>
-                              {formatISK(plan.estimatedProfit)}
-                            </p>
-                          </div>
-                          <div className="text-sm">
-                            <p className="text-muted-foreground">Duration</p>
-                            <p className="text-foreground">{Math.round(plan.estimatedDuration / 3600)}h</p>
-                          </div>
-                        </div>
+                    return (
+                      <div className="grid gap-4">
+                        {myTasks.map((task) => (
+                          <Card key={task.id} className="bg-card border-border">
+                            <CardContent className="p-6">
+                              <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
+                                <div className="lg:col-span-2">
+                                  <div className="flex items-start justify-between mb-4">
+                                    <div>
+                                      <h4 className="font-semibold text-foreground flex items-center gap-2">
+                                        <Factory size={18} />
+                                        {task.title}
+                                      </h4>
+                                      <p className="text-sm text-muted-foreground">{task.description}</p>
+                                      <p className="text-xs text-muted-foreground mt-1">
+                                        Target: {task.targetItem.quantity}x {task.targetItem.typeName}
+                                      </p>
+                                      <p className="text-xs text-muted-foreground">
+                                        Assigned by {task.assignedByName} on {new Date(task.assignedDate || '').toLocaleDateString()}
+                                      </p>
+                                    </div>
+                                    {getStatusBadge(task.status, task.priority)}
+                                  </div>
+                                  
+                                  {task.deadline && (
+                                    <div className="text-sm">
+                                      <span className="text-muted-foreground">Deadline: </span>
+                                      <span className={new Date(task.deadline) < new Date() ? 'text-red-400' : 'text-foreground'}>
+                                        {new Date(task.deadline).toLocaleDateString()}
+                                      </span>
+                                    </div>
+                                  )}
+                                </div>
 
-                        <div className="flex flex-col gap-2">
-                          <Button variant="outline" size="sm" className="justify-start">
-                            <Eye size={14} className="mr-2" />
-                            View Details
-                          </Button>
-                          {plan.status === 'draft' && (
-                            <Button variant="outline" size="sm" className="justify-start">
-                              <Factory size={14} className="mr-2" />
-                              Start Production
-                            </Button>
-                          )}
-                          <Button variant="outline" size="sm" className="justify-start">
-                            <Copy size={14} className="mr-2" />
-                            Duplicate
-                          </Button>
-                        </div>
+                                <div className="space-y-3">
+                                  <div className="text-sm">
+                                    <p className="text-muted-foreground">Estimated Cost</p>
+                                    <p className="text-foreground font-medium">{formatISK(task.estimatedCost)}</p>
+                                  </div>
+                                  <div className="text-sm">
+                                    <p className="text-muted-foreground">Reward</p>
+                                    <p className="text-green-400 font-medium">
+                                      {task.reward.type === 'fixed' 
+                                        ? formatISK(task.reward.amount) 
+                                        : `${task.reward.amount}%`
+                                      }
+                                    </p>
+                                  </div>
+                                  <div className="text-sm">
+                                    <p className="text-muted-foreground">Duration</p>
+                                    <p className="text-foreground">{Math.round(task.estimatedDuration / 3600)}h</p>
+                                  </div>
+                                </div>
+
+                                <div className="flex flex-col gap-2">
+                                  <Button 
+                                    variant="outline" 
+                                    size="sm" 
+                                    className="justify-start"
+                                    onClick={() => handleEditTask(task)}
+                                  >
+                                    <Eye size={14} className="mr-2" />
+                                    View Details
+                                  </Button>
+                                  {task.status === 'assigned' && (
+                                    <Button variant="outline" size="sm" className="justify-start text-green-400">
+                                      <Play size={14} className="mr-2" />
+                                      Start Task
+                                    </Button>
+                                  )}
+                                  {task.status === 'in_progress' && (
+                                    <Button variant="outline" size="sm" className="justify-start text-blue-400">
+                                      <Clock size={14} className="mr-2" />
+                                      Update Progress
+                                    </Button>
+                                  )}
+                                </div>
+                              </div>
+                              
+                              {task.progressNotes && task.progressNotes.length > 0 && (
+                                <div className="mt-4 pt-4 border-t border-border">
+                                  <p className="text-sm font-medium text-muted-foreground mb-2">Progress Notes:</p>
+                                  <div className="space-y-1">
+                                    {task.progressNotes.slice(-2).map((note, index) => (
+                                      <p key={index} className="text-xs text-muted-foreground bg-muted/50 p-2 rounded">
+                                        {note}
+                                      </p>
+                                    ))}
+                                  </div>
+                                </div>
+                              )}
+                            </CardContent>
+                          </Card>
+                        ))}
                       </div>
-                    </CardContent>
-                  </Card>
-                ))}
-              </div>
-            )}
+                    );
+                  })()}
+                </div>
+              </TabsContent>
+
+              {/* All corporation tasks */}
+              <TabsContent value="all-tasks">
+                <div className="space-y-4">
+                  <div className="flex items-center gap-4">
+                    <Badge variant="outline" className="text-blue-400 border-blue-500/50">
+                      All corporation manufacturing tasks
+                    </Badge>
+                  </div>
+                  
+                  {(manufacturingTasks || []).length === 0 ? (
+                    <Card className="bg-card border-border">
+                      <CardContent className="p-6">
+                        <div className="text-center py-12">
+                          <Factory size={48} className="mx-auto text-muted-foreground mb-4" />
+                          <h4 className="text-lg font-semibold mb-2">No Manufacturing Tasks</h4>
+                          <p className="text-muted-foreground">
+                            No manufacturing tasks have been created yet.
+                          </p>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  ) : (
+                    <div className="grid gap-4">
+                      {(manufacturingTasks || []).map((task) => (
+                        <Card key={task.id} className="bg-card border-border">
+                          <CardContent className="p-6">
+                            <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
+                              <div className="lg:col-span-2">
+                                <div className="flex items-start justify-between mb-4">
+                                  <div>
+                                    <h4 className="font-semibold text-foreground flex items-center gap-2">
+                                      <Factory size={18} />
+                                      {task.title}
+                                    </h4>
+                                    <p className="text-sm text-muted-foreground">{task.description}</p>
+                                    <p className="text-xs text-muted-foreground mt-1">
+                                      Target: {task.targetItem.quantity}x {task.targetItem.typeName}
+                                    </p>
+                                    <div className="flex items-center gap-4 mt-2 text-xs text-muted-foreground">
+                                      <span>Created by {task.createdByName}</span>
+                                      {task.assignedToName && (
+                                        <span>Assigned to {task.assignedToName}</span>
+                                      )}
+                                    </div>
+                                  </div>
+                                  {getStatusBadge(task.status, task.priority)}
+                                </div>
+                                
+                                {task.deadline && (
+                                  <div className="text-sm">
+                                    <span className="text-muted-foreground">Deadline: </span>
+                                    <span className={new Date(task.deadline) < new Date() ? 'text-red-400' : 'text-foreground'}>
+                                      {new Date(task.deadline).toLocaleDateString()}
+                                    </span>
+                                  </div>
+                                )}
+                              </div>
+
+                              <div className="space-y-3">
+                                <div className="text-sm">
+                                  <p className="text-muted-foreground">Estimated Cost</p>
+                                  <p className="text-foreground font-medium">{formatISK(task.estimatedCost)}</p>
+                                </div>
+                                <div className="text-sm">
+                                  <p className="text-muted-foreground">Reward</p>
+                                  <p className="text-green-400 font-medium">
+                                    {task.reward.type === 'fixed' 
+                                      ? formatISK(task.reward.amount) 
+                                      : `${task.reward.amount}%`
+                                    }
+                                  </p>
+                                </div>
+                                <div className="text-sm">
+                                  <p className="text-muted-foreground">Duration</p>
+                                  <p className="text-foreground">{Math.round(task.estimatedDuration / 3600)}h</p>
+                                </div>
+                              </div>
+
+                              <div className="flex flex-col gap-2">
+                                <Button 
+                                  variant="outline" 
+                                  size="sm" 
+                                  className="justify-start"
+                                  onClick={() => handleEditTask(task)}
+                                >
+                                  <Eye size={14} className="mr-2" />
+                                  View Details
+                                </Button>
+                                {/* Show admin actions for directors/managers */}
+                                {user && ['director', 'manager'].includes(user.role || '') && (
+                                  <>
+                                    {!task.assignedTo && (
+                                      <Button variant="outline" size="sm" className="justify-start text-blue-400">
+                                        <Users size={14} className="mr-2" />
+                                        Assign Task
+                                      </Button>
+                                    )}
+                                    <Button variant="outline" size="sm" className="justify-start">
+                                      <Wrench size={14} className="mr-2" />
+                                      Edit Task
+                                    </Button>
+                                  </>
+                                )}
+                              </div>
+                            </div>
+                            
+                            {task.progressNotes && task.progressNotes.length > 0 && (
+                              <div className="mt-4 pt-4 border-t border-border">
+                                <p className="text-sm font-medium text-muted-foreground mb-2">Latest Updates:</p>
+                                <div className="space-y-1">
+                                  {task.progressNotes.slice(-1).map((note, index) => (
+                                    <p key={index} className="text-xs text-muted-foreground bg-muted/50 p-2 rounded">
+                                      {note}
+                                    </p>
+                                  ))}
+                                </div>
+                              </div>
+                            )}
+                          </CardContent>
+                        </Card>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </TabsContent>
+
+              {/* Active manufacturing jobs */}
+              <TabsContent value="manufacturing-jobs">
+                <div className="space-y-4">
+                  <div className="flex items-center gap-4">
+                    <Badge variant="outline" className="text-purple-400 border-purple-500/50">
+                      Active manufacturing jobs
+                    </Badge>
+                  </div>
+
+                  {(activeJobs || []).length === 0 ? (
+                    <Card className="bg-card border-border">
+                      <CardContent className="p-6">
+                        <div className="text-center py-12">
+                          <Factory size={48} className="mx-auto text-muted-foreground mb-4" />
+                          <h4 className="text-lg font-semibold mb-2">No Active Jobs</h4>
+                          <p className="text-muted-foreground mb-4">
+                            Start your first manufacturing job to begin production
+                          </p>
+                          <Button onClick={() => setNewJobDialogOpen(true)}>
+                            <Plus size={16} className="mr-2" />
+                            Start Manufacturing
+                          </Button>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  ) : (
+                    <div className="grid gap-4">
+                      {(activeJobs || []).map((job) => (
+                        <Card key={job.id} className="bg-card border-border">
+                          <CardContent className="p-6">
+                            <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
+                              <div className="lg:col-span-2">
+                                <div className="flex items-start justify-between mb-4">
+                                  <div>
+                                    <h4 className="font-semibold text-foreground flex items-center gap-2">
+                                      <Factory size={18} />
+                                      {job.productTypeName} 
+                                      <span className="text-muted-foreground">x{job.productQuantity}</span>
+                                    </h4>
+                                    <p className="text-sm text-muted-foreground">{job.blueprintName}</p>
+                                    <p className="text-xs text-muted-foreground mt-1">{job.facility}</p>
+                                    <p className="text-xs text-muted-foreground">Installer: {job.installerName}</p>
+                                  </div>
+                                  {getStatusBadge(job.status, job.priority)}
+                                </div>
+                                
+                                <div className="space-y-2">
+                                  <div className="flex justify-between text-sm">
+                                    <span>Progress</span>
+                                    <span>{Math.round(getJobProgress(job))}%</span>
+                                  </div>
+                                  <Progress value={getJobProgress(job)} className="h-2" />
+                                  <div className="flex justify-between text-xs text-muted-foreground">
+                                    <span>Started: {new Date(job.startDate).toLocaleDateString()}</span>
+                                    <span>Remaining: {getTimeRemaining(job.endDate)}</span>
+                                  </div>
+                                </div>
+                              </div>
+
+                              <div className="space-y-3">
+                                <div className="text-sm">
+                                  <p className="text-muted-foreground">Efficiency</p>
+                                  <div className="flex gap-4 mt-1">
+                                    <span className="text-blue-400">ME: {job.materialEfficiency}%</span>
+                                    <span className="text-green-400">TE: {job.timeEfficiency}%</span>
+                                  </div>
+                                </div>
+                                <div className="text-sm">
+                                  <p className="text-muted-foreground">Cost</p>
+                                  <p className="text-foreground font-medium">{formatISK(job.cost)}</p>
+                                </div>
+                                <div className="text-sm">
+                                  <p className="text-muted-foreground">Duration</p>
+                                  <p className="text-foreground">{Math.round(job.duration / 3600)}h</p>
+                                </div>
+                              </div>
+
+                              <div className="flex flex-col gap-2">
+                                <Button 
+                                  variant="outline" 
+                                  size="sm" 
+                                  className="justify-start"
+                                  onClick={() => handleJobDetails(job)}
+                                >
+                                  <Eye size={14} className="mr-2" />
+                                  Details
+                                </Button>
+                                {job.status === 'active' && (
+                                  <Button variant="outline" size="sm" className="justify-start">
+                                    <Pause size={14} className="mr-2" />
+                                    Pause
+                                  </Button>
+                                )}
+                                {job.status === 'paused' && (
+                                  <Button variant="outline" size="sm" className="justify-start">
+                                    <Play size={14} className="mr-2" />
+                                    Resume
+                                  </Button>
+                                )}
+                                <Button variant="outline" size="sm" className="justify-start text-red-400 hover:text-red-300">
+                                  <Stop size={14} className="mr-2" />
+                                  Cancel
+                                </Button>
+                              </div>
+                            </div>
+                          </CardContent>
+                        </Card>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </TabsContent>
+            </Tabs>
           </div>
         </TabsContent>
+
       </Tabs>
 
       {/* Dialogs */}
