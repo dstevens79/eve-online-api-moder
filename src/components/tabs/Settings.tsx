@@ -76,7 +76,6 @@ import {
   validateSettings
 } from '@/lib/persistenceService';
 import { UserManagement } from '@/components/UserManagement';
-import { useAuth } from '@/lib/auth-provider';
 
 interface SyncStatus {
   isRunning: boolean;
