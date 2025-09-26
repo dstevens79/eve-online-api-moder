@@ -26,9 +26,10 @@ import {
 
 interface DashboardProps {
   onLoginClick?: () => void;
+  isMobileView?: boolean;
 }
 
-export function Dashboard({ onLoginClick }: DashboardProps) {
+export function Dashboard({ onLoginClick, isMobileView }: DashboardProps) {
   const { user } = useAuth();
   const { 
     dashboardStats, 
@@ -137,10 +138,10 @@ export function Dashboard({ onLoginClick }: DashboardProps) {
   return (
     <div className="space-y-6">
       {/* Corporation Overview */}
-      <div className="flex items-center justify-between">
+      <div className={`${isMobileView ? 'space-y-4' : 'flex items-center justify-between'}`}>
         <div>
-          <h2 className="text-2xl font-bold">Corporation Dashboard</h2>
-          <p className="text-muted-foreground">
+          <h2 className={`${isMobileView ? 'text-xl' : 'text-2xl'} font-bold`}>Corporation Dashboard</h2>
+          <p className="text-muted-foreground text-sm">
             Overview of {user?.corporationName || 'your corporation'} activities and metrics
           </p>
         </div>
@@ -149,17 +150,18 @@ export function Dashboard({ onLoginClick }: DashboardProps) {
           <Button
             onClick={refreshDashboard}
             variant="outline"
-            size="sm"
+            size={isMobileView ? "sm" : "default"}
             disabled={loading.members || loading.assets}
+            className={isMobileView ? "w-full sm:w-auto" : ""}
           >
-            <ArrowClockwise size={16} className={`mr-2 ${loading.members || loading.assets ? 'animate-spin' : ''}`} />
-            Refresh Data
+            <ArrowClockwise size={16} className={`${isMobileView ? '' : 'mr-2'} ${loading.members || loading.assets ? 'animate-spin' : ''}`} />
+            <span className={isMobileView ? 'ml-2' : ''}>Refresh Data</span>
           </Button>
         </div>
       </div>
 
       {/* Key Metrics */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className={`grid ${isMobileView ? 'grid-cols-1 sm:grid-cols-2' : 'grid-cols-1 md:grid-cols-2 lg:grid-cols-4'} gap-4`}>
         <Card className="bg-card border-border">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Total Members</CardTitle>

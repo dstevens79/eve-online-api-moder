@@ -30,7 +30,10 @@ import {
   SignIn,
   UserCheck,
   Eye,
-  EyeSlash
+  EyeSlash,
+  DeviceMobile,
+  Monitor,
+  List
 } from '@phosphor-icons/react';
 import { useKV } from '@github/spark/hooks';
 import { TabType } from '@/lib/types';
@@ -57,6 +60,8 @@ function AppContent() {
   const [activeTab, setActiveTab] = useKV<TabType>('active-tab', 'dashboard');
   const [activeSettingsTab, setActiveSettingsTab] = useKV<string>('active-settings-tab', 'general');
   const [settingsExpanded, setSettingsExpanded] = useKV<boolean>('settings-expanded', false);
+  const [isMobileView, setIsMobileView] = useKV<boolean>('mobile-view', false);
+  const [showMobileMenu, setShowMobileMenu] = useState(false);
   const { 
     user, 
     isAuthenticated, 
@@ -564,7 +569,7 @@ function AppContent() {
                 {currentUser ? (
                   // Authenticated user section
                   <>
-                    <div className="text-right">
+                    <div className="text-right hidden sm:block">
                       <p className="text-sm font-medium">{currentUser.characterName}</p>
                       <p className="text-xs text-muted-foreground">
                         {(currentUser as any).role?.replace('_', ' ').toUpperCase() || 'MEMBER'}
@@ -572,6 +577,24 @@ function AppContent() {
                       </p>
                     </div>
                     <div className="flex items-center gap-2">
+                      {/* View Mode Toggle */}
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => setIsMobileView(!isMobileView)}
+                        className="border-border hover:bg-muted"
+                        title={isMobileView ? "Switch to Desktop View" : "Switch to Mobile View"}
+                      >
+                        {isMobileView ? (
+                          <Monitor size={16} className="sm:mr-2" />
+                        ) : (
+                          <DeviceMobile size={16} className="sm:mr-2" />
+                        )}
+                        <span className="hidden sm:inline">
+                          {isMobileView ? 'Desktop' : 'Mobile'}
+                        </span>
+                      </Button>
+                      
                       {/* Show EVE SSO button for manual users if ESI is configured */}
                       {currentUser.authMethod === 'manual' && esiConfig?.clientId && (
                         <EVELoginButton
@@ -588,21 +611,39 @@ function AppContent() {
                         className="border-border hover:bg-muted"
                         onClick={currentLogout}
                       >
-                        <SignOut size={16} className="mr-2" />
-                        Logout
+                        <SignOut size={16} className="sm:mr-2" />
+                        <span className="hidden sm:inline">Logout</span>
                       </Button>
                     </div>
                   </>
                 ) : (
-                  // Unauthenticated user section - always show both login options
+                  // Unauthenticated user section
                   <div className="flex items-center gap-2">
+                    {/* View Mode Toggle - always visible */}
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setIsMobileView(!isMobileView)}
+                      className="border-border hover:bg-muted"
+                      title={isMobileView ? "Switch to Desktop View" : "Switch to Mobile View"}
+                    >
+                      {isMobileView ? (
+                        <Monitor size={16} className="sm:mr-2" />
+                      ) : (
+                        <DeviceMobile size={16} className="sm:mr-2" />
+                      )}
+                      <span className="hidden sm:inline">
+                        {isMobileView ? 'Desktop' : 'Mobile'}
+                      </span>
+                    </Button>
+                    
                     <Button 
                       onClick={() => setShowQuickLogin(true)}
                       variant="outline"
                       size="sm"
                     >
-                      <SignIn size={16} className="mr-2" />
-                      Local Sign In
+                      <SignIn size={16} className="sm:mr-2" />
+                      <span className="hidden sm:inline">Local Sign In</span>
                     </Button>
                     {/* Always show EVE SSO button if configured */}
                     <EVELoginButton
@@ -621,174 +662,338 @@ function AppContent() {
 
         {/* Main Content */}
         <div className="flex h-[calc(100vh-5rem)]">
-          {/* Left Sidebar Navigation */}
-          <div className="w-64 bg-card border-r border-border flex flex-col">
-            <div className="p-4 space-y-2 flex-1 overflow-y-auto">
-              {/* Main navigation tabs */}
-              {tabs.map((tab) => {
-                const IconComponent = tab.icon;
-                const isActive = activeTab === tab.id;
-                // Check accessibility based on authentication and permissions
-                const isAccessible = canAccessTab(currentUser, tab.id);
-                const isDisabled = !isAccessible;
-                return (
+          {/* Desktop Layout - Left Sidebar Navigation */}
+          {!isMobileView && (
+            <div className="w-64 bg-card border-r border-border flex flex-col">
+              <div className="p-4 space-y-2 flex-1 overflow-y-auto">
+                {/* Main navigation tabs */}
+                {tabs.map((tab) => {
+                  const IconComponent = tab.icon;
+                  const isActive = activeTab === tab.id;
+                  // Check accessibility based on authentication and permissions
+                  const isAccessible = canAccessTab(currentUser, tab.id);
+                  const isDisabled = !isAccessible;
+                  return (
+                    <Button
+                      key={tab.id}
+                      variant={isActive ? "default" : "ghost"}
+                      disabled={isDisabled}
+                      className={`w-full justify-start gap-3 ${
+                        isActive 
+                          ? "bg-accent text-accent-foreground shadow-sm" 
+                          : isDisabled
+                          ? "opacity-50 cursor-not-allowed text-muted-foreground"
+                          : "hover:bg-muted text-muted-foreground hover:text-foreground"
+                      }`}
+                      onClick={() => handleTabChange(tab.id)}
+                    >
+                      <IconComponent size={18} />
+                      <span className="text-sm font-medium">{tab.label}</span>
+                      {'badge' in tab && tab.badge && (
+                        <Badge 
+                          variant="secondary" 
+                          className={`ml-auto text-xs h-5 px-1.5 ${
+                            isActive 
+                              ? "bg-accent-foreground/20 text-accent-foreground" 
+                              : "bg-accent/20 text-accent"
+                          }`}
+                        >
+                          {tab.badge}
+                        </Badge>
+                      )}
+                    </Button>
+                  );
+                })}
+
+                {/* Settings section with expandable sub-menu */}
+                <div className="pt-2 border-t border-border">
                   <Button
-                    key={tab.id}
-                    variant={isActive ? "default" : "ghost"}
-                    disabled={isDisabled}
+                    variant={activeTab === 'settings' ? "default" : "ghost"}
+                    disabled={!currentUser}
                     className={`w-full justify-start gap-3 ${
-                      isActive 
+                      activeTab === 'settings'
                         ? "bg-accent text-accent-foreground shadow-sm" 
-                        : isDisabled
+                        : !currentUser
                         ? "opacity-50 cursor-not-allowed text-muted-foreground"
                         : "hover:bg-muted text-muted-foreground hover:text-foreground"
                     }`}
-                    onClick={() => handleTabChange(tab.id)}
+                    onClick={() => handleTabChange('settings')}
                   >
-                    <IconComponent size={18} />
-                    <span className="text-sm font-medium">{tab.label}</span>
-                    {'badge' in tab && tab.badge && (
-                      <Badge 
-                        variant="secondary" 
-                        className={`ml-auto text-xs h-5 px-1.5 ${
-                          isActive 
-                            ? "bg-accent-foreground/20 text-accent-foreground" 
-                            : "bg-accent/20 text-accent"
-                        }`}
-                      >
-                        {tab.badge}
-                      </Badge>
+                    <Gear size={18} />
+                    <span className="text-sm font-medium">Settings</span>
+                    {settingsExpanded ? (
+                      <CaretDown size={16} className="ml-auto" />
+                    ) : (
+                      <CaretRight size={16} className="ml-auto" />
                     )}
                   </Button>
-                );
-              })}
 
-              {/* Settings section with expandable sub-menu */}
-              <div className="pt-2 border-t border-border">
-                <Button
-                  variant={activeTab === 'settings' ? "default" : "ghost"}
-                  disabled={!currentUser}
-                  className={`w-full justify-start gap-3 ${
-                    activeTab === 'settings'
-                      ? "bg-accent text-accent-foreground shadow-sm" 
-                      : !currentUser
-                      ? "opacity-50 cursor-not-allowed text-muted-foreground"
-                      : "hover:bg-muted text-muted-foreground hover:text-foreground"
-                  }`}
-                  onClick={() => handleTabChange('settings')}
-                >
-                  <Gear size={18} />
-                  <span className="text-sm font-medium">Settings</span>
-                  {settingsExpanded ? (
-                    <CaretDown size={16} className="ml-auto" />
-                  ) : (
-                    <CaretRight size={16} className="ml-auto" />
+                  {/* Settings sub-menu - only show when authenticated */}
+                  {settingsExpanded && currentUser && (
+                    <div className="mt-2 ml-6 space-y-1">
+                      {settingsTabs.map((settingsTab) => {
+                        const IconComponent = settingsTab.icon;
+                        const isActiveSettings = activeSettingsTab === settingsTab.id;
+                        const isAccessible = canAccessSettingsTab(currentUser, settingsTab.id);
+                        
+                        if (!isAccessible) return null;
+                        
+                        return (
+                          <Button
+                            key={settingsTab.id}
+                            variant={isActiveSettings ? "secondary" : "ghost"}
+                            size="sm"
+                            className={`w-full justify-start gap-2 text-xs ${
+                              isActiveSettings 
+                                ? "bg-secondary text-secondary-foreground" 
+                                : "hover:bg-muted/50 text-muted-foreground hover:text-foreground"
+                            }`}
+                            onClick={() => handleSettingsTabChange(settingsTab.id)}
+                          >
+                            <IconComponent size={14} />
+                            <span>{settingsTab.label}</span>
+                          </Button>
+                        );
+                      })}
+                    </div>
                   )}
-                </Button>
+                </div>
+              </div>
+            </div>
+          )}
 
-                {/* Settings sub-menu - only show when authenticated */}
-                {settingsExpanded && currentUser && (
-                  <div className="mt-2 ml-6 space-y-1">
-                    {settingsTabs.map((settingsTab) => {
-                      const IconComponent = settingsTab.icon;
-                      const isActiveSettings = activeSettingsTab === settingsTab.id;
-                      const isAccessible = canAccessSettingsTab(currentUser, settingsTab.id);
-                      
-                      if (!isAccessible) return null;
-                      
-                      return (
-                        <Button
-                          key={settingsTab.id}
-                          variant={isActiveSettings ? "secondary" : "ghost"}
-                          size="sm"
-                          className={`w-full justify-start gap-2 text-xs ${
-                            isActiveSettings 
-                              ? "bg-secondary text-secondary-foreground" 
-                              : "hover:bg-muted/50 text-muted-foreground hover:text-foreground"
-                          }`}
-                          onClick={() => handleSettingsTabChange(settingsTab.id)}
-                        >
-                          <IconComponent size={14} />
-                          <span>{settingsTab.label}</span>
-                        </Button>
-                      );
-                    })}
+          {/* Main Content Container */}
+          <div className="flex-1 overflow-hidden flex flex-col">
+            {/* Mobile Layout - Top Navigation Bar */}
+            {isMobileView && (
+              <div className="bg-card border-b border-border">
+                <div className="flex items-center justify-between p-3">
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => setShowMobileMenu(!showMobileMenu)}
+                    className="flex items-center gap-2"
+                  >
+                    <List size={20} />
+                    <span className="text-sm font-medium">Menu</span>
+                  </Button>
+                  
+                  {/* Current tab indicator */}
+                  <div className="flex items-center gap-2 text-sm">
+                    {activeTab === 'settings' ? (
+                      <>
+                        <Gear size={16} />
+                        <span>Settings</span>
+                        {activeSettingsTab && (
+                          <>
+                            <span className="text-muted-foreground">•</span>
+                            <span className="capitalize">{activeSettingsTab}</span>
+                          </>
+                        )}
+                      </>
+                    ) : (
+                      <>
+                        {(() => {
+                          const currentTab = tabs.find(t => t.id === activeTab);
+                          if (currentTab) {
+                            const IconComponent = currentTab.icon;
+                            return (
+                              <>
+                                <IconComponent size={16} />
+                                <span>{currentTab.label}</span>
+                                {'badge' in currentTab && currentTab.badge && (
+                                  <Badge variant="secondary" className="text-xs h-5">
+                                    {currentTab.badge}
+                                  </Badge>
+                                )}
+                              </>
+                            );
+                          }
+                          return null;
+                        })()}
+                      </>
+                    )}
+                  </div>
+                </div>
+
+                {/* Mobile Menu Dropdown */}
+                {showMobileMenu && (
+                  <div className="border-t border-border bg-card">
+                    <div className="p-3 space-y-2 max-h-96 overflow-y-auto">
+                      {/* Main navigation tabs */}
+                      <div className="space-y-1">
+                        {tabs.map((tab) => {
+                          const IconComponent = tab.icon;
+                          const isActive = activeTab === tab.id;
+                          const isAccessible = canAccessTab(currentUser, tab.id);
+                          const isDisabled = !isAccessible;
+                          
+                          return (
+                            <Button
+                              key={tab.id}
+                              variant={isActive ? "default" : "ghost"}
+                              disabled={isDisabled}
+                              className={`w-full justify-start gap-3 ${
+                                isActive 
+                                  ? "bg-accent text-accent-foreground" 
+                                  : isDisabled
+                                  ? "opacity-50 cursor-not-allowed text-muted-foreground"
+                                  : "hover:bg-muted text-muted-foreground hover:text-foreground"
+                              }`}
+                              onClick={() => {
+                                handleTabChange(tab.id);
+                                setShowMobileMenu(false);
+                              }}
+                            >
+                              <IconComponent size={18} />
+                              <span className="text-sm font-medium">{tab.label}</span>
+                              {'badge' in tab && tab.badge && (
+                                <Badge variant="secondary" className="ml-auto text-xs">
+                                  {tab.badge}
+                                </Badge>
+                              )}
+                            </Button>
+                          );
+                        })}
+                      </div>
+
+                      {/* Settings section */}
+                      {currentUser && (
+                        <div className="pt-2 border-t border-border space-y-1">
+                          <Button
+                            variant={activeTab === 'settings' ? "default" : "ghost"}
+                            className={`w-full justify-start gap-3 ${
+                              activeTab === 'settings'
+                                ? "bg-accent text-accent-foreground" 
+                                : "hover:bg-muted text-muted-foreground hover:text-foreground"
+                            }`}
+                            onClick={() => {
+                              handleTabChange('settings');
+                              setShowMobileMenu(false);
+                            }}
+                          >
+                            <Gear size={18} />
+                            <span className="text-sm font-medium">Settings</span>
+                          </Button>
+
+                          {/* Settings sub-menu for mobile */}
+                          {activeTab === 'settings' && (
+                            <div className="ml-6 space-y-1">
+                              {settingsTabs.map((settingsTab) => {
+                                const IconComponent = settingsTab.icon;
+                                const isActiveSettings = activeSettingsTab === settingsTab.id;
+                                const isAccessible = canAccessSettingsTab(currentUser, settingsTab.id);
+                                
+                                if (!isAccessible) return null;
+                                
+                                return (
+                                  <Button
+                                    key={settingsTab.id}
+                                    variant={isActiveSettings ? "secondary" : "ghost"}
+                                    size="sm"
+                                    className={`w-full justify-start gap-2 text-xs ${
+                                      isActiveSettings 
+                                        ? "bg-secondary text-secondary-foreground" 
+                                        : "hover:bg-muted/50 text-muted-foreground hover:text-foreground"
+                                    }`}
+                                    onClick={() => {
+                                      handleSettingsTabChange(settingsTab.id);
+                                      setShowMobileMenu(false);
+                                    }}
+                                  >
+                                    <IconComponent size={14} />
+                                    <span>{settingsTab.label}</span>
+                                  </Button>
+                                );
+                              })}
+                            </div>
+                          )}
+                        </div>
+                      )}
+                    </div>
                   </div>
                 )}
               </div>
-            </div>
-          </div>
+            )}
 
-          {/* Main Content Area */}
-          <div className="flex-1 overflow-hidden">
-            <div className="h-full overflow-y-auto">
-              <div className="container mx-auto px-6 py-6">
-                {!currentUser ? (
-                  // Always show dashboard with login prompt when not authenticated
-                  activeTab === 'dashboard' ? (
-                    <div className="flex items-center justify-center h-full">
-                      <div className="text-center space-y-4 max-w-md">
-                        <Rocket size={48} className="mx-auto text-accent" />
-                        <h2 className="text-2xl font-bold">Welcome to LMeve</h2>
-                        <p className="text-muted-foreground">
-                          LMeve is a comprehensive corporation management tool for EVE Online. 
-                          Sign in to access your corporation's data and management features.
-                        </p>
-                        <div className="flex flex-col sm:flex-row gap-3 justify-center">
-                          <Button 
-                            onClick={() => setShowQuickLogin(true)}
-                            variant="outline"
-                          >
-                            <SignIn size={16} className="mr-2" />
-                            Local Sign In
-                          </Button>
-                          <EVELoginButton
-                            onClick={handleESILogin}
-                            showCorporationCount={registeredCorps.length}
-                            showValidationStatus={getValidationStatus()}
-                          />
+            {/* Content Area */}
+            <div className="flex-1 overflow-hidden">
+              <div className="h-full overflow-y-auto">
+                <div className={`${isMobileView ? 'px-4 py-4' : 'container mx-auto px-6 py-6'}`}>
+                  {!currentUser ? (
+                    // Always show dashboard with login prompt when not authenticated
+                    activeTab === 'dashboard' ? (
+                      <div className="flex items-center justify-center h-full">
+                        <div className="text-center space-y-4 max-w-md">
+                          <Rocket size={48} className="mx-auto text-accent" />
+                          <h2 className="text-2xl font-bold">Welcome to LMeve</h2>
+                          <p className="text-muted-foreground">
+                            LMeve is a comprehensive corporation management tool for EVE Online. 
+                            Sign in to access your corporation's data and management features.
+                          </p>
+                          <div className="flex flex-col sm:flex-row gap-3 justify-center">
+                            <Button 
+                              onClick={() => setShowQuickLogin(true)}
+                              variant="outline"
+                            >
+                              <SignIn size={16} className="mr-2" />
+                              Local Sign In
+                            </Button>
+                            <EVELoginButton
+                              onClick={handleESILogin}
+                              showCorporationCount={registeredCorps.length}
+                              showValidationStatus={getValidationStatus()}
+                            />
+                          </div>
                         </div>
                       </div>
-                    </div>
+                    ) : (
+                      <div className="flex items-center justify-center h-full">
+                        <div className="text-center space-y-4 max-w-md">
+                          <Shield size={48} className="mx-auto text-muted-foreground" />
+                          <h2 className="text-xl font-semibold">Authentication Required</h2>
+                          <p className="text-muted-foreground">
+                            You need to sign in to access this section.
+                          </p>
+                          <div className="flex flex-col sm:flex-row gap-3 justify-center">
+                            <Button 
+                              onClick={() => setShowQuickLogin(true)}
+                              variant="outline"
+                            >
+                              <SignIn size={16} className="mr-2" />
+                              Local Sign In
+                            </Button>
+                            <EVELoginButton
+                              onClick={handleESILogin}
+                              showCorporationCount={registeredCorps.length}
+                              showValidationStatus={getValidationStatus()}
+                            />
+                          </div>
+                        </div>
+                      </div>
+                    )
+                  ) : activeTab === 'settings' ? (
+                    <Settings 
+                      activeTab={activeSettingsTab || 'general'} 
+                      onTabChange={handleSettingsTabChange}
+                      isMobileView={isMobileView}
+                    />
                   ) : (
-                    <div className="flex items-center justify-center h-full">
-                      <div className="text-center space-y-4 max-w-md">
-                        <Shield size={48} className="mx-auto text-muted-foreground" />
-                        <h2 className="text-xl font-semibold">Authentication Required</h2>
-                        <p className="text-muted-foreground">
-                          You need to sign in to access this section.
-                        </p>
-                        <div className="flex flex-col sm:flex-row gap-3 justify-center">
-                          <Button 
-                            onClick={() => setShowQuickLogin(true)}
-                            variant="outline"
-                          >
-                            <SignIn size={16} className="mr-2" />
-                            Local Sign In
-                          </Button>
-                          <EVELoginButton
-                            onClick={handleESILogin}
-                            showCorporationCount={registeredCorps.length}
-                            showValidationStatus={getValidationStatus()}
-                          />
-                        </div>
-                      </div>
-                    </div>
-                  )
-                ) : activeTab === 'settings' ? (
-                  <Settings activeTab={activeSettingsTab || 'general'} onTabChange={handleSettingsTabChange} />
-                ) : (
-                  <Tabs value={activeTab} onValueChange={handleTabChange}>
-                    {tabs.map((tab) => {
-                      const Component = tab.component;
-                      return (
-                        <TabsContent key={tab.id} value={tab.id} className="mt-0">
-                          <Component onLoginClick={() => setShowQuickLogin(true)} />
-                        </TabsContent>
-                      );
-                    })}
-                  </Tabs>
-                )}
+                    <Tabs value={activeTab} onValueChange={handleTabChange}>
+                      {tabs.map((tab) => {
+                        const Component = tab.component;
+                        return (
+                          <TabsContent key={tab.id} value={tab.id} className="mt-0">
+                            <Component 
+                              onLoginClick={() => setShowQuickLogin(true)} 
+                              isMobileView={isMobileView}
+                            />
+                          </TabsContent>
+                        );
+                      })}
+                    </Tabs>
+                  )}
+                </div>
               </div>
             </div>
           </div>

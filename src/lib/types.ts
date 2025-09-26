@@ -1,6 +1,7 @@
 // Common interface for all tab components
 export interface TabComponentProps {
   onLoginClick?: () => void;
+  isMobileView?: boolean;
 }
 
 // Tab types for navigation

@@ -114,3 +114,42 @@
 *::-webkit-scrollbar-thumb:hover {
   background: oklch(0.4 0.02 220);
 }
+
+/* Mobile optimizations */
+@media (max-width: 640px) {
+  .container {
+    padding-left: 1rem;
+    padding-right: 1rem;
+  }
+  
+  .data-table {
+    font-size: 0.75rem;
+  }
+  
+  .data-table th {
+    padding: 0.5rem 0.25rem;
+  }
+  
+  .data-table td {
+    padding: 0.5rem 0.25rem;
+  }
+}
+
+/* Mobile-friendly cards */
+.mobile-card {
+  @apply bg-card border border-border rounded-lg p-3 space-y-2;
+}
+
+.mobile-card-header {
+  @apply flex items-center justify-between;
+}
+
+.mobile-card-content {
+  @apply space-y-2 text-sm;
+}
+
+/* Mobile touch-friendly buttons */
+.mobile-touch-target {
+  min-height: 44px;
+  min-width: 44px;
+}

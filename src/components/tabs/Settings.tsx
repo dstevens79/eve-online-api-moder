@@ -134,9 +134,10 @@ interface ESIOAuthState {
 interface SettingsProps {
   activeTab: string;
   onTabChange: (tab: string) => void;
+  isMobileView?: boolean;
 }
 
-export function Settings({ activeTab, onTabChange }: SettingsProps) {
+export function Settings({ activeTab, onTabChange, isMobileView }: SettingsProps) {
   // Use main auth provider for all authentication
   const {
     user,

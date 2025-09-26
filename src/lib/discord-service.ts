@@ -3,306 +3,154 @@
  * Handles sending notifications to Discord via webhooks with rich formatting
  */
 
+export interface DiscordEmbed {
+  title?: string;
+  description?: string;
   color?: number;
-
+  fields?: Array<{
+    name: string;
+    value: string;
     inline?: boolean;
+  }>;
   thumbnail?: {
+    url: string;
   };
-  color?: number;
-    icon_url?: str
-}
-export interface D
-    inline?: boolean;
-  emb
-  thumbnail?: {
-  private static
-  };
-    if (!DiscordNotif
-  footer?: {
-  }
-  /**
-   *
+  timestamp?: string;
 }
 
-    try {
-        console.log
-  username?: string;
-      // Check throttl
-        console.log(`Disco
- 
+export interface DiscordMessage {
+  content?: string;
+  embeds?: DiscordEmbed[];
+}
 
-        console.log(`Discord template dis
-      }
-      // Build the notification payload
+export interface DiscordConfig {
+  webhookUrl: string;
+  defaultChannel?: string;
+  defaultRole?: string;
+  enabled: boolean;
+}
 
-      const success = await this.sendWebhook(setting
-      if (success) {
-      }
+export class DiscordNotificationService {
+  private static instance: DiscordNotificationService;
+  private config: DiscordConfig | null = null;
+
+  private constructor() {}
+
+  public static getInstance(): DiscordNotificationService {
+    if (!DiscordNotificationService.instance) {
+      DiscordNotificationService.instance = new DiscordNotificationService();
     }
     return DiscordNotificationService.instance;
   }
 
-  /**
-   * Send a notification to Discord
-   */
-  async sendNotification(
-    type: 'manufacturing' | 'queues' | 'killmails' | 'markets',
-    data: Record<string, any>,
-          footer: {
+  public configure(config: DiscordConfig): void {
+    this.config = config;
+  }
+
+  public async sendMessage(message: DiscordMessage): Promise<boolean> {
+    if (!this.config || !this.config.enabled || !this.config.webhookUrl) {
+      console.log('Discord notifications disabled or not configured');
+      return false;
+    }
+
+    try {
+      const response = await fetch(this.config.webhookUrl, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(message),
+      });
+
+      return response.ok;
+    } catch (error) {
+      console.error('Failed to send Discord message:', error);
+      return false;
+    }
+  }
+
+  public async sendIndustryComplete(
+    pilotName: string,
+    itemName: string,
+    count: number,
+    completionTime: string,
+    role?: string
   ): Promise<boolean> {
-    try {
-      if (!settings.discord?.enabled || !settings.discord?.webhookUrl) {
-        console.log('Discord notifications disabled or no webhook URL configured');
-        return false;
-      }
-
-      // Check throttling
-      if (!this.shouldSendNotification(type, settings.discord.throttleMinutes || 5)) {
-        console.log(`Discord notification throttled for type: ${type}`);
-        return false;
-      }
-
-      const template = settings.discord.templates?.[type];
-      if (!template?.enabled) {
-        console.log(`Discord template disabled for type: ${type}`);
-        return false;
-      }
-
-      // Build the notification payload
-      const payload = this.buildPayload(type, data, template, settings);
-
-      // Send to Discord
-      const success = await this.sendWebhook(settings.discord.webhookUrl, payload);
-      
-      if (success) {
-        this.updateLastNotificationTime(type);
-      }
-
-      return success;
-    } catch (error) {
-      console.error('Discord notification error:', error);
-      return false;
-    }
-  }
-
-  /**
-   * Test Discord webhook connection
-   */
-  async testWebhook(webhookUrl: string, botName?: string): Promise<boolean> {
-    try {
-      const testPayload: DiscordWebhookPayload = {
-        content: '🚀 LMeve Discord integration test successful!',
-        username: botName || 'LMeve Notifications',
-        embeds: [{
-          title: 'Connection Test',
-          description: 'If you can see this message, Discord notifications are working correctly.',
-          color: 0x00ff00, // Green
-          timestamp: new Date().toISOString(),
-          footer: {
-            text: 'LMeve Corporation Management'
-  /**
-        }]
-  privat
-
-    message: string,
-    } catch (error) {
+    const mention = role ? `<@&${role}>` : `@${pilotName}`;
+    
     const embed: DiscordEmbed = {
-      return false;
-     
+      title: '🏭 Industry Job Complete',
+      description: `${mention} - your LMeve industry task is complete!`,
+      color: 0x00ff00,
+      fields: [
+        {
+          name: 'Item',
+          value: itemName,
+          inline: true,
+        },
+        {
+          name: 'Quantity',
+          value: count.toString(),
+          inline: true,
+        },
+        {
+          name: 'Completed',
+          value: completionTime,
+          inline: true,
+        },
+      ],
+      timestamp: new Date().toISOString(),
+    };
+
+    return this.sendMessage({
+      content: `Hey ${mention}!`,
+      embeds: [embed],
+    });
   }
 
-  /**
-   * Build Discord payload from template and data
-   */
-        embed.color = 0
-    type: string,
-            url: `https://imag
-    template: NotificationTemplate,
-        break;
-  ): DiscordWebhookPayload {
-    // Replace template variables
-    let message = this.replaceTemplateVariables(template.message, data);
+  public async sendQueueAlert(
+    adminRole?: string,
+    customMessage?: string
+  ): Promise<boolean> {
+    const mention = adminRole ? `<@&${adminRole}>` : '@lmeve_admin';
+    const message = customMessage || 'Queues are running low - you need to setup additional industry tasking!';
 
-    // Add mentions
-    if (settings.discord?.roles?.length) {
-      const roleMentions = settings.discord.roles.map(role => role.startsWith('@') ? role : `@${role}`).join(' ');
-        }
-    }
+    const embed: DiscordEmbed = {
+      title: '⚠️ Queue Alert',
+      description: `${mention} - ${message}`,
+      color: 0xff9900,
+      timestamp: new Date().toISOString(),
+    };
 
-    if (settings.discord?.userMentions?.length) {
-      // Note: In a real implementation, you'd need to map EVE character IDs to Discord user IDs
-      const userMentions = settings.discord.userMentions.map(charId => `<@${charId}>`).join(' ');
-      message = `${userMentions} ${message}`;
-    }
-
-    const payload: DiscordWebhookPayload = {
-      username: settings.discord?.botName || 'LMeve Notifications',
-      avatar_url: settings.discord?.avatarUrl,
-      
-
-      embed.fields = [
-      // Use rich embed format
-      payload.embeds = [this.buildEmbed(type, data, message, settings)];
-    } else {
-      // Use simple text format
-      payload.content = message;
-
-
-    return payload;
+    return this.sendMessage({
+      content: `Hey ${mention}!`,
+      embeds: [embed],
+    });
   }
 
-  /**
-      const placeholder = `{${key
-   */
-  private buildEmbed(
-    type: string,
-    data: Record<string, any>,
+  public async sendCustomAlert(
+    title: string,
     message: string,
-    settings: NotificationSettings
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+    color: number = 0x0099ff,
+    mentions?: string[]
+  ): Promise<boolean> {
+    let content = '';
+    if (mentions && mentions.length > 0) {
+      content = mentions.join(' ');
+    }
+
+    const embed: DiscordEmbed = {
+      title,
+      description: message,
+      color,
+      timestamp: new Date().toISOString(),
+    };
+
+    return this.sendMessage({
+      content,
+      embeds: [embed],
+    });
+  }
+}
+
+export const discordService = DiscordNotificationService.getInstance();

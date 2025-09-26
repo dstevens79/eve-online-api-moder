@@ -41,9 +41,10 @@ import { toast } from 'sonner';
 
 interface ManufacturingProps {
   onLoginClick?: () => void;
+  isMobileView?: boolean;
 }
 
-export function Manufacturing({ onLoginClick }: ManufacturingProps) {
+export function Manufacturing({ onLoginClick, isMobileView }: ManufacturingProps) {
   const { user } = useAuth();
   const [activeJobs, setActiveJobs] = useKV<ManufacturingJob[]>('manufacturing-jobs', []);
   const [blueprints, setBlueprints] = useKV<Blueprint[]>('blueprints-library', []);
