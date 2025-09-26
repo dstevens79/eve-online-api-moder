@@ -1830,18 +1830,6 @@ export function Settings({ activeTab, onTabChange }: SettingsProps) {
                         <Play size={12} className="mr-1" />
                         Run Remote Setup
                       </Button>
-                      
-                      <Button
-                        onClick={() => {
-                          toast.info('Application management coming soon');
-                        }}
-                        variant="outline"
-                        size="sm"
-                        className="w-full text-xs h-8"
-                      >
-                        <SettingsIcon size={12} className="mr-1" />
-                        Manage Apps
-                      </Button>
                     </div>
                   </div>
                 </div>
