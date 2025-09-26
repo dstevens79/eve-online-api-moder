@@ -1547,18 +1547,74 @@ export function Settings({ activeTab, onTabChange }: SettingsProps) {
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-6">
-              <div className="p-3 bg-muted/50 rounded-lg text-sm text-muted-foreground">
-                <p className="font-medium mb-2">Database Connection Settings</p>
-                <p>
-                  Configure your MySQL/MariaDB database connection. This system performs real network connectivity 
-                  tests and accepts any valid IP address or hostname with custom ports for maximum flexibility.
-                </p>
+              {/* System Status Overview */}
+              <div className="p-4 bg-gradient-to-r from-muted/30 to-accent/10 rounded-lg">
+                <h4 className="font-medium mb-3">System Status Overview</h4>
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                  {/* Database Connection Status */}
+                  <div className="flex items-center gap-2">
+                    <div className={`w-3 h-3 rounded-full ${dbStatus.connected ? 'bg-green-500' : 'bg-red-500'}`} />
+                    <div>
+                      <p className="text-sm font-medium">Database</p>
+                      <p className="text-xs text-muted-foreground">
+                        {dbStatus.connected ? 'Connected' : 'Disconnected'}
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* EVE Online API Status */}
+                  <div className="flex items-center gap-2">
+                    <div className={`w-3 h-3 rounded-full ${esiConfig.clientId ? 'bg-green-500' : 'bg-red-500'}`} />
+                    <div>
+                      <p className="text-sm font-medium">EVE API</p>
+                      <p className="text-xs text-muted-foreground">
+                        {esiConfig.clientId ? 'Configured' : 'Not Setup'}
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* Remote Connection Status */}
+                  <div className="flex items-center gap-2">
+                    <div className={`w-3 h-3 rounded-full ${
+                      databaseSettings.host && databaseSettings.host !== 'localhost' && databaseSettings.host !== '127.0.0.1' 
+                        ? remoteConnectionStatus?.isConnected ? 'bg-green-500' : 'bg-orange-500'
+                        : 'bg-gray-500'
+                    }`} />
+                    <div>
+                      <p className="text-sm font-medium">Remote Access</p>
+                      <p className="text-xs text-muted-foreground">
+                        {databaseSettings.host && databaseSettings.host !== 'localhost' && databaseSettings.host !== '127.0.0.1'
+                          ? remoteConnectionStatus?.isConnected ? 'Ready' : 'Not Ready'
+                          : 'Local Mode'
+                        }
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* Overall System Health */}
+                  <div className="flex items-center gap-2">
+                    <div className={`w-3 h-3 rounded-full ${
+                      dbStatus.connected && esiConfig.clientId ? 'bg-green-500' : 
+                      dbStatus.connected || esiConfig.clientId ? 'bg-orange-500' : 'bg-red-500'
+                    }`} />
+                    <div>
+                      <p className="text-sm font-medium">Overall</p>
+                      <p className="text-xs text-muted-foreground">
+                        {dbStatus.connected && esiConfig.clientId ? 'Operational' :
+                         dbStatus.connected || esiConfig.clientId ? 'Partial' : 'Setup Needed'}
+                      </p>
+                    </div>
+                  </div>
+                </div>
               </div>
 
-              {/* ESI Configuration */}
+              {/* ESI Configuration Section */}
               <div className="border border-border rounded-lg p-4">
                 <div className="flex items-center justify-between mb-4">
-                  <h4 className="font-medium">ESI Application Credentials</h4>
+                  <div className="flex items-center gap-2">
+                    <div className={`w-2 h-2 rounded-full ${esiConfig.clientId ? 'bg-green-500' : 'bg-red-500'}`} />
+                    <h4 className="font-medium">ESI Application Credentials</h4>
+                  </div>
                   <Button
                     variant="outline"
                     size="sm"
@@ -1610,6 +1666,7 @@ export function Settings({ activeTab, onTabChange }: SettingsProps) {
                       )}
                     </div>
                   </div>
+                  
                   <div className="flex gap-2">
                     <Button
                       onClick={() => {
@@ -1617,7 +1674,6 @@ export function Settings({ activeTab, onTabChange }: SettingsProps) {
                         const clientSecret = esiSettings.clientSecret || esiConfig.clientSecret;
                         if (clientId.trim()) {
                           updateESIConfig(clientId.trim(), clientSecret || '');
-                          // Clear temporary state after saving
                           setESISettings(prev => ({ ...prev, clientId: '', clientSecret: '' }));
                           toast.success('ESI configuration updated');
                         } else {
@@ -1648,14 +1704,6 @@ export function Settings({ activeTab, onTabChange }: SettingsProps) {
                     >
                       Clear
                     </Button>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => window.open('https://developers.eveonline.com/applications', '_blank')}
-                    >
-                      <Globe size={16} className="mr-2" />
-                      Manage Apps
-                    </Button>
                   </div>
                   <p className="text-xs text-muted-foreground">
                     Create an application at developers.eveonline.com with callback URL: <code className="bg-background px-1 rounded">{window.location.origin}/</code>
@@ -1663,15 +1711,16 @@ export function Settings({ activeTab, onTabChange }: SettingsProps) {
                 </div>
               </div>
 
-              {/* Two Column Layout: Left = Connection Settings, Right = Controls & Logs */}
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              {/* Database Connection Configuration */}
+              <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
                 
-                {/* Left Column: Connection Configuration */}
+                {/* Connection Settings Column */}
                 <div className="space-y-4">
-                  
-                  {/* Database Connection Settings */}
                   <div className="border border-border rounded-lg p-4">
-                    <h4 className="font-medium mb-4">Database Connection</h4>
+                    <div className="flex items-center gap-2 mb-4">
+                      <div className={`w-2 h-2 rounded-full ${dbStatus.connected ? 'bg-green-500' : 'bg-red-500'}`} />
+                      <h4 className="font-medium">Database Connection</h4>
+                    </div>
                     
                     <div className="space-y-4">
                       <div className="grid grid-cols-2 gap-4">
@@ -1714,101 +1763,94 @@ export function Settings({ activeTab, onTabChange }: SettingsProps) {
                     </div>
                   </div>
 
-                  {/* Sudo Database User */}
+                  {/* User Credentials - Condensed */}
                   <div className="border border-border rounded-lg p-4">
-                    <div className="flex items-center justify-between mb-4">
-                      <h4 className="font-medium">Sudo Database User</h4>
-                      <Badge variant="outline" className="text-xs">Admin</Badge>
+                    <div className="flex items-center gap-2 mb-4">
+                      <div className={`w-2 h-2 rounded-full ${databaseSettings.sudoUsername && databaseSettings.sudoPassword ? 'bg-green-500' : 'bg-red-500'}`} />
+                      <h4 className="font-medium">Database Users</h4>
                     </div>
                     
                     <div className="space-y-4">
-                      <div className="space-y-2">
-                        <Label htmlFor="sudoUsername">Username</Label>
-                        <Input
-                          id="sudoUsername"
-                          value={databaseSettings.sudoUsername || ''}
-                          onChange={(e) => updateDatabaseSetting('sudoUsername', e.target.value)}
-                          placeholder="root"
-                        />
-                      </div>
-                      <div className="space-y-2">
-                        <Label htmlFor="sudoPassword">Password</Label>
-                        <div className="relative">
+                      {/* Admin User */}
+                      <div className="space-y-3">
+                        <div className="flex items-center gap-2">
+                          <Badge variant="outline" className="text-xs">Admin</Badge>
+                          <span className="text-sm font-medium">Sudo User</span>
+                        </div>
+                        <div className="grid grid-cols-2 gap-2">
                           <Input
-                            id="sudoPassword"
-                            type={showSudoPassword ? "text" : "password"}
-                            value={databaseSettings.sudoPassword || ''}
-                            onChange={(e) => updateDatabaseSetting('sudoPassword', e.target.value)}
-                            placeholder="Root/admin database password"
+                            value={databaseSettings.sudoUsername || ''}
+                            onChange={(e) => updateDatabaseSetting('sudoUsername', e.target.value)}
+                            placeholder="root"
+                            className="text-sm"
                           />
-                          <Button
-                            type="button"
-                            variant="ghost"
-                            size="sm"
-                            className="absolute right-0 top-0 h-full px-3"
-                            onClick={() => setShowSudoPassword(!showSudoPassword)}
-                          >
-                            {showSudoPassword ? <EyeSlash size={16} /> : <Eye size={16} />}
-                          </Button>
+                          <div className="relative">
+                            <Input
+                              type={showSudoPassword ? "text" : "password"}
+                              value={databaseSettings.sudoPassword || ''}
+                              onChange={(e) => updateDatabaseSetting('sudoPassword', e.target.value)}
+                              placeholder="Admin password"
+                              className="text-sm pr-8"
+                            />
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="sm"
+                              className="absolute right-0 top-0 h-full px-2"
+                              onClick={() => setShowSudoPassword(!showSudoPassword)}
+                            >
+                              {showSudoPassword ? <EyeSlash size={12} /> : <Eye size={12} />}
+                            </Button>
+                          </div>
                         </div>
                       </div>
-                    </div>
-                    <p className="text-xs text-muted-foreground mt-2">
-                      Used for database creation, schema setup, and administrative tasks.
-                    </p>
-                  </div>
 
-                  {/* LMeve Database User */}
-                  <div className="border border-border rounded-lg p-4">
-                    <div className="flex items-center justify-between mb-4">
-                      <h4 className="font-medium">LMeve Database User</h4>
-                      <Badge variant="outline" className="text-xs">Application</Badge>
-                    </div>
-                    
-                    <div className="space-y-4">
-                      <div className="space-y-2">
-                        <Label htmlFor="dbUsername">Username</Label>
-                        <Input
-                          id="dbUsername"
-                          value={databaseSettings.username || ''}
-                          onChange={(e) => updateDatabaseSetting('username', e.target.value)}
-                          placeholder="lmeve_user"
-                        />
-                      </div>
-                      <div className="space-y-2">
-                        <Label htmlFor="dbPassword">Password</Label>
-                        <div className="relative">
+                      {/* App User */}
+                      <div className="space-y-3">
+                        <div className="flex items-center gap-2">
+                          <Badge variant="outline" className="text-xs">App</Badge>
+                          <span className="text-sm font-medium">LMeve User</span>
+                        </div>
+                        <div className="grid grid-cols-2 gap-2">
                           <Input
-                            id="dbPassword"
-                            type={showDbPassword ? "text" : "password"}
-                            value={databaseSettings.password || ''}
-                            onChange={(e) => updateDatabaseSetting('password', e.target.value)}
-                            placeholder="Application database password"
+                            value={databaseSettings.username || ''}
+                            onChange={(e) => updateDatabaseSetting('username', e.target.value)}
+                            placeholder="lmeve_user"
+                            className="text-sm"
                           />
-                          <Button
-                            type="button"
-                            variant="ghost"
-                            size="sm"
-                            className="absolute right-0 top-0 h-full px-3"
-                            onClick={() => setShowDbPassword(!showDbPassword)}
-                          >
-                            {showDbPassword ? <EyeSlash size={16} /> : <Eye size={16} />}
-                          </Button>
+                          <div className="relative">
+                            <Input
+                              type={showDbPassword ? "text" : "password"}
+                              value={databaseSettings.password || ''}
+                              onChange={(e) => updateDatabaseSetting('password', e.target.value)}
+                              placeholder="App password"
+                              className="text-sm pr-8"
+                            />
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="sm"
+                              className="absolute right-0 top-0 h-full px-2"
+                              onClick={() => setShowDbPassword(!showDbPassword)}
+                            >
+                              {showDbPassword ? <EyeSlash size={12} /> : <Eye size={12} />}
+                            </Button>
+                          </div>
                         </div>
                       </div>
                     </div>
-                    <p className="text-xs text-muted-foreground mt-2">
-                      Used for day-to-day application operations with limited privileges.
-                    </p>
                   </div>
                 </div>
 
-                {/* Right Column: Controls and Logs */}
+                {/* Control & Status Column */}
                 <div className="space-y-4">
                   
                   {/* Connection Controls */}
                   <div className="border border-border rounded-lg p-4">
-                    <h4 className="font-medium mb-4">Connection Controls</h4>
+                    <div className="flex items-center gap-2 mb-4">
+                      <div className={`w-2 h-2 rounded-full ${testingConnection ? 'bg-yellow-500 animate-pulse' : dbStatus.connected ? 'bg-green-500' : 'bg-red-500'}`} />
+                      <h4 className="font-medium">Connection Controls</h4>
+                    </div>
                     
                     <div className="space-y-3">
                       <Button
@@ -1824,7 +1866,7 @@ export function Settings({ activeTab, onTabChange }: SettingsProps) {
                         {testingConnection ? (
                           <>
                             <ArrowClockwise size={16} className="mr-2 animate-spin" />
-                            Testing Connection...
+                            Testing...
                           </>
                         ) : (
                           <>
@@ -1856,7 +1898,7 @@ export function Settings({ activeTab, onTabChange }: SettingsProps) {
                       )}
                       
                       <Button
-                        onClick={handleSaveSettings}
+                        onClick={saveDatabaseSettings}
                         variant="secondary"
                         size="sm"
                         className="w-full"
@@ -1864,112 +1906,152 @@ export function Settings({ activeTab, onTabChange }: SettingsProps) {
                         Save Configuration
                       </Button>
                     </div>
-                  </div>
 
-                  {/* Connection Status */}
-                  <div className="space-y-4">
-                    {/* Immediate Test Status */}
-                    {testingConnection && (
-                      <div className="p-3 border border-blue-500/20 bg-blue-500/10 rounded-lg">
-                        <div className="flex items-center gap-2 text-blue-400">
-                          <ArrowClockwise size={16} className="animate-spin" />
-                          <span className="font-medium">Testing Connection...</span>
-                        </div>
-                        <p className="text-sm text-muted-foreground mt-1">
-                          Validating network connectivity and authentication
-                        </p>
-                      </div>
-                    )}
-
-                    {dbStatus.connected ? (
-                      <div className="p-3 border border-green-500/20 bg-green-500/10 rounded-lg">
+                    {/* Compact Status Display */}
+                    {dbStatus.connected && (
+                      <div className="mt-4 p-3 bg-green-500/10 border border-green-500/20 rounded text-sm">
                         <div className="flex items-center gap-2 text-green-400 mb-2">
-                          <CheckCircle size={16} />
+                          <CheckCircle size={14} />
                           <span className="font-medium">Connected & Validated</span>
                         </div>
-                        <div className="grid grid-cols-2 gap-4 text-sm">
+                        <div className="grid grid-cols-2 gap-2 text-xs">
                           <div>
-                            <p className="text-muted-foreground">Connections</p>
-                            <p className="font-medium">{dbStatus.connectionCount}</p>
+                            <span className="text-muted-foreground">Connections:</span> {dbStatus.connectionCount}
                           </div>
                           <div>
-                            <p className="text-muted-foreground">Queries</p>
-                            <p className="font-medium">{dbStatus.queryCount}</p>
+                            <span className="text-muted-foreground">Queries:</span> {dbStatus.queryCount}
                           </div>
                         </div>
-                        {dbStatus.lastConnection && (
-                          <p className="text-xs text-muted-foreground mt-2">
-                            Last connected: {new Date(dbStatus.lastConnection).toLocaleString()}
-                          </p>
-                        )}
                       </div>
-                    ) : (
-                      <div className="p-3 border border-orange-500/20 bg-orange-500/10 rounded-lg">
-                        <div className="flex items-center gap-2 text-orange-400">
-                          <Warning size={16} />
-                          <span className="font-medium">Not Connected</span>
+                    )}
+
+                    {!dbStatus.connected && dbStatus.lastError && (
+                      <div className="mt-4 p-3 bg-red-500/10 border border-red-500/20 rounded text-sm">
+                        <div className="flex items-center gap-2 text-red-400 mb-1">
+                          <X size={14} />
+                          <span className="font-medium">Connection Failed</span>
                         </div>
-                        <p className="text-sm text-muted-foreground mt-1">
-                          Configure connection settings and click Connect.
+                        <p className="text-xs text-red-300 break-words">
+                          {dbStatus.lastError}
                         </p>
-                        {dbStatus.lastError && (
-                          <p className="text-xs text-red-300 mt-2">
-                            Last error: {dbStatus.lastError}
-                          </p>
-                        )}
                       </div>
                     )}
                   </div>
 
+                  {/* Remote Connection Status */}
+                  {databaseSettings.host && databaseSettings.host !== 'localhost' && databaseSettings.host !== '127.0.0.1' && (
+                    <div className="border border-border rounded-lg p-4">
+                      <div className="flex items-center gap-2 mb-4">
+                        <div className={`w-2 h-2 rounded-full ${remoteConnectionStatus?.isConnected ? 'bg-green-500' : 'bg-orange-500'}`} />
+                        <h4 className="font-medium">Remote Access</h4>
+                      </div>
+                      
+                      <div className="space-y-3">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={handleTestRemoteConnection}
+                          disabled={isTestingRemoteConnection}
+                          className="w-full"
+                        >
+                          {isTestingRemoteConnection ? (
+                            <ArrowClockwise size={14} className="animate-spin mr-2" />
+                          ) : (
+                            <Network size={14} className="mr-2" />
+                          )}
+                          Test SSH Connection
+                        </Button>
+
+                        {remoteConnectionStatus?.message && (
+                          <div className={`text-xs p-2 rounded ${
+                            remoteConnectionStatus.isConnected 
+                              ? 'text-green-300 bg-green-900/20 border border-green-500/20' 
+                              : 'text-orange-300 bg-orange-900/20 border border-orange-500/20'
+                          }`}>
+                            {remoteConnectionStatus.message}
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                {/* Connection Logs Column - Collapsible */}
+                <div className="space-y-4">
+                  
                   {/* Connection Logs */}
                   <div className="border border-border rounded-lg p-4">
                     <div className="flex items-center justify-between mb-4">
-                      <h4 className="font-medium">Connection Logs</h4>
                       <Button
-                        variant="outline"
+                        variant="ghost"
                         size="sm"
-                        onClick={clearConnectionLogs}
-                        disabled={connectionLogs.length === 0}
+                        className="p-0 h-auto hover:bg-transparent"
+                        onClick={() => setShowConnectionLogs(!showConnectionLogs)}
                       >
-                        <X size={16} className="mr-2" />
-                        Clear
+                        <div className="flex items-center gap-2">
+                          {showConnectionLogs ? (
+                            <CaretDown size={16} className="text-muted-foreground" />
+                          ) : (
+                            <CaretRight size={16} className="text-muted-foreground" />
+                          )}
+                          <h4 className="font-medium">Connection Logs</h4>
+                          <Badge variant="outline" className="text-xs">
+                            {connectionLogs.length} entries
+                          </Badge>
+                        </div>
                       </Button>
-                    </div>
-
-                    <div className="bg-muted/30 border border-border rounded-lg p-3 h-64 overflow-y-auto font-mono text-xs">
-                      {connectionLogs.length === 0 ? (
-                        <div className="flex items-center justify-center h-full text-muted-foreground">
-                          No connection logs yet. Run a connection test to see detailed logs.
-                        </div>
-                      ) : (
-                        <div className="space-y-1">
-                          {connectionLogs.map((log, index) => (
-                            <div 
-                              key={index} 
-                              className={`leading-relaxed ${
-                                log.includes('❌') || log.includes('💥') ? 'text-red-300' :
-                                log.includes('⚠️') ? 'text-yellow-300' :
-                                log.includes('✅') || log.includes('🎉') ? 'text-green-300' :
-                                log.includes('🔍') || log.includes('🌐') || log.includes('🔌') || 
-                                log.includes('🔐') || log.includes('🗄️') || log.includes('🔑') || 
-                                log.includes('🎯') ? 'text-blue-300' :
-                                log.includes('⚡') ? 'text-purple-300' :
-                                log.includes('🏁') ? 'text-gray-400' :
-                                'text-foreground'
-                              }`}
-                            >
-                              {log}
-                            </div>
-                          ))}
-                        </div>
+                      {showConnectionLogs && (
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={clearConnectionLogs}
+                          disabled={connectionLogs.length === 0}
+                        >
+                          <X size={16} className="mr-2" />
+                          Clear
+                        </Button>
                       )}
                     </div>
-                    <div className="flex items-center gap-2 text-xs text-muted-foreground mt-2">
-                      <Info size={12} />
-                      <span>
-                        Logs show detailed database connection validation steps.
-                      </span>
-                    </div>
+
+                    {showConnectionLogs && (
+                      <div className="bg-muted/30 border border-border rounded-lg p-3 h-64 overflow-y-auto font-mono text-xs">
+                        {connectionLogs.length === 0 ? (
+                          <div className="flex items-center justify-center h-full text-muted-foreground">
+                            No connection logs yet. Run a connection test to see detailed logs.
+                          </div>
+                        ) : (
+                          <div className="space-y-1">
+                            {connectionLogs.map((log, index) => (
+                              <div 
+                                key={index} 
+                                className={`leading-relaxed ${
+                                  log.includes('❌') || log.includes('💥') ? 'text-red-300' :
+                                  log.includes('⚠️') ? 'text-yellow-300' :
+                                  log.includes('✅') || log.includes('🎉') ? 'text-green-300' :
+                                  log.includes('🔍') || log.includes('🌐') || log.includes('🔌') || 
+                                  log.includes('🔐') || log.includes('🗄️') || log.includes('🔑') || 
+                                  log.includes('🎯') ? 'text-blue-300' :
+                                  log.includes('⚡') ? 'text-purple-300' :
+                                  log.includes('🏁') ? 'text-gray-400' :
+                                  'text-foreground'
+                                }`}
+                              >
+                                {log}
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    )}
+
+                    {showConnectionLogs && (
+                      <div className="flex items-center gap-2 text-xs text-muted-foreground mt-2">
+                        <Info size={12} />
+                        <span>
+                          Logs show detailed database connection validation steps.
+                        </span>
+                      </div>
+                    )}
                   </div>
                 </div>
               </div>
