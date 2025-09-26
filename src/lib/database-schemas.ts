@@ -689,6 +689,226 @@ export const lmeveSchemas: DatabaseSchema[] = [
     engine: 'InnoDB',
     charset: 'utf8mb4',
     collation: 'utf8mb4_unicode_ci'
+  },
+
+  // Wallet journal - ISK transaction tracking
+  {
+    tableName: 'wallet_journal',
+    columns: [
+      { name: 'id', type: 'BIGINT', nullable: false, primaryKey: true, autoIncrement: true },
+      { name: 'ref_id', type: 'BIGINT', nullable: false, unique: true },
+      { name: 'wallet_division', type: 'INT', nullable: false, defaultValue: 1 },
+      { name: 'ref_type_id', type: 'INT', nullable: false },
+      { name: 'amount', type: 'DECIMAL', size: 20, nullable: false },
+      { name: 'balance', type: 'DECIMAL', size: 20, nullable: true },
+      { name: 'reason', type: 'VARCHAR', size: 500, nullable: true },
+      { name: 'description', type: 'TEXT', nullable: true },
+      { name: 'tax_receiver_id', type: 'BIGINT', nullable: true },
+      { name: 'first_party_id', type: 'BIGINT', nullable: true },
+      { name: 'first_party_name', type: 'VARCHAR', size: 255, nullable: true },
+      { name: 'second_party_id', type: 'BIGINT', nullable: true },
+      { name: 'second_party_name', type: 'VARCHAR', size: 255, nullable: true },
+      { name: 'date', type: 'DATETIME', nullable: false },
+      { name: 'created_date', type: 'DATETIME', nullable: false, defaultValue: 'CURRENT_TIMESTAMP' }
+    ],
+    indexes: [
+      { name: 'idx_ref_id', columns: ['ref_id'], type: 'UNIQUE' },
+      { name: 'idx_wallet_division', columns: ['wallet_division'], type: 'INDEX' },
+      { name: 'idx_ref_type', columns: ['ref_type_id'], type: 'INDEX' },
+      { name: 'idx_date', columns: ['date'], type: 'INDEX' },
+      { name: 'idx_first_party', columns: ['first_party_id'], type: 'INDEX' },
+      { name: 'idx_second_party', columns: ['second_party_id'], type: 'INDEX' }
+    ],
+    engine: 'InnoDB',
+    charset: 'utf8mb4',
+    collation: 'utf8mb4_unicode_ci'
+  },
+
+  // Wallet transactions - Market transaction tracking
+  {
+    tableName: 'wallet_transactions',
+    columns: [
+      { name: 'id', type: 'BIGINT', nullable: false, primaryKey: true, autoIncrement: true },
+      { name: 'transaction_id', type: 'BIGINT', nullable: false, unique: true },
+      { name: 'wallet_division', type: 'INT', nullable: false, defaultValue: 1 },
+      { name: 'client_id', type: 'BIGINT', nullable: false },
+      { name: 'client_name', type: 'VARCHAR', size: 255, nullable: true },
+      { name: 'location_id', type: 'BIGINT', nullable: false },
+      { name: 'location_name', type: 'VARCHAR', size: 255, nullable: true },
+      { name: 'type_id', type: 'INT', nullable: false },
+      { name: 'type_name', type: 'VARCHAR', size: 255, nullable: true },
+      { name: 'quantity', type: 'BIGINT', nullable: false },
+      { name: 'unit_price', type: 'DECIMAL', size: 20, nullable: false },
+      { name: 'total_price', type: 'DECIMAL', size: 20, nullable: false },
+      { name: 'is_buy', type: 'BOOLEAN', nullable: false },
+      { name: 'is_personal', type: 'BOOLEAN', nullable: false, defaultValue: false },
+      { name: 'journal_ref_id', type: 'BIGINT', nullable: true },
+      { name: 'date', type: 'DATETIME', nullable: false },
+      { name: 'created_date', type: 'DATETIME', nullable: false, defaultValue: 'CURRENT_TIMESTAMP' }
+    ],
+    indexes: [
+      { name: 'idx_transaction_id', columns: ['transaction_id'], type: 'UNIQUE' },
+      { name: 'idx_wallet_division', columns: ['wallet_division'], type: 'INDEX' },
+      { name: 'idx_client_id', columns: ['client_id'], type: 'INDEX' },
+      { name: 'idx_location_id', columns: ['location_id'], type: 'INDEX' },
+      { name: 'idx_type_id', columns: ['type_id'], type: 'INDEX' },
+      { name: 'idx_date', columns: ['date'], type: 'INDEX' },
+      { name: 'idx_is_buy', columns: ['is_buy'], type: 'INDEX' }
+    ],
+    foreignKeys: [
+      { name: 'fk_wallet_journal', column: 'journal_ref_id', referencedTable: 'wallet_journal', referencedColumn: 'ref_id', onDelete: 'SET NULL' }
+    ],
+    engine: 'InnoDB',
+    charset: 'utf8mb4',
+    collation: 'utf8mb4_unicode_ci'
+  },
+
+  // Contracts - Corporation contracts tracking
+  {
+    tableName: 'contracts',
+    columns: [
+      { name: 'id', type: 'BIGINT', nullable: false, primaryKey: true, autoIncrement: true },
+      { name: 'contract_id', type: 'BIGINT', nullable: false, unique: true },
+      { name: 'issuer_id', type: 'BIGINT', nullable: false },
+      { name: 'issuer_name', type: 'VARCHAR', size: 255, nullable: true },
+      { name: 'issuer_corporation_id', type: 'BIGINT', nullable: false },
+      { name: 'assignee_id', type: 'BIGINT', nullable: true },
+      { name: 'assignee_name', type: 'VARCHAR', size: 255, nullable: true },
+      { name: 'acceptor_id', type: 'BIGINT', nullable: true },
+      { name: 'acceptor_name', type: 'VARCHAR', size: 255, nullable: true },
+      { name: 'start_location_id', type: 'BIGINT', nullable: true },
+      { name: 'start_location_name', type: 'VARCHAR', size: 255, nullable: true },
+      { name: 'end_location_id', type: 'BIGINT', nullable: true },
+      { name: 'end_location_name', type: 'VARCHAR', size: 255, nullable: true },
+      { name: 'type', type: 'ENUM', nullable: false, comment: "Values: 'unknown', 'item_exchange', 'auction', 'courier', 'loan'" },
+      { name: 'status', type: 'ENUM', nullable: false, comment: "Values: 'outstanding', 'in_progress', 'finished_issuer', 'finished_contractor', 'finished', 'cancelled', 'rejected', 'failed', 'deleted', 'reversed'" },
+      { name: 'title', type: 'VARCHAR', size: 255, nullable: true },
+      { name: 'for_corporation', type: 'BOOLEAN', nullable: false, defaultValue: false },
+      { name: 'availability', type: 'ENUM', nullable: false, comment: "Values: 'public', 'personal', 'corporation', 'alliance'" },
+      { name: 'date_issued', type: 'DATETIME', nullable: false },
+      { name: 'date_expired', type: 'DATETIME', nullable: true },
+      { name: 'date_accepted', type: 'DATETIME', nullable: true },
+      { name: 'date_completed', type: 'DATETIME', nullable: true },
+      { name: 'days_to_complete', type: 'INT', nullable: true },
+      { name: 'price', type: 'DECIMAL', size: 20, nullable: true },
+      { name: 'reward', type: 'DECIMAL', size: 20, nullable: true },
+      { name: 'collateral', type: 'DECIMAL', size: 20, nullable: true },
+      { name: 'buyout', type: 'DECIMAL', size: 20, nullable: true },
+      { name: 'volume', type: 'DECIMAL', size: 20, nullable: true },
+      { name: 'created_date', type: 'DATETIME', nullable: false, defaultValue: 'CURRENT_TIMESTAMP' },
+      { name: 'updated_date', type: 'DATETIME', nullable: false, defaultValue: 'CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP' }
+    ],
+    indexes: [
+      { name: 'idx_contract_id', columns: ['contract_id'], type: 'UNIQUE' },
+      { name: 'idx_issuer_id', columns: ['issuer_id'], type: 'INDEX' },
+      { name: 'idx_assignee_id', columns: ['assignee_id'], type: 'INDEX' },
+      { name: 'idx_acceptor_id', columns: ['acceptor_id'], type: 'INDEX' },
+      { name: 'idx_type', columns: ['type'], type: 'INDEX' },
+      { name: 'idx_status', columns: ['status'], type: 'INDEX' },
+      { name: 'idx_date_issued', columns: ['date_issued'], type: 'INDEX' },
+      { name: 'idx_date_expired', columns: ['date_expired'], type: 'INDEX' },
+      { name: 'idx_for_corporation', columns: ['for_corporation'], type: 'INDEX' }
+    ],
+    engine: 'InnoDB',
+    charset: 'utf8mb4',
+    collation: 'utf8mb4_unicode_ci'
+  },
+
+  // Contract items - Items included in contracts
+  {
+    tableName: 'contract_items',
+    columns: [
+      { name: 'id', type: 'BIGINT', nullable: false, primaryKey: true, autoIncrement: true },
+      { name: 'contract_id', type: 'BIGINT', nullable: false },
+      { name: 'record_id', type: 'BIGINT', nullable: false },
+      { name: 'type_id', type: 'INT', nullable: false },
+      { name: 'type_name', type: 'VARCHAR', size: 255, nullable: true },
+      { name: 'quantity', type: 'BIGINT', nullable: false },
+      { name: 'raw_quantity', type: 'BIGINT', nullable: true },
+      { name: 'singleton', type: 'BOOLEAN', nullable: false, defaultValue: false },
+      { name: 'is_included', type: 'BOOLEAN', nullable: false, defaultValue: true },
+      { name: 'created_date', type: 'DATETIME', nullable: false, defaultValue: 'CURRENT_TIMESTAMP' }
+    ],
+    indexes: [
+      { name: 'idx_contract_id', columns: ['contract_id'], type: 'INDEX' },
+      { name: 'idx_record_id', columns: ['record_id'], type: 'INDEX' },
+      { name: 'idx_type_id', columns: ['type_id'], type: 'INDEX' },
+      { name: 'idx_is_included', columns: ['is_included'], type: 'INDEX' }
+    ],
+    foreignKeys: [
+      { name: 'fk_contract_items_contract', column: 'contract_id', referencedTable: 'contracts', referencedColumn: 'contract_id', onDelete: 'CASCADE' }
+    ],
+    engine: 'InnoDB',
+    charset: 'utf8mb4',
+    collation: 'utf8mb4_unicode_ci'
+  },
+
+  // Structures - Corporation-owned structures
+  {
+    tableName: 'structures',
+    columns: [
+      { name: 'id', type: 'BIGINT', nullable: false, primaryKey: true, autoIncrement: true },
+      { name: 'structure_id', type: 'BIGINT', nullable: false, unique: true },
+      { name: 'corporation_id', type: 'BIGINT', nullable: false },
+      { name: 'type_id', type: 'INT', nullable: false },
+      { name: 'type_name', type: 'VARCHAR', size: 255, nullable: true },
+      { name: 'name', type: 'VARCHAR', size: 255, nullable: true },
+      { name: 'system_id', type: 'INT', nullable: false },
+      { name: 'system_name', type: 'VARCHAR', size: 255, nullable: true },
+      { name: 'region_id', type: 'INT', nullable: true },
+      { name: 'region_name', type: 'VARCHAR', size: 255, nullable: true },
+      { name: 'profile_id', type: 'INT', nullable: true },
+      { name: 'fuel_expires', type: 'DATETIME', nullable: true },
+      { name: 'next_reinforce_apply', type: 'DATETIME', nullable: true },
+      { name: 'next_reinforce_hour', type: 'INT', nullable: true },
+      { name: 'next_reinforce_day', type: 'INT', nullable: true },
+      { name: 'state', type: 'ENUM', nullable: false, comment: "Values: 'anchor_vulnerable', 'anchoring', 'armor_reinforce', 'armor_vulnerable', 'fitting_invulnerable', 'hull_reinforce', 'hull_vulnerable', 'online_deprecated', 'onlining_vulnerable', 'shield_vulnerable', 'unanchored', 'unknown'" },
+      { name: 'state_timer_start', type: 'DATETIME', nullable: true },
+      { name: 'state_timer_end', type: 'DATETIME', nullable: true },
+      { name: 'unanchors_at', type: 'DATETIME', nullable: true },
+      { name: 'created_date', type: 'DATETIME', nullable: false, defaultValue: 'CURRENT_TIMESTAMP' },
+      { name: 'updated_date', type: 'DATETIME', nullable: false, defaultValue: 'CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP' }
+    ],
+    indexes: [
+      { name: 'idx_structure_id', columns: ['structure_id'], type: 'UNIQUE' },
+      { name: 'idx_corporation_id', columns: ['corporation_id'], type: 'INDEX' },
+      { name: 'idx_type_id', columns: ['type_id'], type: 'INDEX' },
+      { name: 'idx_system_id', columns: ['system_id'], type: 'INDEX' },
+      { name: 'idx_state', columns: ['state'], type: 'INDEX' },
+      { name: 'idx_fuel_expires', columns: ['fuel_expires'], type: 'INDEX' }
+    ],
+    engine: 'InnoDB',
+    charset: 'utf8mb4',
+    collation: 'utf8mb4_unicode_ci'
+  },
+
+  // Notifications - In-game notification tracking
+  {
+    tableName: 'notifications',
+    columns: [
+      { name: 'id', type: 'BIGINT', nullable: false, primaryKey: true, autoIncrement: true },
+      { name: 'notification_id', type: 'BIGINT', nullable: false, unique: true },
+      { name: 'character_id', type: 'BIGINT', nullable: false },
+      { name: 'sender_id', type: 'BIGINT', nullable: false },
+      { name: 'sender_name', type: 'VARCHAR', size: 255, nullable: true },
+      { name: 'sender_type', type: 'ENUM', nullable: false, comment: "Values: 'character', 'corporation', 'alliance', 'faction', 'other'" },
+      { name: 'type', type: 'VARCHAR', size: 100, nullable: false },
+      { name: 'timestamp', type: 'DATETIME', nullable: false },
+      { name: 'is_read', type: 'BOOLEAN', nullable: false, defaultValue: false },
+      { name: 'text', type: 'TEXT', nullable: true },
+      { name: 'created_date', type: 'DATETIME', nullable: false, defaultValue: 'CURRENT_TIMESTAMP' }
+    ],
+    indexes: [
+      { name: 'idx_notification_id', columns: ['notification_id'], type: 'UNIQUE' },
+      { name: 'idx_character_id', columns: ['character_id'], type: 'INDEX' },
+      { name: 'idx_sender_id', columns: ['sender_id'], type: 'INDEX' },
+      { name: 'idx_type', columns: ['type'], type: 'INDEX' },
+      { name: 'idx_timestamp', columns: ['timestamp'], type: 'INDEX' },
+      { name: 'idx_is_read', columns: ['is_read'], type: 'INDEX' }
+    ],
+    engine: 'InnoDB',
+    charset: 'utf8mb4',
+    collation: 'utf8mb4_unicode_ci'
   }
 ];
 
@@ -710,10 +930,18 @@ export const defaultSystemSettings = [
   { key: 'sync_mining_interval', value: '3600', type: 'number', category: 'sync', description: 'Mining sync interval in seconds' },
   { key: 'sync_market_interval', value: '1800', type: 'number', category: 'sync', description: 'Market sync interval in seconds' },
   { key: 'sync_killmails_interval', value: '900', type: 'number', category: 'sync', description: 'Killmail sync interval in seconds' },
+  { key: 'sync_wallet_journal_interval', value: '3600', type: 'number', category: 'sync', description: 'Wallet journal sync interval in seconds' },
+  { key: 'sync_wallet_transactions_interval', value: '1800', type: 'number', category: 'sync', description: 'Wallet transaction sync interval in seconds' },
+  { key: 'sync_contracts_interval', value: '7200', type: 'number', category: 'sync', description: 'Contract sync interval in seconds' },
+  { key: 'sync_structures_interval', value: '14400', type: 'number', category: 'sync', description: 'Structure sync interval in seconds' },
+  { key: 'sync_notifications_interval', value: '1800', type: 'number', category: 'sync', description: 'Notification sync interval in seconds' },
   { key: 'notifications_manufacturing', value: 'true', type: 'boolean', category: 'notifications', description: 'Enable manufacturing notifications' },
   { key: 'notifications_mining', value: 'true', type: 'boolean', category: 'notifications', description: 'Enable mining notifications' },
   { key: 'notifications_killmails', value: 'true', type: 'boolean', category: 'notifications', description: 'Enable killmail notifications' },
-  { key: 'notifications_markets', value: 'true', type: 'boolean', category: 'notifications', description: 'Enable market notifications' }
+  { key: 'notifications_markets', value: 'true', type: 'boolean', category: 'notifications', description: 'Enable market notifications' },
+  { key: 'notifications_wallet', value: 'true', type: 'boolean', category: 'notifications', description: 'Enable wallet notifications' },
+  { key: 'notifications_contracts', value: 'true', type: 'boolean', category: 'notifications', description: 'Enable contract notifications' },
+  { key: 'notifications_structures', value: 'true', type: 'boolean', category: 'notifications', description: 'Enable structure notifications' }
 ];
 
 // Database schema validation functions

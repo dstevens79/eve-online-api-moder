@@ -109,7 +109,9 @@ export function Settings({ activeTab, onTabChange }: SettingsProps) {
     getRegisteredCorporations,
     registerCorporation,
     updateCorporation,
-    deleteCorporation
+    deleteCorporation,
+    adminConfig,
+    updateAdminConfig
   } = useAuth();
   
   // Get registered corporations
@@ -2455,13 +2457,13 @@ export function Settings({ activeTab, onTabChange }: SettingsProps) {
                 <div className="flex items-center justify-between">
                   <h4 className="font-medium">Registered Corporations</h4>
                   <Badge variant="outline">
-                    {realRegisteredCorps.filter(corp => corp.isActive).length} Active
+                    {registeredCorps.filter(corp => corp.isActive).length} Active
                   </Badge>
                 </div>
                 
-                {realRegisteredCorps.length > 0 ? (
+                {registeredCorps.length > 0 ? (
                   <div className="space-y-3">
-                    {realRegisteredCorps.map((corp) => (
+                    {registeredCorps.map((corp) => (
                       <div key={corp.corporationId} className="p-4 border border-border rounded-lg">
                         <div className="flex items-center justify-between">
                           <div>
@@ -2522,7 +2524,7 @@ export function Settings({ activeTab, onTabChange }: SettingsProps) {
               <div className="grid grid-cols-2 gap-4 p-4 bg-muted/30 rounded-lg">
                 <div className="text-center">
                   <div className="text-2xl font-bold text-accent">
-                    {realRegisteredCorps.reduce((sum, corp) => sum + (corp.isActive ? 1 : 0), 0)}
+                    {registeredCorps.reduce((sum, corp) => sum + (corp.isActive ? 1 : 0), 0)}
                   </div>
                   <div className="text-xs text-muted-foreground">Active Corps</div>
                 </div>

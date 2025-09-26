@@ -37,6 +37,8 @@ interface AuthContextType {
   // Configuration
   esiConfig: { clientId?: string; clientSecret?: string; isConfigured: boolean };
   updateESIConfig: (clientId: string, clientSecret?: string) => void;
+  adminConfig: { username: string; password: string };
+  updateAdminConfig: (config: { username: string; password: string }) => void;
   
   // Force refresh trigger
   authTrigger: number;
@@ -55,6 +57,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
   const [userCredentials, setUserCredentials] = useKV<Record<string, string>>('lmeve-credentials', {});
   const [esiConfiguration, setESIConfiguration] = useKV<{ clientId?: string; clientSecret?: string }>('lmeve-esi-config', {});
   const [registeredCorporations, setRegisteredCorporations] = useKV<CorporationConfig[]>('lmeve-registered-corps', []);
+  const [adminConfig, setAdminConfig] = useKV<{ username: string; password: string }>('admin-config', { username: 'admin', password: '12345' });
   
   // Local state
   const [isLoading, setIsLoading] = useState(false);
@@ -519,6 +522,20 @@ export function AuthProvider({ children }: AuthProviderProps) {
     }
   }, [registeredCorporations, setESIConfiguration]);
 
+  // Update admin configuration
+  const updateAdminConfig = useCallback((config: { username: string; password: string }) => {
+    console.log('🔧 Updating admin configuration');
+    setAdminConfig(config);
+    
+    // Update the credentials storage for the admin user
+    setUserCredentials(prev => ({
+      ...prev,
+      [config.username]: config.password
+    }));
+    
+    console.log('✅ Admin configuration updated');
+  }, [setAdminConfig, setUserCredentials]);
+
   const contextValue: AuthContextType = {
     // Current user state
     user: currentUser,
@@ -554,6 +571,8 @@ export function AuthProvider({ children }: AuthProviderProps) {
       isConfigured: !!esiConfiguration.clientId
     },
     updateESIConfig,
+    adminConfig,
+    updateAdminConfig,
     
     // Force refresh trigger
     authTrigger
