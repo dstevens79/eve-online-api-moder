@@ -381,57 +381,7 @@ function AppContent() {
         <div className="min-h-screen bg-background text-foreground">
         <Toaster />
         
-        {/* Debug overlay */}
-        {process.env.NODE_ENV === 'development' && (
-          <div className="fixed top-4 right-4 z-50 bg-card border border-border rounded p-3 text-xs font-mono max-w-sm">
-            <div className="text-accent font-bold mb-2">DEBUG AUTH STATE</div>
-            <div>User: {currentUser?.characterName || 'null'}</div>
-            <div>Corporation: {currentUser?.corporationName || 'null'}</div>
-            <div>Has User Object: {currentUser ? 'true' : 'false'}</div>
-            <div>Role: {currentUser?.role || 'none'}</div>
-            <div>Auth Method: {currentUser?.authMethod || 'none'}</div>
-            <div>Is Authenticated: {currentAuth ? 'true' : 'false'}</div>
-            <div>Show Quick Login: {showQuickLogin ? 'true' : 'false'}</div>
-            <div>Active Tab: {activeTab}</div>
-            <div>Auth Trigger: {authTrigger}</div>
-            <div>Force Render: {forceRender}</div>
-            <div className="mt-2 text-xs">
-              {currentUser ? (
-                <span className="text-green-400">✅ AUTHENTICATED</span>
-              ) : (
-                <span className="text-red-400">❌ NOT AUTHENTICATED</span>
-              )}
-            </div>
-            <div className="mt-2 space-y-1">
-              <Button 
-                size="sm" 
-                variant="outline" 
-                className="w-full text-xs py-1 h-6"
-                onClick={async () => {
-                  try {
-                    await loginWithCredentials('admin', '12345');
-                    console.log('🧪 Direct login test completed');
-                  } catch (error) {
-                    console.error('🧪 Direct login test failed:', error);
-                  }
-                }}
-              >
-                Test Login
-              </Button>
-              <Button 
-                size="sm" 
-                variant="outline" 
-                className="w-full text-xs py-1 h-6"
-                onClick={() => {
-                  console.log('🧪 Force logout test');
-                  currentLogout();
-                }}
-              >
-                Force Logout
-              </Button>
-            </div>
-          </div>
-        )}
+
         
         {/* Quick Login Overlay */}
         {showQuickLogin && !currentUser && (
@@ -577,6 +527,26 @@ function AppContent() {
                       </p>
                     </div>
                     <div className="flex items-center gap-2">
+                      {/* Test Login Button - Development Only */}
+                      {process.env.NODE_ENV === 'development' && (
+                        <Button 
+                          size="sm" 
+                          variant="outline" 
+                          className="text-xs border-yellow-500/50 text-yellow-400 hover:bg-yellow-500/10"
+                          onClick={async () => {
+                            try {
+                              await loginWithCredentials('admin', '12345');
+                              console.log('🧪 Direct login test completed');
+                            } catch (error) {
+                              console.error('🧪 Direct login test failed:', error);
+                            }
+                          }}
+                          title="Development: Test Admin Login"
+                        >
+                          Test Login
+                        </Button>
+                      )}
+                      
                       {/* View Mode Toggle */}
                       <Button
                         variant="outline"
@@ -619,6 +589,26 @@ function AppContent() {
                 ) : (
                   // Unauthenticated user section
                   <div className="flex items-center gap-2">
+                    {/* Test Login Button - Development Only */}
+                    {process.env.NODE_ENV === 'development' && (
+                      <Button 
+                        size="sm" 
+                        variant="outline" 
+                        className="text-xs border-yellow-500/50 text-yellow-400 hover:bg-yellow-500/10"
+                        onClick={async () => {
+                          try {
+                            await loginWithCredentials('admin', '12345');
+                            console.log('🧪 Direct login test completed');
+                          } catch (error) {
+                            console.error('🧪 Direct login test failed:', error);
+                          }
+                        }}
+                        title="Development: Test Admin Login"
+                      >
+                        Test Login
+                      </Button>
+                    )}
+                    
                     {/* View Mode Toggle - always visible */}
                     <Button
                       variant="outline"
