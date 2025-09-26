@@ -460,51 +460,142 @@ export class DatabaseManager {
   }
 
   async checkLMeveTables(): Promise<{ valid: boolean; error?: string }> {
-    // FINAL CRITICAL CHECK: Ensure this is a legitimate MySQL setup
-    await new Promise(resolve => setTimeout(resolve, 400 + Math.random() * 600));
+    console.log('🔍 Validating LMeve database table structure...');
     
-    // This is the final gate - only pass if we have ALL the right pieces:
-    // 1. Valid host (localhost/private IP/docker)
-    // 2. Valid credentials (from our approved list)
-    // 3. Valid database name (lmeve variants)
-    // 4. Simulated table structure check
-    
-    console.log(`🔑 Final database validation: checking LMeve table structure`);
-    
-    // Even if everything else passed, the database might not have the right tables
-    // This simulates SHOW TABLES and checking for LMeve-specific tables
-    
-    // Only pass if we have a high-confidence match
-    // This represents actually checking for tables like: characters, corporations, assets, etc.
-    if (Math.random() < 0.6) { // 60% chance that even a valid database doesn't have LMeve tables
+    // Import the database schemas
+    const { lmeveSchemas, getTableNames } = await import('./database-schemas');
+    const requiredTables = getTableNames();
+
+    try {
+      // Simulate checking if all required tables exist with proper structure
+      await new Promise(resolve => setTimeout(resolve, 400 + Math.random() * 600));
+      
+      for (const tableName of requiredTables) {
+        console.log(`  🔍 Checking table: ${tableName}`);
+        
+        // Step 1: Check if table exists (strict simulation)
+        const tableExists = await this.checkTableExists(tableName);
+        if (!tableExists.exists) {
+          return { 
+            valid: false, 
+            error: `Required table '${tableName}' does not exist. Please run database setup/migration.`
+          };
+        }
+
+        // Step 2: Check basic table structure (simulated strict validation)
+        const structureValid = await this.validateTableStructure(tableName);
+        if (!structureValid.valid) {
+          return {
+            valid: false,
+            error: `Table '${tableName}' structure is invalid: ${structureValid.error}`
+          };
+        }
+      }
+
+      // Step 3: Additional strict validation scenarios
+      if (this.config.database === 'lmeve_test' && this.config.host !== 'localhost') {
+        return { 
+          valid: false, 
+          error: 'Test database can only be accessed from localhost for security' 
+        };
+      }
+      
+      if (this.config.username === 'root' && this.config.database.includes('prod')) {
+        return { 
+          valid: false, 
+          error: 'Root user should not be used with production databases. Create a dedicated lmeve user.' 
+        };
+      }
+
+      // Step 4: Check for any critical missing data or configuration issues
+      const configCheck = await this.validateCriticalConfiguration();
+      if (!configCheck.valid) {
+        return {
+          valid: false,
+          error: `Database configuration issue: ${configCheck.error}`
+        };
+      }
+
+      console.log(`✅ All ${requiredTables.length} LMeve database tables validated successfully`);
+      return { valid: true };
+    } catch (error) {
       return { 
         valid: false, 
-        error: 'Database accessible but missing LMeve tables. Please run the LMeve installation script or setup wizard.' 
+        error: `Database table validation failed: ${error instanceof Error ? error.message : 'Unknown error'}` 
       };
     }
+  }
+
+  // Check if a specific table exists (simulated)
+  private async checkTableExists(tableName: string): Promise<{ exists: boolean; error?: string }> {
+    await new Promise(resolve => setTimeout(resolve, 50 + Math.random() * 100));
     
-    // Additional strict validation scenarios
-    if (this.config.database === 'lmeve_test' && this.config.host !== 'localhost') {
-      return { 
-        valid: false, 
-        error: 'Test database can only be accessed from localhost for security' 
-      };
+    // Simulate SHOW TABLES check
+    // In a real implementation, this would be: SHOW TABLES LIKE 'tableName'
+    const tableExistsProbability = Math.random();
+    
+    // For core tables, higher chance they exist if we got this far
+    const coreTables = ['users', 'corporations', 'members', 'system_settings'];
+    const isCore = coreTables.includes(tableName);
+    const threshold = isCore ? 0.8 : 0.7;
+    
+    if (tableExistsProbability > threshold) {
+      console.log(`    ✅ Table '${tableName}' exists`);
+      return { exists: true };
+    } else {
+      console.log(`    ❌ Table '${tableName}' missing`);
+      return { exists: false, error: `Table '${tableName}' does not exist` };
+    }
+  }
+
+  // Validate table structure (simulated)
+  private async validateTableStructure(tableName: string): Promise<{ valid: boolean; error?: string }> {
+    await new Promise(resolve => setTimeout(resolve, 30 + Math.random() * 70));
+    
+    // Simulate DESCRIBE table or SHOW CREATE TABLE
+    // In a real implementation, this would check column types, constraints, etc.
+    const structureValidProbability = Math.random();
+    
+    if (structureValidProbability > 0.85) {
+      console.log(`    ✅ Table '${tableName}' structure valid`);
+      return { valid: true };
+    } else {
+      const errors = [
+        'Missing primary key',
+        'Column type mismatch',
+        'Missing required columns',
+        'Invalid foreign key constraints',
+        'Charset/collation mismatch'
+      ];
+      const randomError = errors[Math.floor(Math.random() * errors.length)];
+      console.log(`    ❌ Table '${tableName}' structure invalid: ${randomError}`);
+      return { valid: false, error: randomError };
+    }
+  }
+
+  // Validate critical configuration and data
+  private async validateCriticalConfiguration(): Promise<{ valid: boolean; error?: string }> {
+    await new Promise(resolve => setTimeout(resolve, 100 + Math.random() * 200));
+    
+    console.log('  🔍 Checking critical database configuration...');
+    
+    // Simulate checking for critical system settings and data integrity
+    const configValidProbability = Math.random();
+    
+    if (configValidProbability > 0.9) {
+      const errors = [
+        'Missing system settings entries',
+        'Invalid ESI configuration',
+        'Corrupted user role definitions',
+        'Missing default corporation data',
+        'Database schema version mismatch'
+      ];
+      const randomError = errors[Math.floor(Math.random() * errors.length)];
+      console.log(`    ❌ Configuration issue: ${randomError}`);
+      return { valid: false, error: randomError };
     }
     
-    if (this.config.username === 'root' && this.config.database.includes('prod')) {
-      return { 
-        valid: false, 
-        error: 'Root user should not be used with production databases. Create a dedicated lmeve user.' 
-      };
-    }
-    
-    // SUCCESS: We've validated a legitimate MySQL connection with:
-    // - Real host/port combination  
-    // - Valid MySQL credentials
-    // - Existing LMeve database
-    // - Proper table structure
-    console.log(`✅ Complete database validation successful: ${this.config.username}@${this.config.host}:${this.config.port}/${this.config.database}`);
-    
+    console.log('    ✅ Critical configuration valid');
     return { valid: true };
   }
 

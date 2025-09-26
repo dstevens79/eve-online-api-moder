@@ -10,6 +10,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Progress } from '@/components/ui/progress';
 import { Separator } from '@/components/ui/separator';
 import { Alert, AlertDescription } from '@/components/ui/alert';
+import { DatabaseSchemaManager } from '@/components/DatabaseSchemaManager';
 import { 
   Gear, 
   Key, 
@@ -2007,6 +2008,11 @@ export function Settings({ activeTab, onTabChange }: SettingsProps) {
                   </div>
                 </div>
               )}
+
+              {/* Database Schema Manager */}
+              <div className="border-t border-border pt-6">
+                <DatabaseSchemaManager />
+              </div>
 
               {/* Save Database Settings */}
               <div className="flex justify-end gap-2 pt-4 border-t border-border">
