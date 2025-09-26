@@ -2709,6 +2709,7 @@ echo "SDE import complete!"`;
                         variant="outline"
                         size="sm"
                         className="w-full text-xs h-8"
+                      >
                         <Upload size={12} className="mr-1" />
                         Deploy Scripts
                       </Button>
@@ -2727,6 +2728,7 @@ echo "SDE import complete!"`;
                         </Button>
                       )}
                       
+                      <Button
                         onClick={handleRemoteSetup}
                         variant="outline"
                         size="sm"
