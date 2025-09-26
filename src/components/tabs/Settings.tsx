@@ -49,7 +49,7 @@ import {
   FileText
 } from '@phosphor-icons/react';
 import { useKV } from '@github/spark/hooks';
-import { useCorporationAuth, type ESIConfig } from '@/lib/corp-auth';
+import { useAuth } from '@/lib/auth-provider';
 import { CorpSettings } from '@/lib/types';
 import { toast } from 'sonner';
 import { eveApi, type CharacterInfo, type CorporationInfo } from '@/lib/eveApi';
@@ -101,29 +101,20 @@ interface SettingsProps {
 }
 
 export function Settings({ activeTab, onTabChange }: SettingsProps) {
-  const { 
-    user, 
-    updateAdminConfig, 
-    adminConfig, 
-    esiConfig, 
-    updateESIConfig, 
-    registeredCorps 
-  } = useCorporationAuth();
-  
-  // Use real auth provider for corporation management
+  // Use main auth provider for all authentication
   const {
-    esiConfig: realESIConfig,
-    updateESIConfig: realUpdateESIConfig,
+    user,
+    esiConfig,
+    updateESIConfig,
     getRegisteredCorporations,
     registerCorporation,
     updateCorporation,
     deleteCorporation
   } = useAuth();
   
+  // Get registered corporations
+  const registeredCorps = getRegisteredCorporations();
   const { sdeStatus, checkForUpdates, downloadSDE, updateDatabase, getDatabaseStats } = useSDEManager();
-  
-  // Get real registered corporations
-  const realRegisteredCorps = getRegisteredCorporations();
   const [generalSettings, setGeneralSettings] = useGeneralSettings();
   const [databaseSettings, setDatabaseSettings] = useDatabaseSettings();
   const [esiSettings, setESISettings] = useESISettings();
@@ -299,8 +290,8 @@ export function Settings({ activeTab, onTabChange }: SettingsProps) {
       }
       
       // Update the auth provider with new ESI configuration
-      const clientId = esiSettings.clientId || realESIConfig.clientId || '';
-      const clientSecret = esiSettings.clientSecret || realESIConfig.clientSecret;
+      const clientId = esiSettings.clientId || esiConfig.clientId || '';
+      const clientSecret = esiSettings.clientSecret || esiConfig.clientSecret;
       
       if (!clientId) {
         toast.error('Client ID is required');
@@ -310,7 +301,7 @@ export function Settings({ activeTab, onTabChange }: SettingsProps) {
       console.log('🔧 Saving ESI configuration to auth provider:', { clientId, hasSecret: !!clientSecret });
       
       // Update auth provider ESI config
-      realUpdateESIConfig(clientId, clientSecret);
+      updateESIConfig(clientId, clientSecret);
       
       // Save to local settings as well
       setESISettings({ ...esiSettings });
@@ -831,22 +822,22 @@ export function Settings({ activeTab, onTabChange }: SettingsProps) {
   // Initialize ESI settings with proper state management
   useEffect(() => {
     console.log('🔄 ESI Config sync check:', {
-      realClientId: realESIConfig.clientId,
-      realSecret: !!realESIConfig.clientSecret,
+      realClientId: esiConfig.clientId,
+      realSecret: !!esiConfig.clientSecret,
       localClientId: esiSettings.clientId,
       localSecret: !!esiSettings.clientSecret
     });
     
     // Initialize local state with values from auth provider if they exist and local state is empty
-    if (realESIConfig.clientId && !esiSettings.clientId) {
+    if (esiConfig.clientId && !esiSettings.clientId) {
       console.log('📥 Initializing ESI settings from auth provider');
       setESISettings(prev => ({
         ...prev,
-        clientId: realESIConfig.clientId || '',
-        clientSecret: realESIConfig.clientSecret || ''
+        clientId: esiConfig.clientId || '',
+        clientSecret: esiConfig.clientSecret || ''
       }));
     }
-  }, [realESIConfig.clientId, realESIConfig.clientSecret, esiSettings.clientId, esiSettings.clientSecret, setESISettings]);
+  }, [esiConfig.clientId, esiConfig.clientSecret, esiSettings.clientId, esiSettings.clientSecret, setESISettings]);
 
   // Load SDE stats when component mounts
   useEffect(() => {
@@ -1354,12 +1345,12 @@ export function Settings({ activeTab, onTabChange }: SettingsProps) {
                       <Label htmlFor="clientId">EVE Online Client ID</Label>
                       <Input
                         id="clientId"
-                        value={esiSettings.clientId || realESIConfig.clientId || ''}
+                        value={esiSettings.clientId || esiConfig.clientId || ''}
                         onChange={(e) => updateESISetting('clientId', e.target.value)}
                         placeholder="Your EVE Online application Client ID"
-                        className={esiSettings.clientId && esiSettings.clientId !== realESIConfig.clientId ? 'border-accent' : ''}
+                        className={esiSettings.clientId && esiSettings.clientId !== esiConfig.clientId ? 'border-accent' : ''}
                       />
-                      {esiSettings.clientId && esiSettings.clientId !== realESIConfig.clientId && (
+                      {esiSettings.clientId && esiSettings.clientId !== esiConfig.clientId && (
                         <p className="text-xs text-accent">• Unsaved changes</p>
                       )}
                     </div>
@@ -1369,10 +1360,10 @@ export function Settings({ activeTab, onTabChange }: SettingsProps) {
                         <Input
                           id="clientSecret"
                           type={showSecrets ? "text" : "password"}
-                          value={esiSettings.clientSecret || realESIConfig.clientSecret || ''}
+                          value={esiSettings.clientSecret || esiConfig.clientSecret || ''}
                           onChange={(e) => updateESISetting('clientSecret', e.target.value)}
                           placeholder="Your EVE Online application Client Secret"
-                          className={esiSettings.clientSecret && esiSettings.clientSecret !== realESIConfig.clientSecret ? 'border-accent' : ''}
+                          className={esiSettings.clientSecret && esiSettings.clientSecret !== esiConfig.clientSecret ? 'border-accent' : ''}
                         />
                         <Button
                           type="button"
@@ -1384,7 +1375,7 @@ export function Settings({ activeTab, onTabChange }: SettingsProps) {
                           {showSecrets ? <EyeSlash size={16} /> : <Eye size={16} />}
                         </Button>
                       </div>
-                      {esiSettings.clientSecret && esiSettings.clientSecret !== realESIConfig.clientSecret && (
+                      {esiSettings.clientSecret && esiSettings.clientSecret !== esiConfig.clientSecret && (
                         <p className="text-xs text-accent">• Unsaved changes</p>
                       )}
                     </div>
@@ -1392,10 +1383,10 @@ export function Settings({ activeTab, onTabChange }: SettingsProps) {
                   <div className="flex gap-2">
                     <Button
                       onClick={() => {
-                        const clientId = esiSettings.clientId || realESIConfig.clientId || '';
-                        const clientSecret = esiSettings.clientSecret || realESIConfig.clientSecret;
+                        const clientId = esiSettings.clientId || esiConfig.clientId || '';
+                        const clientSecret = esiSettings.clientSecret || esiConfig.clientSecret;
                         if (clientId.trim()) {
-                          realUpdateESIConfig(clientId.trim(), clientSecret || '');
+                          updateESIConfig(clientId.trim(), clientSecret || '');
                           // Clear temporary state after saving
                           setESISettings(prev => ({ ...prev, clientId: '', clientSecret: '' }));
                           toast.success('ESI configuration updated');
@@ -1404,16 +1395,16 @@ export function Settings({ activeTab, onTabChange }: SettingsProps) {
                         }
                       }}
                       size="sm"
-                      disabled={!esiSettings.clientId && !realESIConfig.clientId}
+                      disabled={!esiSettings.clientId && !esiConfig.clientId}
                       className={
-                        (esiSettings.clientId && esiSettings.clientId !== realESIConfig.clientId) ||
-                        (esiSettings.clientSecret && esiSettings.clientSecret !== realESIConfig.clientSecret)
+                        (esiSettings.clientId && esiSettings.clientId !== esiConfig.clientId) ||
+                        (esiSettings.clientSecret && esiSettings.clientSecret !== esiConfig.clientSecret)
                           ? 'bg-accent hover:bg-accent/90 text-accent-foreground'
                           : ''
                       }
                     >
-                      {((esiSettings.clientId && esiSettings.clientId !== realESIConfig.clientId) ||
-                        (esiSettings.clientSecret && esiSettings.clientSecret !== realESIConfig.clientSecret)) 
+                      {((esiSettings.clientId && esiSettings.clientId !== esiConfig.clientId) ||
+                        (esiSettings.clientSecret && esiSettings.clientSecret !== esiConfig.clientSecret)) 
                         ? 'Save Changes' : 'Save ESI Config'}
                     </Button>
                     <Button
@@ -2532,7 +2523,7 @@ export function Settings({ activeTab, onTabChange }: SettingsProps) {
                 </div>
                 <div className="text-center">
                   <div className="text-2xl font-bold text-accent">
-                    {realESIConfig.clientId ? '✓' : '✗'}
+                    {esiConfig.clientId ? '✓' : '✗'}
                   </div>
                   <div className="text-xs text-muted-foreground">ESI Configured</div>
                 </div>

@@ -2,11 +2,11 @@ import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { LoginPrompt } from '@/components/LoginPrompt';
 import { Package } from '@phosphor-icons/react';
-import { useCorporationAuth } from '@/lib/corp-auth';
+import { useAuth } from '@/lib/auth-provider';
 import { TabComponentProps } from '@/lib/types';
 
 export function Assets({ onLoginClick }: TabComponentProps) {
-  const { user } = useCorporationAuth();
+  const { user } = useAuth();
 
   // Show login prompt if not authenticated
   // Show login prompt if not authenticated - TEMPORARILY DISABLED FOR DEBUG

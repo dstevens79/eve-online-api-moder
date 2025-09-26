@@ -1,6 +1,6 @@
 // Enhanced data service that integrates authentication, ESI API, and database
 import React, { createContext, useContext, useEffect, useState } from 'react';
-import { useCorporationAuth } from './corp-auth';
+import { useAuth } from './auth-provider';
 import { DatabaseManager } from './database';
 import { LMeveDataService } from './dataService';
 import { eveApi } from './eveApi';
@@ -70,7 +70,7 @@ interface LMeveDataContextType {
 const LMeveDataContext = createContext<LMeveDataContextType | null>(null);
 
 export function LMeveDataProvider({ children }: { children: React.ReactNode }) {
-  const { user, isAuthenticated } = useCorporationAuth();
+  const { user, isAuthenticated } = useAuth();
   const [dbSettings] = useKV('corp-settings', null);
   
   // Services

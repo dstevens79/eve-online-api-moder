@@ -6,7 +6,7 @@ import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { LoginPrompt } from '@/components/LoginPrompt';
-import { useCorporationAuth } from '@/lib/corp-auth';
+import { useAuth } from '@/lib/auth-provider';
 import { TabComponentProps, IncomeRecord, IncomeAnalytics } from '@/lib/types';
 import { 
   TrendUp,
@@ -27,7 +27,7 @@ import { toast } from 'sonner';
 import { useIncomeSettings } from '@/lib/persistenceService';
 
 export function Income({ onLoginClick }: TabComponentProps) {
-  const { user } = useCorporationAuth();
+  const { user } = useAuth();
   const [incomeRecords] = useKV<IncomeRecord[]>('income-records', []);
   const [incomeSettings, setIncomeSettings] = useIncomeSettings();
   const [selectedPeriod, setSelectedPeriod] = useState('30d');

@@ -4,7 +4,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 
 import { useLMeveData } from '@/lib/LMeveDataContext';
-import { useCorporationAuth } from '@/lib/corp-auth';
+import { useAuth } from '@/lib/auth-provider';
 import { useDatabase } from '@/lib/DatabaseContext';
 import { 
   Users, 
@@ -29,7 +29,7 @@ interface DashboardProps {
 }
 
 export function Dashboard({ onLoginClick }: DashboardProps) {
-  const { user } = useCorporationAuth();
+  const { user } = useAuth();
   const { 
     dashboardStats, 
     refreshDashboard,

@@ -12,7 +12,7 @@ import { Progress } from '@/components/ui/progress';
 import { LoginPrompt } from '@/components/LoginPrompt';
 import { useKV } from '@github/spark/hooks';
 import { useEVEData } from '@/hooks/useEVEData';
-import { useCorporationAuth } from '@/lib/corp-auth';
+import { useAuth } from '@/lib/auth-provider';
 import { 
   Factory, 
   Plus, 
@@ -44,7 +44,7 @@ interface ManufacturingProps {
 }
 
 export function Manufacturing({ onLoginClick }: ManufacturingProps) {
-  const { user } = useCorporationAuth();
+  const { user } = useAuth();
   const [activeJobs, setActiveJobs] = useKV<ManufacturingJob[]>('manufacturing-jobs', []);
   const [blueprints, setBlueprints] = useKV<Blueprint[]>('blueprints-library', []);
   const [productionPlans, setProductionPlans] = useKV<ProductionPlan[]>('production-plans', []);
@@ -54,6 +54,7 @@ export function Manufacturing({ onLoginClick }: ManufacturingProps) {
     corpId: 498125261,
     timezone: 'UTC',
     language: 'en',
+    sessionTimeout: true,
     notifications: {
       manufacturing: true,
       mining: true,
@@ -88,6 +89,13 @@ export function Manufacturing({ onLoginClick }: ManufacturingProps) {
       queryTimeout: 30,
       autoReconnect: true,
       charset: 'utf8mb4'
+    },
+    sudoDatabase: {
+      host: 'localhost',
+      port: 3306,
+      username: 'root',
+      password: '',
+      ssl: false
     }
   });
 

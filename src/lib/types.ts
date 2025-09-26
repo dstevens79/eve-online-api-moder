@@ -545,6 +545,13 @@ export interface ESIAuthState {
   corporationId?: number;
 }
 
+export interface ESIConfig {
+  clientId: string;
+  secretKey: string;
+  baseUrl: string;
+  userAgent?: string;
+}
+
 export interface ESITokenResponse {
   access_token: string;
   token_type: string;

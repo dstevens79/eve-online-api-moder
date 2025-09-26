@@ -18,14 +18,14 @@ import {
 } from '@phosphor-icons/react';
 import { Member } from '@/lib/types';
 import { useLMeveData } from '@/lib/LMeveDataContext';
-import { useCorporationAuth } from '@/lib/corp-auth';
+import { useAuth } from '@/lib/auth-provider';
 
 interface MembersProps {
   onLoginClick?: () => void;
 }
 
 export function Members({ onLoginClick }: MembersProps) {
-  const { user, isAuthenticated } = useCorporationAuth();
+  const { user, isAuthenticated } = useAuth();
   const { members, loading, refreshMembers } = useLMeveData();
   const [searchTerm, setSearchTerm] = useState('');
   const [roleFilter, setRoleFilter] = useState('all');
