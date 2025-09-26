@@ -10,7 +10,9 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Progress } from '@/components/ui/progress';
 import { Separator } from '@/components/ui/separator';
 import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { DatabaseSchemaManager } from '@/components/DatabaseSchemaManager';
+import { esiRouteManager, useESIRoutes } from '@/lib/esi-routes';
 import { 
   Gear, 
   Key, 
@@ -47,7 +49,10 @@ import {
   Building,
   Wrench,
   Terminal,
-  FileText
+  FileText,
+  Network,
+  CaretUp,
+  CaretDown
 } from '@phosphor-icons/react';
 import { useKV } from '@github/spark/hooks';
 import { useAuth } from '@/lib/auth-provider';
@@ -327,13 +332,33 @@ export function Settings({ activeTab, onTabChange }: SettingsProps) {
 
   const saveSyncSettings = async () => {
     try {
+      // Save sync intervals
       setSyncSettings({ ...syncSettings });
-      toast.success('Sync settings saved successfully');
+      
+      // Save ESI route configurations
+      const routeConfig = esiRouteManager.exportConfig();
+      // Store ESI routes in localStorage for persistence
+      localStorage.setItem('lmeve-esi-routes', JSON.stringify(routeConfig));
+      
+      toast.success('Sync settings and ESI routes saved successfully');
     } catch (error) {
       console.error('Failed to save sync settings:', error);
       toast.error('Failed to save sync settings');
     }
   };
+
+  // Load ESI routes from localStorage on mount
+  React.useEffect(() => {
+    try {
+      const storedRoutes = localStorage.getItem('lmeve-esi-routes');
+      if (storedRoutes) {
+        const routeConfig = JSON.parse(storedRoutes);
+        esiRouteManager.importConfig(routeConfig);
+      }
+    } catch (error) {
+      console.warn('Failed to load stored ESI routes:', error);
+    }
+  }, []);
 
   const saveNotificationSettings = async () => {
     try {
@@ -1086,6 +1111,87 @@ export function Settings({ activeTab, onTabChange }: SettingsProps) {
         .catch(() => toast.error('Failed to copy commands'));
     } else {
       toast.error('Clipboard not available');
+    }
+  };
+
+  // ESI Route validation handlers
+  const validateESIRoute = async (processName: string, version?: string) => {
+    setValidatingRoutes(true);
+    try {
+      const result = await esiRoutes.validateRoute(processName, version);
+      setESIRouteValidation(prev => ({
+        ...prev,
+        [processName]: result.isValid
+      }));
+      
+      if (result.isValid) {
+        toast.success(`ESI route ${processName} (${version || 'current'}) is valid`);
+        setRouteUpdateResults(prev => ({
+          ...prev,
+          [processName]: `✓ Valid (${result.status})`
+        }));
+      } else {
+        toast.error(`ESI route ${processName} validation failed: ${result.error}`);
+        setRouteUpdateResults(prev => ({
+          ...prev,
+          [processName]: `✗ Failed (${result.error})`
+        }));
+      }
+    } catch (error) {
+      toast.error('Route validation failed');
+      setRouteUpdateResults(prev => ({
+        ...prev,
+        [processName]: `✗ Error`
+      }));
+    } finally {
+      setValidatingRoutes(false);
+    }
+  };
+
+  const validateAllESIRoutes = async () => {
+    setValidatingRoutes(true);
+    toast.info('Validating all ESI routes...');
+    
+    try {
+      const results = await esiRoutes.checkForUpdates();
+      const validationResults = {};
+      
+      const processNames = esiRoutes.getProcessNames();
+      for (const processName of processNames) {
+        const validation = await esiRoutes.validateRoute(processName);
+        validationResults[processName] = validation.isValid;
+        
+        setRouteUpdateResults(prev => ({
+          ...prev,
+          [processName]: validation.isValid ? '✓ Valid' : `✗ Failed: ${validation.error}`
+        }));
+      }
+      
+      setESIRouteValidation(validationResults);
+      
+      if (results.hasUpdates) {
+        toast.success(`Route validation complete. ${Object.keys(results.updates).length} updates available`);
+      } else {
+        toast.success('All routes validated successfully');
+      }
+    } catch (error) {
+      toast.error('Bulk route validation failed');
+    } finally {
+      setValidatingRoutes(false);
+    }
+  };
+
+  const updateESIRouteVersion = (processName: string, version: string) => {
+    const success = esiRoutes.updateVersion(processName, version);
+    if (success) {
+      toast.success(`Updated ${processName} to ESI version ${version}`);
+      // Clear previous validation results
+      setRouteUpdateResults(prev => ({
+        ...prev,
+        [processName]: 'Updated - revalidation needed'
+      }));
+    } else {
+      toast.error(`Failed to update ${processName} route version`);
     }
   };
 
@@ -2591,7 +2697,62 @@ export function Settings({ activeTab, onTabChange }: SettingsProps) {
                 </div>
               </div>
 
-              {/* Individual Process Configuration */}
+              {/* ESI Route Validation */}
+              <div className="border-t border-border pt-6 space-y-4">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <Network size={18} className="text-accent" />
+                    <h4 className="font-medium">ESI Route Management</h4>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Button
+                      onClick={validateAllESIRoutes}
+                      disabled={validatingRoutes}
+                      size="sm"
+                      variant="outline"
+                    >
+                      {validatingRoutes ? (
+                        <>
+                          <ArrowClockwise size={16} className="mr-2 animate-spin" />
+                          Validating...
+                        </>
+                      ) : (
+                        <>
+                          <CheckCircle size={16} className="mr-2" />
+                          Validate All Routes
+                        </>
+                      )}
+                    </Button>
+                  </div>
+                </div>
+
+                <Alert>
+                  <Info size={16} />
+                  <AlertDescription>
+                    ESI routes can have multiple versions. LMeve automatically selects optimal versions, but you can override them here. 
+                    Use "Validate" to test if a route version is currently supported by CCP's ESI API.
+                  </AlertDescription>
+                </Alert>
+
+                {/* Route validation results summary */}
+                {Object.keys(routeUpdateResults).length > 0 && (
+                  <div className="p-3 bg-muted/30 rounded-lg">
+                    <div className="text-sm font-medium mb-2">Last Validation Results:</div>
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-2 text-xs">
+                      {Object.entries(routeUpdateResults).map(([process, result]) => (
+                        <div key={process} className="flex items-center gap-1">
+                          <span className="capitalize">{process}:</span>
+                          <span className={result.startsWith('✓') ? 'text-green-400' : 'text-red-400'}>
+                            {result}
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* Individual Process Configuration with ESI Route Selection */}
               <div className="space-y-4">
                 <div className="flex items-center justify-between">
                   <h4 className="font-medium">Individual Sync Processes</h4>
@@ -2647,8 +2808,39 @@ export function Settings({ activeTab, onTabChange }: SettingsProps) {
                         <Badge variant="default" className="text-xs">Success</Badge>
                       </div>
                     </div>
-                    <div className="text-xs text-muted-foreground mt-2">
-                      <strong>Process:</strong> getMemberTracking.php • <strong>ESI Endpoint:</strong> /v4/corporations/{'{corporation_id}'}/membertracking/
+                    <div className="text-xs text-muted-foreground mt-2 space-y-1">
+                      <div><strong>Process:</strong> getMemberTracking.php</div>
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <strong>ESI Endpoint:</strong> 
+                        <Select 
+                          value={esiRoutes.getRoute('members')?.currentVersion || 'v4'}
+                          onValueChange={(version) => updateESIRouteVersion('members', version)}
+                        >
+                          <SelectTrigger className="w-16 h-6 text-xs">
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {(esiRoutes.getRoute('members')?.versions || ['v3', 'v4']).map(version => (
+                              <SelectItem key={version} value={version}>{version}</SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                        <span>/corporations/{'{corporation_id}'}/membertracking/</span>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          className="h-6 px-2 text-xs"
+                          onClick={() => validateESIRoute('members')}
+                          disabled={validatingRoutes}
+                        >
+                          {validatingRoutes ? '...' : 'Validate'}
+                        </Button>
+                        {esiRouteValidation.members !== undefined && (
+                          <Badge variant={esiRouteValidation.members ? "default" : "destructive"} className="text-xs h-5">
+                            {esiRouteValidation.members ? '✓' : '✗'}
+                          </Badge>
+                        )}
+                      </div>
                     </div>
                   </div>
 
@@ -2698,8 +2890,39 @@ export function Settings({ activeTab, onTabChange }: SettingsProps) {
                         <Badge variant="default" className="text-xs">Success</Badge>
                       </div>
                     </div>
-                    <div className="text-xs text-muted-foreground mt-2">
-                      <strong>Process:</strong> getAssets.php • <strong>ESI Endpoint:</strong> /v5/corporations/{'{corporation_id}'}/assets/
+                    <div className="text-xs text-muted-foreground mt-2 space-y-1">
+                      <div><strong>Process:</strong> getAssets.php</div>
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <strong>ESI Endpoint:</strong> 
+                        <Select 
+                          value={esiRoutes.getRoute('assets')?.currentVersion || 'v5'}
+                          onValueChange={(version) => updateESIRouteVersion('assets', version)}
+                        >
+                          <SelectTrigger className="w-16 h-6 text-xs">
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {(esiRoutes.getRoute('assets')?.versions || ['v3', 'v4', 'v5']).map(version => (
+                              <SelectItem key={version} value={version}>{version}</SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                        <span>/corporations/{'{corporation_id}'}/assets/</span>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          className="h-6 px-2 text-xs"
+                          onClick={() => validateESIRoute('assets')}
+                          disabled={validatingRoutes}
+                        >
+                          {validatingRoutes ? '...' : 'Validate'}
+                        </Button>
+                        {esiRouteValidation.assets !== undefined && (
+                          <Badge variant={esiRouteValidation.assets ? "default" : "destructive"} className="text-xs h-5">
+                            {esiRouteValidation.assets ? '✓' : '✗'}
+                          </Badge>
+                        )}
+                      </div>
                     </div>
                   </div>
 
@@ -2749,8 +2972,39 @@ export function Settings({ activeTab, onTabChange }: SettingsProps) {
                         <Badge variant="default" className="text-xs">Success</Badge>
                       </div>
                     </div>
-                    <div className="text-xs text-muted-foreground mt-2">
-                      <strong>Process:</strong> getIndustryJobs.php • <strong>ESI Endpoint:</strong> /v1/corporations/{'{corporation_id}'}/industry/jobs/
+                    <div className="text-xs text-muted-foreground mt-2 space-y-1">
+                      <div><strong>Process:</strong> getIndustryJobs.php</div>
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <strong>ESI Endpoint:</strong> 
+                        <Select 
+                          value={esiRoutes.getRoute('manufacturing')?.currentVersion || 'v1'}
+                          onValueChange={(version) => updateESIRouteVersion('manufacturing', version)}
+                        >
+                          <SelectTrigger className="w-16 h-6 text-xs">
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {(esiRoutes.getRoute('manufacturing')?.versions || ['v1']).map(version => (
+                              <SelectItem key={version} value={version}>{version}</SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                        <span>/corporations/{'{corporation_id}'}/industry/jobs/</span>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          className="h-6 px-2 text-xs"
+                          onClick={() => validateESIRoute('manufacturing')}
+                          disabled={validatingRoutes}
+                        >
+                          {validatingRoutes ? '...' : 'Validate'}
+                        </Button>
+                        {esiRouteValidation.manufacturing !== undefined && (
+                          <Badge variant={esiRouteValidation.manufacturing ? "default" : "destructive"} className="text-xs h-5">
+                            {esiRouteValidation.manufacturing ? '✓' : '✗'}
+                          </Badge>
+                        )}
+                      </div>
                     </div>
                   </div>
 
@@ -2800,8 +3054,39 @@ export function Settings({ activeTab, onTabChange }: SettingsProps) {
                         <Badge variant="default" className="text-xs">Success</Badge>
                       </div>
                     </div>
-                    <div className="text-xs text-muted-foreground mt-2">
-                      <strong>Process:</strong> getMiningLedger.php • <strong>ESI Endpoint:</strong> /v1/corporations/{'{corporation_id}'}/mining/
+                    <div className="text-xs text-muted-foreground mt-2 space-y-1">
+                      <div><strong>Process:</strong> getMiningLedger.php</div>
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <strong>ESI Endpoint:</strong> 
+                        <Select 
+                          value={esiRoutes.getRoute('mining')?.currentVersion || 'v1'}
+                          onValueChange={(version) => updateESIRouteVersion('mining', version)}
+                        >
+                          <SelectTrigger className="w-16 h-6 text-xs">
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {(esiRoutes.getRoute('mining')?.versions || ['v1']).map(version => (
+                              <SelectItem key={version} value={version}>{version}</SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                        <span>/corporations/{'{corporation_id}'}/mining/</span>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          className="h-6 px-2 text-xs"
+                          onClick={() => validateESIRoute('mining')}
+                          disabled={validatingRoutes}
+                        >
+                          {validatingRoutes ? '...' : 'Validate'}
+                        </Button>
+                        {esiRouteValidation.mining !== undefined && (
+                          <Badge variant={esiRouteValidation.mining ? "default" : "destructive"} className="text-xs h-5">
+                            {esiRouteValidation.mining ? '✓' : '✗'}
+                          </Badge>
+                        )}
+                      </div>
                     </div>
                   </div>
 
@@ -2851,8 +3136,39 @@ export function Settings({ activeTab, onTabChange }: SettingsProps) {
                         <Badge variant="default" className="text-xs">Success</Badge>
                       </div>
                     </div>
-                    <div className="text-xs text-muted-foreground mt-2">
-                      <strong>Process:</strong> getMarketOrders.php • <strong>ESI Endpoint:</strong> /v3/corporations/{'{corporation_id}'}/orders/
+                    <div className="text-xs text-muted-foreground mt-2 space-y-1">
+                      <div><strong>Process:</strong> getMarketOrders.php</div>
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <strong>ESI Endpoint:</strong> 
+                        <Select 
+                          value={esiRoutes.getRoute('market')?.currentVersion || 'v3'}
+                          onValueChange={(version) => updateESIRouteVersion('market', version)}
+                        >
+                          <SelectTrigger className="w-16 h-6 text-xs">
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {(esiRoutes.getRoute('market')?.versions || ['v2', 'v3']).map(version => (
+                              <SelectItem key={version} value={version}>{version}</SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                        <span>/corporations/{'{corporation_id}'}/orders/</span>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          className="h-6 px-2 text-xs"
+                          onClick={() => validateESIRoute('market')}
+                          disabled={validatingRoutes}
+                        >
+                          {validatingRoutes ? '...' : 'Validate'}
+                        </Button>
+                        {esiRouteValidation.market !== undefined && (
+                          <Badge variant={esiRouteValidation.market ? "default" : "destructive"} className="text-xs h-5">
+                            {esiRouteValidation.market ? '✓' : '✗'}
+                          </Badge>
+                        )}
+                      </div>
                     </div>
                   </div>
 
@@ -2902,8 +3218,39 @@ export function Settings({ activeTab, onTabChange }: SettingsProps) {
                         <Badge variant="default" className="text-xs">Success</Badge>
                       </div>
                     </div>
-                    <div className="text-xs text-muted-foreground mt-2">
-                      <strong>Process:</strong> getKillmails.php • <strong>ESI Endpoint:</strong> /v1/corporations/{'{corporation_id}'}/killmails/recent/
+                    <div className="text-xs text-muted-foreground mt-2 space-y-1">
+                      <div><strong>Process:</strong> getKillmails.php</div>
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <strong>ESI Endpoint:</strong> 
+                        <Select 
+                          value={esiRoutes.getRoute('killmails')?.currentVersion || 'v1'}
+                          onValueChange={(version) => updateESIRouteVersion('killmails', version)}
+                        >
+                          <SelectTrigger className="w-16 h-6 text-xs">
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {(esiRoutes.getRoute('killmails')?.versions || ['v1']).map(version => (
+                              <SelectItem key={version} value={version}>{version}</SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                        <span>/corporations/{'{corporation_id}'}/killmails/recent/</span>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          className="h-6 px-2 text-xs"
+                          onClick={() => validateESIRoute('killmails')}
+                          disabled={validatingRoutes}
+                        >
+                          {validatingRoutes ? '...' : 'Validate'}
+                        </Button>
+                        {esiRouteValidation.killmails !== undefined && (
+                          <Badge variant={esiRouteValidation.killmails ? "default" : "destructive"} className="text-xs h-5">
+                            {esiRouteValidation.killmails ? '✓' : '✗'}
+                          </Badge>
+                        )}
+                      </div>
                     </div>
                   </div>
 
@@ -2953,8 +3300,39 @@ export function Settings({ activeTab, onTabChange }: SettingsProps) {
                         <Badge variant="default" className="text-xs">Success</Badge>
                       </div>
                     </div>
-                    <div className="text-xs text-muted-foreground mt-2">
-                      <strong>Process:</strong> getWalletTransactions.php • <strong>ESI Endpoint:</strong> /v1/corporations/{'{corporation_id}'}/wallets/{'{division}'}/transactions/
+                    <div className="text-xs text-muted-foreground mt-2 space-y-1">
+                      <div><strong>Process:</strong> getWalletTransactions.php</div>
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <strong>ESI Endpoint:</strong> 
+                        <Select 
+                          value={esiRoutes.getRoute('income')?.currentVersion || 'v1'}
+                          onValueChange={(version) => updateESIRouteVersion('income', version)}
+                        >
+                          <SelectTrigger className="w-16 h-6 text-xs">
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {(esiRoutes.getRoute('income')?.versions || ['v1']).map(version => (
+                              <SelectItem key={version} value={version}>{version}</SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                        <span>/corporations/{'{corporation_id}'}/wallets/{'{division}'}/transactions/</span>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          className="h-6 px-2 text-xs"
+                          onClick={() => validateESIRoute('income')}
+                          disabled={validatingRoutes}
+                        >
+                          {validatingRoutes ? '...' : 'Validate'}
+                        </Button>
+                        {esiRouteValidation.income !== undefined && (
+                          <Badge variant={esiRouteValidation.income ? "default" : "destructive"} className="text-xs h-5">
+                            {esiRouteValidation.income ? '✓' : '✗'}
+                          </Badge>
+                        )}
+                      </div>
                     </div>
                   </div>
                 </div>
@@ -3030,7 +3408,21 @@ export function Settings({ activeTab, onTabChange }: SettingsProps) {
                     }}
                   >
                     <ArrowClockwise size={16} className="mr-2" />
-                    Reset to LMeve Defaults
+                    Reset Intervals
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => {
+                      // Reset ESI routes to defaults
+                      esiRouteManager.resetToDefaults();
+                      setESIRouteValidation({});
+                      setRouteUpdateResults({});
+                      toast.success('ESI routes reset to defaults');
+                    }}
+                  >
+                    <Network size={16} className="mr-2" />
+                    Reset ESI Routes
                   </Button>
                   <Button
                     variant="outline"
@@ -3060,13 +3452,22 @@ export function Settings({ activeTab, onTabChange }: SettingsProps) {
                 <div className="p-3 bg-muted/30 rounded-lg text-sm">
                   <div className="flex items-center gap-2 mb-2">
                     <Info size={14} className="text-muted-foreground" />
-                    <span className="font-medium">LMeve Process Architecture</span>
+                    <span className="font-medium">LMeve Process Architecture & ESI Integration</span>
                   </div>
-                  <p className="text-muted-foreground leading-relaxed">
-                    Based on the original LMeve design: individual PHP processes handle specific data types (members, assets, industry jobs, etc.) 
-                    while a master poller (poller.php) orchestrates execution timing. Set intervals to 0 to disable specific processes. 
-                    The master poller respects individual process schedules and handles ESI rate limiting.
-                  </p>
+                  <div className="space-y-2 text-muted-foreground leading-relaxed">
+                    <p>
+                      Based on the original LMeve design: individual PHP processes handle specific data types (members, assets, industry jobs, etc.) 
+                      while a master poller (poller.php) orchestrates execution timing. Set intervals to 0 to disable specific processes.
+                    </p>
+                    <p>
+                      <strong>ESI Route Management:</strong> Each process uses specific EVE Online ESI API endpoints. You can select different API versions 
+                      for each endpoint and validate them against the current ESI specification. This ensures compatibility when CCP updates their API.
+                    </p>
+                    <p>
+                      The master poller respects individual process schedules, handles ESI rate limiting, and automatically uses your selected 
+                      route versions for optimal performance and reliability.
+                    </p>
+                  </div>
                 </div>
               </div>
             </CardContent>
