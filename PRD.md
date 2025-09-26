@@ -1,103 +1,133 @@
-# EVE Online API Explorer
+# LMeve - EVE Online Corporation Management Tool
 
-A modern React-based tool for exploring and interacting with the EVE Online ESI (EVE Swagger Interface) API, providing an intuitive interface for developers and players to access game data.
+## Core Purpose & Success
+- **Mission Statement**: A comprehensive web-based corporation management tool for EVE Online that helps CEOs and directors manage member assets, manufacturing, mining operations, and corporation logistics efficiently, while providing integrated API exploration capabilities for advanced users.
+- **Success Indicators**: Reduced time spent on manual corporation management tasks, improved member engagement tracking, streamlined asset and production oversight, enhanced API integration capabilities.
+- **Experience Qualities**: Professional, efficient, comprehensive - feels like a serious business management tool for virtual corporations with developer-grade API capabilities.
 
-**Experience Qualities**:
-1. **Professional** - Clean, developer-focused interface that prioritizes functionality and data clarity
-2. **Efficient** - Quick access to API endpoints with minimal clicks and fast response times
-3. **Informative** - Rich data presentation with proper formatting and contextual information
-
-**Complexity Level**: Light Application (multiple features with basic state)
-- Multiple API categories and endpoints to explore, request/response handling, authentication flow, and data persistence for favorites and history
+## Project Classification & Approach
+- **Complexity Level**: Complex Application (advanced functionality, multiple data views, corporation management features, integrated API tools)
+- **Primary User Activity**: Managing - CEOs and directors actively managing corporation operations, with secondary support for API exploration and custom integrations.
 
 ## Essential Features
 
-### API Endpoint Browser
-- **Functionality**: Browse and search through all available EVE Online ESI endpoints organized by category
-- **Purpose**: Allow users to discover and understand available API functionality
-- **Trigger**: User navigates to the application or uses search functionality
-- **Progression**: Landing page → Browse categories → Select endpoint → View documentation → Make request
-- **Success criteria**: All ESI endpoints are categorized and searchable with clear documentation
+### Corporation Management Core
 
-### API Request Interface
-- **Functionality**: Interactive form to configure and execute API requests with parameter inputs
-- **Purpose**: Enable users to test API calls with real data and see formatted responses
-- **Trigger**: User selects an API endpoint to test
-- **Progression**: Select endpoint → Fill parameters → Execute request → View formatted response → Save/share
-- **Success criteria**: Successful API calls with properly formatted JSON responses and error handling
+#### Tabbed Interface
+- **Functionality**: Core navigation between different management areas (Members, Assets, Manufacturing, Mining, API Tools, etc.)
+- **Purpose**: Organize complex corporation data into manageable sections
+- **Success criteria**: Intuitive navigation with persistent state across sessions
 
-### Authentication Management
-- **Functionality**: Handle EVE Online SSO authentication flow for authenticated endpoints
-- **Purpose**: Allow access to character-specific and corporation data
-- **Trigger**: User attempts to access an authenticated endpoint
-- **Progression**: Request auth → Redirect to EVE SSO → Handle callback → Store token → Make authenticated requests
-- **Success criteria**: Seamless OAuth flow with secure token storage and automatic refresh
+#### Member Management
+- **Functionality**: Track corporation members, their assets, activities, and contributions
+- **Purpose**: Monitor member engagement and asset allocation
+- **Success criteria**: Real-time member data with activity tracking and contribution metrics
 
-### Response Data Viewer
-- **Functionality**: Pretty-printed JSON responses with syntax highlighting and data exploration
-- **Purpose**: Make API responses easy to read and understand
-- **Trigger**: API request completes successfully
-- **Progression**: Request completes → Format response → Display with highlighting → Allow data exploration
-- **Success criteria**: Readable, searchable JSON with proper formatting and type information
+#### Asset Tracking
+- **Functionality**: Monitor corporation and member assets across different locations and types with live EVE data
+- **Purpose**: Maintain oversight of corporation resources and member holdings
+- **Success criteria**: Comprehensive asset overview with location tracking and value calculations
 
-### Request History & Favorites
-- **Functionality**: Save frequently used endpoints and view request history
-- **Purpose**: Improve workflow efficiency for developers and power users
-- **Trigger**: User marks endpoint as favorite or views history panel
-- **Progression**: Make request → Auto-save to history → Option to favorite → Quick access from sidebar
-- **Success criteria**: Persistent storage of favorites and history with quick access
+#### Manufacturing Job Scheduling
+- **Functionality**: Real-time tracking of active manufacturing jobs with progress monitoring, pause/resume capabilities, and completion alerts
+- **Purpose**: Optimize production workflows and resource allocation
+- **Success criteria**: Live job tracking with automated alerts and scheduling tools
 
-## Edge Case Handling
+#### Blueprint Management
+- **Functionality**: Comprehensive blueprint library with research levels, material efficiency tracking, and production planning
+- **Purpose**: Maximize production efficiency and track blueprint investments
+- **Success criteria**: Complete blueprint database with research progress and efficiency metrics
 
-- **Rate Limiting**: Display clear messages when hitting ESI rate limits with retry suggestions
-- **Network Errors**: Graceful handling of connectivity issues with retry mechanisms
-- **Invalid Parameters**: Real-time validation of required parameters before request submission
-- **Token Expiration**: Automatic token refresh or clear re-authentication prompts
-- **Large Responses**: Pagination or truncation of very large API responses
-- **CORS Issues**: Clear messaging about browser limitations and potential solutions
+#### Production Planning
+- **Functionality**: Advanced planning tools for creating production schedules, cost analysis, and profit estimation
+- **Purpose**: Strategic planning for manufacturing operations
+- **Success criteria**: Accurate cost/profit analysis with scheduling optimization
+
+#### Mining Operations
+- **Functionality**: Monitor mining activities, ore processing, and resource allocation
+- **Purpose**: Track and optimize mining fleet operations
+- **Success criteria**: Real-time mining metrics with efficiency tracking
+
+### Integrated API Tools
+
+#### API Endpoint Browser
+- **Functionality**: Browse and search through EVE Online ESI endpoints organized by category, integrated within corporation management workflows
+- **Purpose**: Allow advanced users to explore additional API functionality and customize data retrieval
+- **Success criteria**: ESI endpoints accessible within corporation management context with clear documentation
+
+#### Custom API Integration
+- **Functionality**: Configure and execute custom API requests for specialized corporation data needs
+- **Purpose**: Enable advanced users to extend corporation management capabilities
+- **Success criteria**: Successful custom API integration with corporation data workflows
+
+#### Enhanced Authentication Management
+- **Functionality**: Handle EVE Online SSO authentication flow for both standard corporation features and custom API access
+- **Purpose**: Provide seamless access to all corporation and character-specific data
+- **Success criteria**: Unified authentication supporting both core features and API exploration
+
+#### Advanced Data Viewer
+- **Functionality**: Enhanced data presentation with JSON viewing, syntax highlighting, and data export capabilities
+- **Purpose**: Support both standard corporation reporting and custom data analysis
+- **Success criteria**: Flexible data presentation supporting various corporation management needs
+
+### System Features
+
+#### Real-time Data Dashboard
+- **Functionality**: Live connection status, API health monitoring, and automatic data refresh capabilities
+- **Purpose**: Ensure data accuracy and system reliability across all features
+- **Success criteria**: Reliable API integration with clear status indicators for all data sources
 
 ## Design Direction
 
-The design should feel professional and developer-focused like Postman or Swagger UI, with a clean interface that prioritizes data readability and efficient workflows. Minimal interface approach serves the core purpose of API exploration and testing.
+### Visual Tone & Identity
+- **Emotional Response**: Professional confidence, data-driven decision making, corporate efficiency with technical precision
+- **Design Personality**: Clean, professional, data-focused enterprise software with subtle developer tool aesthetics
+- **Visual Metaphors**: Corporate dashboards with technical precision elements, space/sci-fi elements from EVE
+- **Complexity Balance**: Rich corporation management interface with integrated but non-intrusive technical tools
 
-## Color Selection
+### Unified Color Strategy
+- **Primary Color**: Deep space blue (#1a365d) - corporate stability and trust
+- **Secondary Colors**: Steel grays (#2d3748, #4a5568) for data containers and technical elements
+- **Accent Color**: EVE Online orange (#f56500) for important actions and alerts
+- **Technical Accent**: Warm orange (oklch(0.65 0.15 45)) for API-related features and technical highlights
+- **Background Palette**: 
+  - Light gray backgrounds for main content areas
+  - Darker themes for technical/API sections
+  - High contrast ratios maintained throughout (WCAG AA compliance)
 
-Complementary color scheme with blue and orange accents to create visual distinction between different interface areas while maintaining professional appearance.
+### Typography System
+- **Primary**: Inter for all UI text, headers, and general content
+- **Technical**: JetBrains Mono for data, numbers, code, and API responses
+- **Hierarchy**: 
+  - H1 (Page Title): Inter Bold/32px
+  - H2 (Section Headers): Inter Semibold/24px
+  - H3 (Feature Names): Inter Medium/18px
+  - Body: Inter Regular/16px
+  - Data/Code: JetBrains Mono Regular/14px
+- **Focus**: Balance between corporate clarity and technical precision
 
-- **Primary Color**: Deep Blue (oklch(0.45 0.15 250)) - Communicates trust and professionalism for primary actions
-- **Secondary Colors**: Light Gray (oklch(0.95 0.02 250)) for backgrounds, Medium Gray (oklch(0.7 0.05 250)) for secondary elements
-- **Accent Color**: Warm Orange (oklch(0.65 0.15 45)) - Attention-grabbing highlight for CTAs and important status indicators
-- **Foreground/Background Pairings**: 
-  - Background (Light Gray): Dark Gray text (oklch(0.2 0.02 250)) - Ratio 12.5:1 ✓
-  - Card (White): Dark Gray text (oklch(0.2 0.02 250)) - Ratio 15.8:1 ✓
-  - Primary (Deep Blue): White text (oklch(0.98 0.02 250)) - Ratio 8.2:1 ✓
-  - Secondary (Light Gray): Dark Gray text (oklch(0.2 0.02 250)) - Ratio 12.5:1 ✓
-  - Accent (Warm Orange): White text (oklch(0.98 0.02 250)) - Ratio 6.1:1 ✓
+### Component Selection & Layout
+- **Navigation**: Tabbed interface with expandable technical sections
+- **Data Display**: Tables for corporation data, enhanced viewers for API responses
+- **Cards**: Metric summaries and feature groupings
+- **Forms**: Parameter inputs with validation for both corp management and API features
+- **States**: Unified loading, error, and success states across all features
+- **Mobile**: Responsive design prioritizing core corporation features, with technical tools accessible but streamlined
 
-## Font Selection
+### Animation Strategy
+- **Corporate Features**: Smooth, professional transitions focused on data workflows
+- **Technical Features**: Subtle state changes that don't interfere with technical work
+- **Integration Points**: Gentle transitions between corporation management and API tool contexts
 
-Inter typeface should convey clarity and technical precision, perfect for displaying code, data, and API documentation with excellent readability at all sizes.
+## Edge Case Handling
+- **Large Data Sets**: Pagination and virtualization for performance across all features
+- **API Rate Limiting**: Intelligent request queuing affecting both corp data and custom requests
+- **Network Issues**: Graceful degradation with clear distinction between corp features and API tools
+- **Authentication**: Unified error handling for both corporation access and technical API permissions
+- **Mixed User Types**: Clear progressive disclosure - corp managers see management features prominently, technical users can access advanced tools
 
-- **Typographic Hierarchy**: 
-  - H1 (Page Title): Inter Bold/32px/tight letter spacing
-  - H2 (Section Headers): Inter Semibold/24px/normal spacing  
-  - H3 (Endpoint Names): Inter Medium/18px/normal spacing
-  - Body (Documentation): Inter Regular/16px/relaxed line height
-  - Code (JSON/Parameters): JetBrains Mono Regular/14px/monospace spacing
-  - Labels (Form Fields): Inter Medium/14px/normal spacing
-
-## Animations
-
-Subtle functionality-focused animations that communicate state changes and guide user attention without feeling flashy or distracting from the technical content.
-
-- **Purposeful Meaning**: Smooth transitions communicate data loading states and form the professional, polished tool aesthetic
-- **Hierarchy of Movement**: API response areas deserve primary animation focus, with secondary attention to navigation state changes
-
-## Component Selection
-
-- **Components**: Cards for endpoint groups and responses, Tabs for organizing API categories, Forms for parameter input, Dialog for authentication flow, Accordion for collapsible documentation sections, Tables for structured data display, Code blocks with syntax highlighting
-- **Customizations**: Custom JSON viewer component with collapsible sections, Custom request builder with dynamic parameter forms, Enhanced syntax highlighting for different data types
-- **States**: Buttons show loading spinners during requests, Form inputs highlight validation errors, Response areas show loading skeletons, Authentication status visible in header
-- **Icon Selection**: External link icons for API documentation, Play button for request execution, Star icons for favorites, History clock icon, Authentication shield icon
-- **Spacing**: Consistent 4-unit spacing (16px) between major sections, 2-unit (8px) for related elements, 6-unit (24px) for page margins
-- **Mobile**: Stack horizontal layouts vertically, Collapse sidebar into drawer, Ensure touch-friendly button sizes, Responsive table scrolling for large API responses
+## Implementation Considerations
+- **Architecture**: Core corporation management with pluggable API exploration modules
+- **Data Flow**: Unified data layer supporting both corporation management and custom API integration
+- **User Experience**: Primary focus on corporation management with optional technical enhancement
+- **Performance**: Optimized for corporation management workflows, with API tools designed to not impact core performance
