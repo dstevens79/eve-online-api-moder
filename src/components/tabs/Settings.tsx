@@ -66,6 +66,8 @@ import { AdminLoginTest } from '@/components/AdminLoginTest';
 import { SimpleLoginTest } from '@/components/SimpleLoginTest';
 import { runDatabaseValidationTests } from '@/lib/databaseTestCases';
 import { DatabaseManager, DatabaseSetupManager, DatabaseSetupProgress, generateSetupCommands } from '@/lib/database';
+import { RemoteOperations } from '@/components/RemoteOperations';
+import { useRemoteOperations } from '@/hooks/useRemoteOperations';
 import { 
   useGeneralSettings, 
   useDatabaseSettings, 
@@ -264,6 +266,19 @@ export function Settings({ activeTab, onTabChange }: SettingsProps) {
   
   // Admin configuration state
   const [tempAdminConfig, setTempAdminConfig] = useState(adminConfig);
+  
+  // Remote database operations
+  const { 
+    tasks: remoteTasks, 
+    executeTask: executeRemoteTask, 
+    testConnection: testRemoteConnection, 
+    uploadFile: uploadRemoteFile 
+  } = useRemoteOperations();
+  const [remoteConnectionStatus, setRemoteConnectionStatus] = useState({
+    isConnected: false,
+    message: 'Not tested'
+  });
+  const [isTestingRemoteConnection, setIsTestingRemoteConnection] = useState(false);
 
   // Save handlers for each settings category
   const saveGeneralSettings = async () => {
@@ -536,6 +551,126 @@ export function Settings({ activeTab, onTabChange }: SettingsProps) {
   const addConnectionLog = (message: string) => {
     const timestamp = new Date().toLocaleTimeString();
     setConnectionLogs(prev => [...prev, `[${timestamp}] ${message}`]);
+  };
+
+  // Remote database operations handlers
+  const handleTestRemoteConnection = async () => {
+    if (isTestingRemoteConnection) return;
+    
+    setIsTestingRemoteConnection(true);
+    setRemoteConnectionStatus({ isConnected: false, message: 'Testing connection...' });
+    
+    try {
+      const config = {
+        host: databaseSettings.sudoHost || databaseSettings.host || '',
+        port: databaseSettings.sudoPort || databaseSettings.port || 3306,
+        sshUser: 'opsuser',
+        sshKeyPath: '~/.ssh/lmeve_ops',
+        mysqlRootPassword: databaseSettings.sudoPassword || '',
+        lmevePassword: databaseSettings.password || 'lmpassword'
+      };
+      
+      const result = await testRemoteConnection(config);
+      setRemoteConnectionStatus({
+        isConnected: result.success,
+        message: result.message
+      });
+      
+      if (result.success) {
+        addConnectionLog('✅ Remote database connection successful');
+        toast.success('Remote connection established');
+      } else {
+        addConnectionLog(`❌ Remote connection failed: ${result.message}`);
+        toast.error(`Connection failed: ${result.message}`);
+      }
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Unknown error';
+      setRemoteConnectionStatus({
+        isConnected: false,
+        message: `Error: ${message}`
+      });
+      addConnectionLog(`❌ Remote connection error: ${message}`);
+      toast.error(`Connection error: ${message}`);
+    } finally {
+      setIsTestingRemoteConnection(false);
+    }
+  };
+
+  const handleCreateRemoteDatabases = async () => {
+    try {
+      addConnectionLog('🚀 Starting remote database creation...');
+      const task = await executeRemoteTask('create-databases', {
+        mysqlRootPassword: databaseSettings.sudoPassword,
+        lmevePassword: databaseSettings.password || 'lmpassword'
+      });
+      addConnectionLog(`✅ Database creation task started: ${task.id}`);
+      toast.success('Database creation started');
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Unknown error';
+      addConnectionLog(`❌ Failed to start database creation: ${message}`);
+      toast.error(`Failed to create databases: ${message}`);
+    }
+  };
+
+  const handleImportRemoteSchema = async (file?: File) => {
+    try {
+      addConnectionLog('🚀 Starting remote schema import...');
+      
+      let taskParams: any = {
+        mysqlRootPassword: databaseSettings.sudoPassword,
+        lmevePassword: databaseSettings.password || 'lmpassword'
+      };
+      
+      if (file) {
+        // Upload file first
+        addConnectionLog(`📁 Uploading schema file: ${file.name}`);
+        const uploadResult = await uploadRemoteFile(file, `schema_${Date.now()}`);
+        if (!uploadResult.success) {
+          throw new Error('Failed to upload schema file');
+        }
+        taskParams.schemaFile = uploadResult.path;
+      }
+      
+      const task = await executeRemoteTask('import-schema', taskParams);
+      addConnectionLog(`✅ Schema import task started: ${task.id}`);
+      toast.success('Schema import started');
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Unknown error';
+      addConnectionLog(`❌ Failed to start schema import: ${message}`);
+      toast.error(`Failed to import schema: ${message}`);
+    }
+  };
+
+  const handleImportRemoteSDE = async (file?: File) => {
+    try {
+      addConnectionLog('🚀 Starting remote SDE import...');
+      
+      let taskParams: any = {
+        mysqlRootPassword: databaseSettings.sudoPassword,
+        lmevePassword: databaseSettings.password || 'lmpassword'
+      };
+      
+      if (file) {
+        // Upload file first
+        addConnectionLog(`📁 Uploading SDE file: ${file.name}`);
+        const uploadResult = await uploadRemoteFile(file, `sde_${Date.now()}`);
+        if (!uploadResult.success) {
+          throw new Error('Failed to upload SDE file');
+        }
+        taskParams.sdeFile = uploadResult.path;
+      } else {
+        // Use default SDE download
+        taskParams.downloadSDE = true;
+      }
+      
+      const task = await executeRemoteTask('import-sde', taskParams);
+      addConnectionLog(`✅ SDE import task started: ${task.id}`);
+      toast.success('SDE import started');
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Unknown error';
+      addConnectionLog(`❌ Failed to start SDE import: ${message}`);
+      toast.error(`Failed to import SDE: ${message}`);
+    }
   };
 
   // Load SDE database stats on component mount
@@ -2197,6 +2332,17 @@ export function Settings({ activeTab, onTabChange }: SettingsProps) {
               </div>
             </CardContent>
           </Card>
+
+          {/* Remote Database Operations */}
+          <RemoteOperations
+            tasks={remoteTasks}
+            onCreateDatabases={handleCreateRemoteDatabases}
+            onImportSchema={handleImportRemoteSchema}
+            onImportSDE={handleImportRemoteSDE}
+            isConnected={remoteConnectionStatus.isConnected}
+            connectionMessage={remoteConnectionStatus.message}
+            onTestConnection={handleTestRemoteConnection}
+          />
         </TabsContent>
 
         <TabsContent value="sde" className="space-y-6">
