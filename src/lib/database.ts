@@ -1260,7 +1260,7 @@ export async function restoreDatabase(manager: DatabaseManager, backupPath: stri
 export const LMeveQueries = {
   // Character and Corporation queries
   getCharacters: (corporationId?: number) => 
-    corporationId 
+    corporationId !== undefined && corporationId !== null
       ? `SELECT * FROM characters WHERE corporation_id = ${corporationId} ORDER BY name`
       : `SELECT * FROM characters ORDER BY name`,
   
@@ -1272,7 +1272,7 @@ export const LMeveQueries = {
 
   // Asset queries
   getAssets: (ownerId?: number) => 
-    ownerId 
+    ownerId !== undefined && ownerId !== null
       ? `SELECT a.*, t.type_name, l.location_name 
          FROM assets a 
          JOIN eve_types t ON a.type_id = t.type_id 
@@ -1285,7 +1285,7 @@ export const LMeveQueries = {
 
   // Industry job queries
   getIndustryJobs: (status?: string) =>
-    status 
+    status !== undefined && status !== null && status !== ''
       ? `SELECT ij.*, t.type_name as blueprint_name, pt.type_name as product_name 
          FROM industry_jobs ij 
          JOIN eve_types t ON ij.blueprint_type_id = t.type_id 
@@ -1305,11 +1305,11 @@ export const LMeveQueries = {
                  JOIN eve_types t ON mo.ore_type_id = t.type_id 
                  JOIN systems s ON mo.system_id = s.system_id`;
     
-    if (dateFrom || dateTo) {
+    if ((dateFrom && dateFrom !== '') || (dateTo && dateTo !== '')) {
       query += ` WHERE`;
-      if (dateFrom) query += ` mo.date >= '${dateFrom}'`;
-      if (dateFrom && dateTo) query += ` AND`;
-      if (dateTo) query += ` mo.date <= '${dateTo}'`;
+      if (dateFrom && dateFrom !== '') query += ` mo.date >= '${dateFrom}'`;
+      if (dateFrom && dateFrom !== '' && dateTo && dateTo !== '') query += ` AND`;
+      if (dateTo && dateTo !== '') query += ` mo.date <= '${dateTo}'`;
     }
     
     return query + ` ORDER BY mo.date DESC`;
@@ -1317,7 +1317,7 @@ export const LMeveQueries = {
 
   // Market data queries
   getMarketPrices: (regionId?: number) =>
-    regionId 
+    regionId !== undefined && regionId !== null
       ? `SELECT mp.*, t.type_name 
          FROM market_prices mp 
          JOIN eve_types t ON mp.type_id = t.type_id 
@@ -1330,7 +1330,7 @@ export const LMeveQueries = {
 
   // Killmail queries
   getKillmails: (corporationId?: number) =>
-    corporationId 
+    corporationId !== undefined && corporationId !== null
       ? `SELECT k.*, t.type_name as ship_name, s.system_name 
          FROM killmails k 
          JOIN eve_types t ON k.ship_type_id = t.type_id 

@@ -2648,7 +2648,7 @@ export function Settings({ activeTab, onTabChange }: SettingsProps) {
                       </div>
                     </div>
                     <div className="text-xs text-muted-foreground mt-2">
-                      <strong>Process:</strong> getMemberTracking.php • <strong>ESI Endpoint:</strong> /v4/corporations/{corporation_id}/membertracking/
+                      <strong>Process:</strong> getMemberTracking.php • <strong>ESI Endpoint:</strong> /v4/corporations/{"{"}{corporation_id}{"}"}/membertracking/
                     </div>
                   </div>
 
@@ -2699,7 +2699,7 @@ export function Settings({ activeTab, onTabChange }: SettingsProps) {
                       </div>
                     </div>
                     <div className="text-xs text-muted-foreground mt-2">
-                      <strong>Process:</strong> getAssets.php • <strong>ESI Endpoint:</strong> /v5/corporations/{corporation_id}/assets/
+                      <strong>Process:</strong> getAssets.php • <strong>ESI Endpoint:</strong> /v5/corporations/{"{"}{corporation_id}{"}"}/assets/
                     </div>
                   </div>
 
@@ -2750,7 +2750,7 @@ export function Settings({ activeTab, onTabChange }: SettingsProps) {
                       </div>
                     </div>
                     <div className="text-xs text-muted-foreground mt-2">
-                      <strong>Process:</strong> getIndustryJobs.php • <strong>ESI Endpoint:</strong> /v1/corporations/{corporation_id}/industry/jobs/
+                      <strong>Process:</strong> getIndustryJobs.php • <strong>ESI Endpoint:</strong> /v1/corporations/{"{"}{corporation_id}{"}"}/industry/jobs/
                     </div>
                   </div>
 
@@ -2801,7 +2801,7 @@ export function Settings({ activeTab, onTabChange }: SettingsProps) {
                       </div>
                     </div>
                     <div className="text-xs text-muted-foreground mt-2">
-                      <strong>Process:</strong> getMiningLedger.php • <strong>ESI Endpoint:</strong> /v1/corporations/{corporation_id}/mining/
+                      <strong>Process:</strong> getMiningLedger.php • <strong>ESI Endpoint:</strong> /v1/corporations/{"{"}{corporation_id}{"}"}/mining/
                     </div>
                   </div>
 
@@ -2852,7 +2852,7 @@ export function Settings({ activeTab, onTabChange }: SettingsProps) {
                       </div>
                     </div>
                     <div className="text-xs text-muted-foreground mt-2">
-                      <strong>Process:</strong> getMarketOrders.php • <strong>ESI Endpoint:</strong> /v3/corporations/{corporation_id}/orders/
+                      <strong>Process:</strong> getMarketOrders.php • <strong>ESI Endpoint:</strong> /v3/corporations/{"{"}{corporation_id}{"}"}/orders/
                     </div>
                   </div>
 
@@ -2903,7 +2903,7 @@ export function Settings({ activeTab, onTabChange }: SettingsProps) {
                       </div>
                     </div>
                     <div className="text-xs text-muted-foreground mt-2">
-                      <strong>Process:</strong> getKillmails.php • <strong>ESI Endpoint:</strong> /v1/corporations/{corporation_id}/killmails/recent/
+                      <strong>Process:</strong> getKillmails.php • <strong>ESI Endpoint:</strong> /v1/corporations/{"{"}{corporation_id}{"}"}/killmails/recent/
                     </div>
                   </div>
 
@@ -2954,7 +2954,7 @@ export function Settings({ activeTab, onTabChange }: SettingsProps) {
                       </div>
                     </div>
                     <div className="text-xs text-muted-foreground mt-2">
-                      <strong>Process:</strong> getWalletTransactions.php • <strong>ESI Endpoint:</strong> /v1/corporations/{corporation_id}/wallets/{division}/transactions/
+                      <strong>Process:</strong> getWalletTransactions.php • <strong>ESI Endpoint:</strong> /v1/corporations/{"{"}{corporation_id}{"}"}/wallets/{"{"}{division}{"}"}/transactions/
                     </div>
                   </div>
                 </div>
