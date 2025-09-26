@@ -2025,11 +2025,11 @@ export function Settings({ activeTab, onTabChange }: SettingsProps) {
                   </div>
                 </div>
 
-                {/* Configuration Dropdowns */}
+                {/* Configuration and Control Pad */}
                 <div className="lg:col-span-1 space-y-4">
                   <div className="border border-border rounded-lg p-3">
                     <h4 className="text-sm font-medium mb-3">Configuration</h4>
-                    <div className="space-y-3">
+                    <div className="grid grid-cols-2 gap-3">
                       <div>
                         <Label className="text-xs text-muted-foreground">Schema Source</Label>
                         <Select value="default" onValueChange={() => {}}>
@@ -2058,9 +2058,9 @@ export function Settings({ activeTab, onTabChange }: SettingsProps) {
                     </div>
                   </div>
                   
-                  {/* SSH/Remote Setup Buttons */}
+                  {/* Control Pad */}
                   <div className="border border-border rounded-lg p-3">
-                    <h4 className="text-sm font-medium mb-3">Remote Database Setup</h4>
+                    <h4 className="text-sm font-medium mb-3">Control Pad</h4>
                     <div className="space-y-2">
                       <Button
                         onClick={handleSSHConnection}
