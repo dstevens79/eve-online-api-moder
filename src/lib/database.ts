@@ -800,6 +800,8 @@ export class DatabaseSetupManager {
   async setupNewDatabase(config: DatabaseSetupConfig): Promise<{ success: boolean; error?: string }> {
     try {
       console.log('🔨 Starting comprehensive LMeve database setup');
+      console.log('⚠️ Important: This setup requires server-side execution for file operations');
+      
       this.initializeSteps(config);
       this.progress.isRunning = true;
       this.progress.currentStage = 'Initializing setup process...';
@@ -812,35 +814,36 @@ export class DatabaseSetupManager {
         return this.validateMySQLConnection(config);
       });
 
-      // Step 2: Create directories
+      // Only proceed with database creation steps - file operations will show limitations
+      // Step 2: Create directories - will show browser limitation warning
       await this.executeStep('create-dirs', async () => {
         this.progress.currentStage = 'Creating working directories...';
         this.notifyProgress();
-        return this.simulateCommand('sudo mkdir -p /Incoming && sudo chmod 755 /Incoming');
+        return this.executeRealCommand('sudo mkdir -p /Incoming && sudo chmod 755 /Incoming', config);
       });
 
-      // Step 3: Download EVE SDE (if requested)
+      // Step 3: Download EVE SDE (will show limitation)  
       if (config.downloadSDE) {
         await this.executeStep('download-sde', async () => {
           this.progress.currentStage = 'Downloading EVE Static Data Export (this may take several minutes)...';
           this.notifyProgress();
-          return this.simulateCommand('sudo wget "https://www.fuzzwork.co.uk/dump/mysql-latest.tar.bz2" -O /Incoming/mysql-latest.tar.bz2', 30000);
+          return this.executeRealCommand('sudo wget "https://www.fuzzwork.co.uk/dump/mysql-latest.tar.bz2" -O /Incoming/mysql-latest.tar.bz2', config, 30000);
         });
 
         await this.executeStep('extract-sde', async () => {
           this.progress.currentStage = 'Extracting SDE archive...';
           this.notifyProgress();
-          return this.simulateCommand('tar -xjf /Incoming/mysql-latest.tar.bz2 --wildcards --no-anchored "*.sql" -C /Incoming/ --strip-components 1', 15000);
+          return this.executeRealCommand('tar -xjf /Incoming/mysql-latest.tar.bz2 --wildcards --no-anchored "*.sql" -C /Incoming/ --strip-components 1', config, 15000);
         });
 
         await this.executeStep('prepare-sde', async () => {
           this.progress.currentStage = 'Organizing SDE files...';
           this.notifyProgress();
-          return this.simulateCommand('sudo find /Incoming -name "*.sql" -exec mv {} /Incoming/staticdata.sql \\;');
+          return this.executeRealCommand('sudo find /Incoming -name "*.sql" -exec mv {} /Incoming/staticdata.sql \\;', config);
         });
       }
 
-      // Step 4: Create databases (if requested)
+      // Step 4: Create databases (this will work)
       if (config.createDatabases !== false) {
         await this.executeStep('create-databases', async () => {
           this.progress.currentStage = 'Creating LMeve and EVE SDE databases...';
@@ -849,29 +852,29 @@ export class DatabaseSetupManager {
             'CREATE DATABASE IF NOT EXISTS lmeve CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;',
             'CREATE DATABASE IF NOT EXISTS EveStaticData CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;'
           ];
-          return this.simulateMySQLCommands(commands);
+          return this.executeMySQLCommands(commands, config);
         });
       }
 
-      // Step 5: Load LMeve schema (if requested)
+      // Step 5: Load LMeve schema (will show file access limitation)
       if (config.importSchema !== false) {
         await this.executeStep('load-schema', async () => {
           this.progress.currentStage = 'Loading LMeve database schema...';
           this.notifyProgress();
-          return this.simulateCommand('mysql -u root -p${mysqlRootPassword} lmeve < /var/www/lmeve/data/schema.sql', 10000);
+          return this.executeRealCommand('mysql -u root -p${mysqlRootPassword} lmeve < /var/www/lmeve/data/schema.sql', config, 10000);
         });
       }
 
-      // Step 6: Load EVE SDE data (if downloaded and requested)
+      // Step 6: Load EVE SDE data (will show file access limitation)
       if (config.downloadSDE && config.importSchema !== false) {
         await this.executeStep('load-sde', async () => {
           this.progress.currentStage = 'Loading EVE Static Data (this will take 10-20 minutes)...';
           this.notifyProgress();
-          return this.simulateCommand('mysql -u root -p${mysqlRootPassword} EveStaticData < /Incoming/staticdata.sql', 60000);
+          return this.executeRealCommand('mysql -u root -p${mysqlRootPassword} EveStaticData < /Incoming/staticdata.sql', config, 60000);
         });
       }
 
-      // Step 7: Create user and set permissions (if requested)
+      // Step 7: Create user and set permissions (this will work)
       if (config.createUser !== false) {
         await this.executeStep('create-user', async () => {
           this.progress.currentStage = 'Creating LMeve database user and setting permissions...';
@@ -883,11 +886,11 @@ export class DatabaseSetupManager {
             `GRANT ALL PRIVILEGES ON EveStaticData.* TO 'lmeve'@'${config.allowedHosts}';`,
             'FLUSH PRIVILEGES;'
           ];
-          return this.simulateMySQLCommands(commands);
+          return this.executeMySQLCommands(commands, config);
         });
       }
 
-      // Step 8: Verify installation (if requested)
+      // Step 8: Verify installation (database-only verification)
       if (config.validateSetup !== false) {
         await this.executeStep('verify-setup', async () => {
           this.progress.currentStage = 'Verifying database setup and testing connections...';
@@ -896,21 +899,24 @@ export class DatabaseSetupManager {
         });
       }
 
-      // Step 9: Cleanup
+      // Step 9: Cleanup (will show limitation)
       await this.executeStep('cleanup', async () => {
         this.progress.currentStage = 'Cleaning up temporary files...';
         this.notifyProgress();
-        return this.simulateCommand('sudo rm -f /Incoming/mysql-latest.tar.bz2 /Incoming/*.sql');
+        return this.executeRealCommand('sudo rm -f /Incoming/mysql-latest.tar.bz2 /Incoming/*.sql', config);
       });
 
       this.progress.completed = true;
       this.progress.isRunning = false;
-      this.progress.currentStage = 'Setup completed successfully!';
+      this.progress.currentStage = 'Setup completed! Note: File operations require server-side execution.';
       this.progress.progress = 100;
       this.notifyProgress();
 
-      console.log('✅ Complete LMeve database setup finished successfully');
-      return { success: true };
+      console.log('✅ Database setup completed with limitations noted');
+      return { 
+        success: true, 
+        error: 'Setup completed. File system operations (SDE download/import) must be performed on the database server manually.'
+      };
     } catch (error) {
       this.progress.isRunning = false;
       this.progress.error = error instanceof Error ? error.message : 'Setup failed';
@@ -1046,21 +1052,52 @@ export class DatabaseSetupManager {
   }
 
   private async validateMySQLConnection(config: DatabaseSetupConfig): Promise<{ success: boolean; output?: string; error?: string }> {
-    await new Promise(resolve => setTimeout(resolve, 1000 + Math.random() * 2000));
-    
-    // Simulate MySQL server connectivity check
-    if (!config.mysqlRootPassword && Math.random() < 0.3) {
+    try {
+      console.log('🔍 Validating MySQL connection with root credentials...');
+      
+      if (!config.mysqlRootPassword) {
+        return { 
+          success: false, 
+          error: 'MySQL root password is required for database creation and setup.' 
+        };
+      }
+
+      // Create a temporary database manager with root credentials to test connection
+      const rootConfig: DatabaseConfig = {
+        host: 'localhost', // Will be updated with actual settings
+        port: 3306,
+        database: 'mysql', // Connect to mysql system database for validation
+        username: 'root',
+        password: config.mysqlRootPassword,
+        ssl: false,
+        connectionPoolSize: 1,
+        queryTimeout: 10,
+        autoReconnect: false,
+        charset: 'utf8mb4'
+      };
+
+      const testManager = new DatabaseManager(rootConfig);
+      const connectionTest = await testManager.testConnection();
+      
+      if (!connectionTest.success || !connectionTest.validated) {
+        return {
+          success: false,
+          error: connectionTest.error || 'Failed to validate MySQL root connection'
+        };
+      }
+
+      console.log('✅ MySQL root connection validated successfully');
       return { 
-        success: false, 
-        error: 'MySQL root password required for database creation. Please ensure MySQL is accessible.' 
+        success: true, 
+        output: 'MySQL server connection validated successfully. Ready to proceed with setup.' 
+      };
+    } catch (error) {
+      console.error('❌ MySQL validation failed:', error);
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : 'MySQL connection validation failed'
       };
     }
-    
-    // Simulate connection success
-    return { 
-      success: true, 
-      output: 'MySQL server connection validated successfully. Ready to proceed with setup.' 
-    };
   }
 
   private async validateCompleteSetup(config: DatabaseSetupConfig): Promise<{ success: boolean; output?: string; error?: string }> {
@@ -1086,57 +1123,135 @@ export class DatabaseSetupManager {
     };
   }
 
-  private async simulateCommand(command: string, maxDuration: number = 5000): Promise<{ success: boolean; output?: string; error?: string }> {
-    // Simulate command execution with realistic timing based on command type
-    let executionTime = Math.random() * 3000 + 1000; // Default 1-4 seconds
-    
-    // Adjust timing for specific command types
-    if (command.includes('wget')) {
-      executionTime = Math.random() * (maxDuration - 5000) + 5000; // 5 seconds to maxDuration
-    } else if (command.includes('tar')) {
-      executionTime = Math.random() * 10000 + 3000; // 3-13 seconds for extraction
-    } else if (command.includes('mysql') && command.includes('SOURCE')) {
-      executionTime = Math.random() * (maxDuration - 10000) + 10000; // 10 seconds to maxDuration for large imports
+  private async executeRealCommand(command: string, config: DatabaseSetupConfig, maxDuration: number = 30000): Promise<{ success: boolean; output?: string; error?: string }> {
+    try {
+      console.log('🚀 Executing real command:', command);
+      
+      // Handle MySQL commands differently from system commands
+      if (command.includes('mysql ') && (command.includes(' < ') || command.includes('SOURCE'))) {
+        return await this.executeMySQLImport(command, config);
+      }
+      
+      // For system commands like mkdir, wget, tar - these need to be handled by the server
+      // Since we're in a browser environment, we'll need to make API calls to a backend
+      // For now, we'll document what should happen and return appropriate errors
+      
+      if (command.includes('mkdir') || command.includes('wget') || command.includes('tar') || command.includes('find') || command.includes('rm')) {
+        return {
+          success: false,
+          error: `System command execution not supported in browser environment: ${command.split(' ')[0]}. This command should be executed on the server where the database is hosted.`
+        };
+      }
+      
+      // Unknown command type
+      return {
+        success: false,
+        error: `Unsupported command type: ${command.split(' ')[0]}`
+      };
+      
+    } catch (error) {
+      console.error('❌ Command execution failed:', error);
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : 'Command execution failed'
+      };
     }
-    
-    await new Promise(resolve => setTimeout(resolve, Math.min(executionTime, maxDuration)));
-
-    // Simulate command-specific failure scenarios
-    if (command.includes('wget') && Math.random() < 0.05) {
-      return { success: false, error: 'Network error: Could not resolve host fuzzwork.co.uk' };
-    }
-
-    if (command.includes('tar') && Math.random() < 0.03) {
-      return { success: false, error: 'Archive corrupted or incomplete download' };
-    }
-
-    if (command.includes('mysql') && Math.random() < 0.02) {
-      return { success: false, error: 'MySQL connection failed: Access denied or server unavailable' };
-    }
-
-    if (command.includes('mkdir') && Math.random() < 0.01) {
-      return { success: false, error: 'Permission denied: Cannot create directory' };
-    }
-
-    // Success case
-    return { 
-      success: true, 
-      output: `Command executed successfully: ${command.substring(0, 50)}${command.length > 50 ? '...' : ''}` 
-    };
   }
 
-  private async simulateMySQLCommands(commands: string[]): Promise<{ success: boolean; output?: string; error?: string }> {
-    await new Promise(resolve => setTimeout(resolve, Math.random() * 2000 + 500));
-
-    // Simulate MySQL command execution
-    if (Math.random() < 0.05) {
-      return { success: false, error: 'MySQL access denied for user' };
+  private async executeMySQLImport(command: string, config: DatabaseSetupConfig): Promise<{ success: boolean; output?: string; error?: string }> {
+    try {
+      console.log('📂 Executing MySQL import:', command);
+      
+      // Parse the MySQL import command
+      // Format: mysql -u root -p${password} database_name < /path/to/file.sql
+      const matches = command.match(/mysql\s+.*?\s+([^\s]+)\s+<\s+(.+)/);
+      if (!matches) {
+        return {
+          success: false,
+          error: 'Invalid MySQL import command format'
+        };
+      }
+      
+      const [, databaseName, filePath] = matches;
+      
+      // In a real implementation, this would:
+      // 1. Read the SQL file from the file system
+      // 2. Execute each SQL statement against the database
+      // For now, we'll return an error explaining the limitation
+      
+      return {
+        success: false,
+        error: `MySQL import operations require server-side file access. The file ${filePath} must be processed on the database server. This operation cannot be completed from the browser environment.`
+      };
+      
+    } catch (error) {
+      console.error('❌ MySQL import failed:', error);
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : 'MySQL import failed'
+      };
     }
+  }
 
-    return { 
-      success: true, 
-      output: `Executed ${commands.length} MySQL commands successfully` 
-    };
+  private async executeMySQLCommands(commands: string[], config: DatabaseSetupConfig): Promise<{ success: boolean; output?: string; error?: string }> {
+    try {
+      console.log('🔧 Executing MySQL commands:', commands.length);
+      
+      // Create a root database connection for executing setup commands
+      const rootConfig: DatabaseConfig = {
+        host: 'localhost', // This should be updated from database settings
+        port: 3306,
+        database: 'mysql',
+        username: 'root',
+        password: config.mysqlRootPassword,
+        ssl: false,
+        connectionPoolSize: 1,
+        queryTimeout: 30,
+        autoReconnect: false,
+        charset: 'utf8mb4'
+      };
+
+      const dbManager = new DatabaseManager(rootConfig);
+      const connectResult = await dbManager.connect();
+      
+      if (!connectResult.success) {
+        return {
+          success: false,
+          error: `Failed to connect to MySQL server: ${connectResult.error}`
+        };
+      }
+
+      // Execute each command
+      const results = [];
+      for (let i = 0; i < commands.length; i++) {
+        const command = commands[i];
+        console.log(`🔧 Executing MySQL command ${i + 1}/${commands.length}:`, command.substring(0, 100) + '...');
+        
+        const result = await dbManager.executeQuery(command);
+        if (!result.success) {
+          await dbManager.disconnect();
+          return {
+            success: false,
+            error: `MySQL command failed (${i + 1}/${commands.length}): ${result.error}`
+          };
+        }
+        results.push(result);
+      }
+
+      await dbManager.disconnect();
+      console.log('✅ All MySQL commands executed successfully');
+      
+      return { 
+        success: true, 
+        output: `Successfully executed ${commands.length} MySQL commands` 
+      };
+    } catch (error) {
+      console.error('❌ MySQL commands execution failed:', error);
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : 'MySQL command execution failed'
+      };
+    }
   }
 
   private notifyProgress(): void {
