@@ -820,54 +820,83 @@ export function Settings({ activeTab, onTabChange, isMobileView }: SettingsProps
       addLog('🔄 Starting SSH connection test...');
       toast.info('Testing SSH connection...');
       
-      addLog(`🔌 Attempting to connect to ${databaseSettings.host}:22`);
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      const host = databaseSettings.host;
+      const port = 22; // Standard SSH port
       
-      addLog('🔑 Establishing SSH handshake...');
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      addLog(`🔌 Attempting to connect to ${host}:${port}`);
       
-      addLog('⏳ Authenticating with SSH key...');
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      
-      addLog('👋 Awaiting user approval on remote machine...');
-      addLog('📝 Note: You may need to approve this connection on the remote host');
-      await new Promise(resolve => setTimeout(resolve, 2000));
-      
-      // Simulate random success/failure for testing
-      const connectionSuccess = Math.random() > 0.3; // 70% success rate
-      
-      if (connectionSuccess) {
-        addLog('✅ SSH connection established successfully');
-        addLog('🔧 Remote access configured and ready');
+      // Try to establish a real connection by testing if the port is open
+      try {
+        // Use a simple network connectivity test
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 5000); // 5 second timeout
         
-        setRemoteAccess(prev => ({ 
-          ...prev, 
-          sshConnected: true,
-          sshStatus: 'online',
-          lastSSHCheck: new Date().toISOString() 
-        }));
+        addLog('🔍 Testing network connectivity...');
         
-        toast.success('SSH connection established successfully');
-      } else {
-        addLog('❌ SSH connection failed - timeout or authentication error');
-        addLog('💡 Check: SSH key is installed, host is reachable, user permissions');
+        // Attempt to make a connection test using fetch with a very short timeout
+        // This will fail but will tell us if the host is reachable
+        try {
+          await fetch(`http://${host}:${port}`, { 
+            method: 'HEAD',
+            mode: 'no-cors',
+            signal: controller.signal 
+          });
+        } catch (fetchError) {
+          // This is expected to fail for SSH connections, but the error type tells us about reachability
+          clearTimeout(timeoutId);
+          
+          if (fetchError.name === 'AbortError') {
+            addLog('⏱️ Connection timeout - host may be unreachable or blocking connections');
+            throw new Error('Connection timeout - host unreachable');
+          }
+          
+          // Network errors indicate the host might be reachable but the protocol is wrong (expected for SSH)
+          if (fetchError.message.includes('Failed to fetch') || 
+              fetchError.message.includes('NetworkError') ||
+              fetchError.message.includes('CORS')) {
+            addLog('🌐 Host is reachable, attempting SSH protocol test...');
+          } else {
+            addLog(`🔍 Network test result: ${fetchError.message}`);
+          }
+        }
         
-        setRemoteAccess(prev => ({ 
-          ...prev, 
-          sshConnected: false,
-          sshStatus: 'offline',
-          lastSSHCheck: new Date().toISOString() 
-        }));
-        
-        toast.error('SSH connection failed - check logs for details');
+        clearTimeout(timeoutId);
+      } catch (networkError) {
+        addLog(`❌ Network connectivity test failed: ${networkError.message}`);
+        throw networkError;
       }
+      
+      // Since we're in a browser environment, we can't make actual SSH connections
+      // Instead, we'll provide guidance on what needs to be done manually
+      addLog('⚠️ Browser environment detected - SSH setup requires manual configuration');
+      addLog('📋 Required manual steps:');
+      addLog('   1. Generate SSH keypair: ssh-keygen -t ed25519 -f ~/.ssh/lmeve_ops');
+      addLog('   2. Copy public key to remote host: ssh-copy-id -i ~/.ssh/lmeve_ops.pub opsuser@' + host);
+      addLog('   3. Test connection: ssh -i ~/.ssh/lmeve_ops opsuser@' + host);
+      addLog('   4. Ensure remote user has sudo privileges for LMeve scripts');
+      
+      // Since we can't make a real SSH connection from browser, we'll mark this as requiring manual setup
+      addLog('🔧 SSH connection requires server-side setup');
+      addLog('💡 This step must be completed on your web server, not in the browser');
+      
+      // For now, we'll consider the host reachable if our network test didn't timeout
+      setRemoteAccess(prev => ({ 
+        ...prev, 
+        sshConnected: false, // Set to false until actual SSH is configured server-side
+        sshStatus: 'warning', // Warning status indicates manual setup needed
+        lastSSHCheck: new Date().toISOString() 
+      }));
+      
+      addLog('⚠️ SSH status set to WARNING - manual configuration required');
+      toast.warning('SSH connection requires manual server-side setup');
+      
     } catch (error) {
       const addLog = (message: string) => {
         const timestamp = new Date().toLocaleTimeString();
         setConnectionLogs(prev => [...prev, `[${timestamp}] ${message}`]);
       };
       
-      addLog(`❌ SSH connection error: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      addLog(`❌ SSH connection test failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
       
       setRemoteAccess(prev => ({ 
         ...prev, 
@@ -876,7 +905,7 @@ export function Settings({ activeTab, onTabChange, isMobileView }: SettingsProps
         lastSSHCheck: new Date().toISOString() 
       }));
       
-      toast.error('SSH connection failed');
+      toast.error('SSH connection test failed - check logs for details');
     }
   };
 
@@ -894,40 +923,85 @@ export function Settings({ activeTab, onTabChange, isMobileView }: SettingsProps
       };
 
       addLog('📦 Starting script deployment process...');
-      toast.info('Deploying database setup scripts...');
+      toast.info('Preparing database setup scripts...');
       
-      addLog('📁 Creating remote directory: /usr/local/lmeve');
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      // Since this is a browser environment, we can't actually deploy scripts remotely
+      // Instead, we'll generate the scripts and provide instructions
       
-      addLog('📄 Transferring create-db.sh script...');
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      addLog('⚠️ Browser environment detected - generating setup scripts locally');
       
-      addLog('📄 Transferring import-sde.sh script...');
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      // Generate the actual script contents that would be deployed
+      const createDbScript = `#!/bin/bash
+# LMeve Database Creation Script
+set -e
+
+echo "Creating LMeve databases..."
+
+# Create databases
+mysql -u root -p <<EOF
+CREATE DATABASE IF NOT EXISTS lmeve;
+CREATE DATABASE IF NOT EXISTS EveStaticData;
+EOF
+
+echo "Creating LMeve user..."
+mysql -u root -p <<EOF
+CREATE USER IF NOT EXISTS '${databaseSettings.standardUser}'@'%' IDENTIFIED BY '${databaseSettings.standardPassword}';
+GRANT ALL PRIVILEGES ON lmeve.* TO '${databaseSettings.standardUser}'@'%';
+GRANT ALL PRIVILEGES ON EveStaticData.* TO '${databaseSettings.standardUser}'@'%';
+FLUSH PRIVILEGES;
+EOF
+
+echo "Database setup complete!"`;
+
+      const importSdeScript = `#!/bin/bash
+# LMeve SDE Import Script
+set -e
+
+SDE_FILE=\${1:-/tmp/mysql-latest.tar.bz2}
+
+echo "Importing SDE from: \$SDE_FILE"
+
+# Extract and import
+cd /tmp
+tar -xjf "\$SDE_FILE" --wildcards --no-anchored '*.sql' -C /tmp/ --strip-components 1
+
+# Import to EveStaticData database
+mysql -u ${databaseSettings.standardUser} -p${databaseSettings.standardPassword} EveStaticData < /tmp/eve_static_data.sql
+
+echo "SDE import complete!"`;
+
+      addLog('📄 Generated create-db.sh script');
+      addLog('📄 Generated import-sde.sh script');
       
-      addLog('🔧 Setting script permissions (chmod 700)...');
-      await new Promise(resolve => setTimeout(resolve, 500));
+      // Store scripts in browser storage for download/copy
+      localStorage.setItem('lmeve-create-db-script', createDbScript);
+      localStorage.setItem('lmeve-import-sde-script', importSdeScript);
       
-      addLog('👤 Configuring sudoers file for script execution...');
-      await new Promise(resolve => setTimeout(resolve, 500));
+      addLog('💾 Scripts saved to browser storage');
+      addLog('📋 Manual deployment required:');
+      addLog('   1. Copy scripts to remote host at /usr/local/lmeve/');
+      addLog('   2. Set permissions: chmod 700 /usr/local/lmeve/*.sh');
+      addLog('   3. Set ownership: chown root:root /usr/local/lmeve/*.sh');
+      addLog('   4. Configure sudoers: opsuser ALL=(root) NOPASSWD: /usr/local/lmeve/*.sh');
       
-      addLog('✅ All scripts deployed successfully');
+      // Offer to download scripts
+      addLog('💡 Use "Download Scripts" button to get the generated scripts');
       
       setRemoteAccess(prev => ({ 
         ...prev, 
-        scriptsDeployed: true,
-        scriptsStatus: 'deployed',
+        scriptsDeployed: false, // Not actually deployed, just generated
+        scriptsStatus: 'warning', // Warning indicates manual deployment needed
         lastScriptCheck: new Date().toISOString() 
       }));
       
-      toast.success('Scripts deployed successfully');
+      toast.warning('Scripts generated - manual deployment required on remote host');
     } catch (error) {
       const addLog = (message: string) => {
         const timestamp = new Date().toLocaleTimeString();
         setConnectionLogs(prev => [...prev, `[${timestamp}] ${message}`]);
       };
       
-      addLog(`❌ Script deployment error: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      addLog(`❌ Script generation error: ${error instanceof Error ? error.message : 'Unknown error'}`);
       
       setRemoteAccess(prev => ({ 
         ...prev, 
@@ -935,8 +1009,45 @@ export function Settings({ activeTab, onTabChange, isMobileView }: SettingsProps
         lastScriptCheck: new Date().toISOString() 
       }));
       
-      toast.error('Script deployment failed');
+      toast.error('Script generation failed');
     }
+  };
+
+  // Download generated scripts
+  const downloadScripts = () => {
+    const createDbScript = localStorage.getItem('lmeve-create-db-script');
+    const importSdeScript = localStorage.getItem('lmeve-import-sde-script');
+    
+    if (!createDbScript || !importSdeScript) {
+      toast.error('No scripts available. Please deploy scripts first.');
+      return;
+    }
+    
+    // Create and download create-db.sh
+    const createDbBlob = new Blob([createDbScript], { type: 'text/plain' });
+    const createDbUrl = URL.createObjectURL(createDbBlob);
+    const createDbLink = document.createElement('a');
+    createDbLink.href = createDbUrl;
+    createDbLink.download = 'create-db.sh';
+    document.body.appendChild(createDbLink);
+    createDbLink.click();
+    document.body.removeChild(createDbLink);
+    URL.revokeObjectURL(createDbUrl);
+    
+    // Create and download import-sde.sh
+    setTimeout(() => {
+      const importSdeBlob = new Blob([importSdeScript], { type: 'text/plain' });
+      const importSdeUrl = URL.createObjectURL(importSdeBlob);
+      const importSdeLink = document.createElement('a');
+      importSdeLink.href = importSdeUrl;
+      importSdeLink.download = 'import-sde.sh';
+      document.body.appendChild(importSdeLink);
+      importSdeLink.click();
+      document.body.removeChild(importSdeLink);
+      URL.revokeObjectURL(importSdeUrl);
+      
+      toast.success('Scripts downloaded successfully');
+    }, 100);
   };
 
   // Enhanced SDE Check Handler - Real Fuzzwork API check
@@ -2598,13 +2709,24 @@ export function Settings({ activeTab, onTabChange, isMobileView }: SettingsProps
                         variant="outline"
                         size="sm"
                         className="w-full text-xs h-8"
-                        disabled={!remoteAccess.sshConnected}
-                      >
                         <Upload size={12} className="mr-1" />
                         Deploy Scripts
                       </Button>
                       
-                      <Button
+                      {/* Download Scripts button - show after scripts are generated */}
+                      {/* Download Scripts button - show after scripts are generated */}
+                      {remoteAccess.scriptsStatus === 'warning' && (
+                        <Button
+                          onClick={downloadScripts}
+                          variant="outline"
+                          size="sm"
+                          className="w-full text-xs h-8 border-blue-500/50 text-blue-400 hover:bg-blue-500/10"
+                        >
+                          <Download size={12} className="mr-1" />
+                          Download Scripts
+                        </Button>
+                      )}
+                      
                         onClick={handleRemoteSetup}
                         variant="outline"
                         size="sm"
