@@ -2544,115 +2544,530 @@ export function Settings({ activeTab, onTabChange }: SettingsProps) {
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <Clock size={20} />
-                Data Synchronization Timers
+                Data Synchronization Processes
               </CardTitle>
+              <p className="text-muted-foreground">
+                LMeve data poller configuration based on individual sync processes with master orchestration
+              </p>
             </CardHeader>
             <CardContent className="space-y-6">
-              <div className="p-3 bg-muted/50 rounded-lg text-sm text-muted-foreground">
-                <p className="font-medium mb-2">Polling Configuration:</p>
-                <p>
-                  Configure how frequently each data type is synchronized with the EVE Online ESI API. 
-                  Lower values provide more real-time data but increase API usage. Higher values reduce 
-                  server load but data may be less current.
+              {/* Master Poller Status */}
+              <div className="p-4 bg-accent/5 border border-accent/20 rounded-lg">
+                <div className="flex items-center justify-between mb-3">
+                  <div className="flex items-center gap-2">
+                    <Terminal size={18} className="text-accent" />
+                    <span className="font-medium">Master Poller</span>
+                  </div>
+                  <Badge variant={syncSettings.masterPoller?.enabled ? "default" : "secondary"}>
+                    {syncSettings.masterPoller?.enabled ? "Active" : "Inactive"}
+                  </Badge>
+                </div>
+                <p className="text-sm text-muted-foreground mb-3">
+                  Central orchestration process that manages and schedules all individual data sync processes (poller.php equivalent)
                 </p>
+                <div className="grid grid-cols-3 gap-4 text-sm">
+                  <div>
+                    <p className="text-muted-foreground">Last Run</p>
+                    <p className="font-medium">{syncSettings.masterPoller?.lastRun ? new Date(syncSettings.masterPoller.lastRun).toLocaleTimeString() : 'Never'}</p>
+                  </div>
+                  <div>
+                    <p className="text-muted-foreground">Next Run</p>
+                    <p className="font-medium">{syncSettings.masterPoller?.nextRun ? new Date(syncSettings.masterPoller.nextRun).toLocaleTimeString() : 'Not scheduled'}</p>
+                  </div>
+                  <div>
+                    <p className="text-muted-foreground">Interval</p>
+                    <p className="font-medium">{syncSettings.masterPoller?.interval || 5} min</p>
+                  </div>
+                </div>
+                <div className="flex items-center gap-2 mt-3">
+                  <Switch
+                    checked={syncSettings.masterPoller?.enabled || false}
+                    onCheckedChange={(checked) => setSyncSettings(prev => ({
+                      ...prev,
+                      masterPoller: { ...prev.masterPoller, enabled: checked }
+                    }))}
+                  />
+                  <Label className="text-sm">Enable Master Poller</Label>
+                </div>
               </div>
 
+              {/* Individual Process Configuration */}
               <div className="space-y-4">
-                <h4 className="font-medium">Sync Intervals (minutes)</h4>
+                <div className="flex items-center justify-between">
+                  <h4 className="font-medium">Individual Sync Processes</h4>
+                  <Badge variant="outline">
+                    {Object.values(syncSettings.syncIntervals || {}).filter(interval => interval > 0).length} Enabled
+                  </Badge>
+                </div>
                 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <div className="space-y-4">
-                    <div className="flex items-center justify-between p-4 border border-border rounded-lg">
-                      <div className="space-y-1">
-                        <div className="flex items-center gap-2">
-                          <Users size={16} className="text-blue-400" />
-                          <Label className="font-medium">Members</Label>
+                <div className="space-y-3">
+                  {/* Corporation Members Process */}
+                  <div className="p-4 border border-border rounded-lg">
+                    <div className="flex items-center justify-between mb-3">
+                      <div className="flex items-center gap-3">
+                        <Users size={16} className="text-blue-400" />
+                        <div>
+                          <h5 className="font-medium">Corporation Members</h5>
+                          <p className="text-sm text-muted-foreground">Sync member list, roles, titles, and tracking data</p>
                         </div>
-                        <p className="text-sm text-muted-foreground">
-                          Corporation member list and roles
-                        </p>
                       </div>
                       <div className="flex items-center gap-2">
-                        <Input
-                          type="number"
-                          min="5"
-                          max="1440"
-                          value={syncSettings.syncIntervals?.members || 60}
-                          onChange={(e) => updateSyncInterval('members', parseInt(e.target.value) || 60)}
-                          className="w-20 text-center"
+                        <Switch
+                          checked={(syncSettings.syncIntervals?.members || 0) > 0}
+                          onCheckedChange={(checked) => updateSyncInterval('members', checked ? 60 : 0)}
                         />
-                        <span className="text-sm text-muted-foreground">min</span>
                       </div>
                     </div>
-
-                    <div className="flex items-center justify-between p-4 border border-border rounded-lg">
-                      <div className="space-y-1">
+                    <div className="grid grid-cols-4 gap-4 text-sm">
+                      <div>
+                        <p className="text-muted-foreground">Interval</p>
                         <div className="flex items-center gap-2">
-                          <Package size={16} className="text-green-400" />
-                          <Label className="font-medium">Assets</Label>
+                          <Input
+                            type="number"
+                            min="0"
+                            max="1440"
+                            value={syncSettings.syncIntervals?.members || 60}
+                            onChange={(e) => updateSyncInterval('members', parseInt(e.target.value) || 60)}
+                            className="w-16 text-center text-sm h-8"
+                            disabled={(syncSettings.syncIntervals?.members || 0) === 0}
+                          />
+                          <span className="text-muted-foreground">min</span>
                         </div>
-                        <p className="text-sm text-muted-foreground">
-                          Corporation assets and locations
-                        </p>
                       </div>
-                      <div className="flex items-center gap-2">
-                        <Input
-                          type="number"
-                          min="5"
-                          max="1440"
-                          value={syncSettings.syncIntervals?.assets || 30}
-                          onChange={(e) => updateSyncInterval('assets', parseInt(e.target.value) || 30)}
-                          className="w-20 text-center"
-                        />
-                        <span className="text-sm text-muted-foreground">min</span>
+                      <div>
+                        <p className="text-muted-foreground">Last Sync</p>
+                        <p className="font-medium">2 min ago</p>
                       </div>
+                      <div>
+                        <p className="text-muted-foreground">Records</p>
+                        <p className="font-medium">42 members</p>
+                      </div>
+                      <div>
+                        <p className="text-muted-foreground">Status</p>
+                        <Badge variant="default" className="text-xs">Success</Badge>
+                      </div>
+                    </div>
+                    <div className="text-xs text-muted-foreground mt-2">
+                      <strong>Process:</strong> getMemberTracking.php • <strong>ESI Endpoint:</strong> /v4/corporations/{corporation_id}/membertracking/
                     </div>
                   </div>
 
-                  <div className="space-y-4">
-                    <div className="flex items-center justify-between p-4 border border-border rounded-lg">
-                      <div className="space-y-1">
-                        <div className="flex items-center gap-2">
-                          <Factory size={16} className="text-purple-400" />
-                          <Label className="font-medium">Manufacturing</Label>
+                  {/* Corporation Assets Process */}
+                  <div className="p-4 border border-border rounded-lg">
+                    <div className="flex items-center justify-between mb-3">
+                      <div className="flex items-center gap-3">
+                        <Package size={16} className="text-green-400" />
+                        <div>
+                          <h5 className="font-medium">Corporation Assets</h5>
+                          <p className="text-sm text-muted-foreground">Sync assets, locations, and naming data</p>
                         </div>
-                        <p className="text-sm text-muted-foreground">
-                          Industry jobs and blueprints
-                        </p>
                       </div>
                       <div className="flex items-center gap-2">
-                        <Input
-                          type="number"
-                          min="5"
-                          max="1440"
-                          value={syncSettings.syncIntervals?.manufacturing || 15}
-                          onChange={(e) => updateSyncInterval('manufacturing', parseInt(e.target.value) || 15)}
-                          className="w-20 text-center"
+                        <Switch
+                          checked={(syncSettings.syncIntervals?.assets || 0) > 0}
+                          onCheckedChange={(checked) => updateSyncInterval('assets', checked ? 30 : 0)}
                         />
-                        <span className="text-sm text-muted-foreground">min</span>
                       </div>
+                    </div>
+                    <div className="grid grid-cols-4 gap-4 text-sm">
+                      <div>
+                        <p className="text-muted-foreground">Interval</p>
+                        <div className="flex items-center gap-2">
+                          <Input
+                            type="number"
+                            min="0"
+                            max="1440"
+                            value={syncSettings.syncIntervals?.assets || 30}
+                            onChange={(e) => updateSyncInterval('assets', parseInt(e.target.value) || 30)}
+                            className="w-16 text-center text-sm h-8"
+                            disabled={(syncSettings.syncIntervals?.assets || 0) === 0}
+                          />
+                          <span className="text-muted-foreground">min</span>
+                        </div>
+                      </div>
+                      <div>
+                        <p className="text-muted-foreground">Last Sync</p>
+                        <p className="font-medium">5 min ago</p>
+                      </div>
+                      <div>
+                        <p className="text-muted-foreground">Records</p>
+                        <p className="font-medium">1,247 assets</p>
+                      </div>
+                      <div>
+                        <p className="text-muted-foreground">Status</p>
+                        <Badge variant="default" className="text-xs">Success</Badge>
+                      </div>
+                    </div>
+                    <div className="text-xs text-muted-foreground mt-2">
+                      <strong>Process:</strong> getAssets.php • <strong>ESI Endpoint:</strong> /v5/corporations/{corporation_id}/assets/
+                    </div>
+                  </div>
+
+                  {/* Industry Jobs Process */}
+                  <div className="p-4 border border-border rounded-lg">
+                    <div className="flex items-center justify-between mb-3">
+                      <div className="flex items-center gap-3">
+                        <Factory size={16} className="text-purple-400" />
+                        <div>
+                          <h5 className="font-medium">Industry Jobs</h5>
+                          <p className="text-sm text-muted-foreground">Manufacturing, research, reactions, and invention jobs</p>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <Switch
+                          checked={(syncSettings.syncIntervals?.manufacturing || 0) > 0}
+                          onCheckedChange={(checked) => updateSyncInterval('manufacturing', checked ? 15 : 0)}
+                        />
+                      </div>
+                    </div>
+                    <div className="grid grid-cols-4 gap-4 text-sm">
+                      <div>
+                        <p className="text-muted-foreground">Interval</p>
+                        <div className="flex items-center gap-2">
+                          <Input
+                            type="number"
+                            min="0"
+                            max="1440"
+                            value={syncSettings.syncIntervals?.manufacturing || 15}
+                            onChange={(e) => updateSyncInterval('manufacturing', parseInt(e.target.value) || 15)}
+                            className="w-16 text-center text-sm h-8"
+                            disabled={(syncSettings.syncIntervals?.manufacturing || 0) === 0}
+                          />
+                          <span className="text-muted-foreground">min</span>
+                        </div>
+                      </div>
+                      <div>
+                        <p className="text-muted-foreground">Last Sync</p>
+                        <p className="font-medium">1 min ago</p>
+                      </div>
+                      <div>
+                        <p className="text-muted-foreground">Records</p>
+                        <p className="font-medium">23 active jobs</p>
+                      </div>
+                      <div>
+                        <p className="text-muted-foreground">Status</p>
+                        <Badge variant="default" className="text-xs">Success</Badge>
+                      </div>
+                    </div>
+                    <div className="text-xs text-muted-foreground mt-2">
+                      <strong>Process:</strong> getIndustryJobs.php • <strong>ESI Endpoint:</strong> /v1/corporations/{corporation_id}/industry/jobs/
+                    </div>
+                  </div>
+
+                  {/* Mining Operations Process */}
+                  <div className="p-4 border border-border rounded-lg">
+                    <div className="flex items-center justify-between mb-3">
+                      <div className="flex items-center gap-3">
+                        <HardHat size={16} className="text-yellow-400" />
+                        <div>
+                          <h5 className="font-medium">Mining Operations</h5>
+                          <p className="text-sm text-muted-foreground">Mining ledger and observer data</p>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <Switch
+                          checked={(syncSettings.syncIntervals?.mining || 0) > 0}
+                          onCheckedChange={(checked) => updateSyncInterval('mining', checked ? 45 : 0)}
+                        />
+                      </div>
+                    </div>
+                    <div className="grid grid-cols-4 gap-4 text-sm">
+                      <div>
+                        <p className="text-muted-foreground">Interval</p>
+                        <div className="flex items-center gap-2">
+                          <Input
+                            type="number"
+                            min="0"
+                            max="1440"
+                            value={syncSettings.syncIntervals?.mining || 45}
+                            onChange={(e) => updateSyncInterval('mining', parseInt(e.target.value) || 45)}
+                            className="w-16 text-center text-sm h-8"
+                            disabled={(syncSettings.syncIntervals?.mining || 0) === 0}
+                          />
+                          <span className="text-muted-foreground">min</span>
+                        </div>
+                      </div>
+                      <div>
+                        <p className="text-muted-foreground">Last Sync</p>
+                        <p className="font-medium">12 min ago</p>
+                      </div>
+                      <div>
+                        <p className="text-muted-foreground">Records</p>
+                        <p className="font-medium">156 entries</p>
+                      </div>
+                      <div>
+                        <p className="text-muted-foreground">Status</p>
+                        <Badge variant="default" className="text-xs">Success</Badge>
+                      </div>
+                    </div>
+                    <div className="text-xs text-muted-foreground mt-2">
+                      <strong>Process:</strong> getMiningLedger.php • <strong>ESI Endpoint:</strong> /v1/corporations/{corporation_id}/mining/
+                    </div>
+                  </div>
+
+                  {/* Market Orders Process */}
+                  <div className="p-4 border border-border rounded-lg">
+                    <div className="flex items-center justify-between mb-3">
+                      <div className="flex items-center gap-3">
+                        <TrendUp size={16} className="text-cyan-400" />
+                        <div>
+                          <h5 className="font-medium">Market Orders</h5>
+                          <p className="text-sm text-muted-foreground">Buy and sell orders, market transactions</p>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <Switch
+                          checked={(syncSettings.syncIntervals?.market || 0) > 0}
+                          onCheckedChange={(checked) => updateSyncInterval('market', checked ? 10 : 0)}
+                        />
+                      </div>
+                    </div>
+                    <div className="grid grid-cols-4 gap-4 text-sm">
+                      <div>
+                        <p className="text-muted-foreground">Interval</p>
+                        <div className="flex items-center gap-2">
+                          <Input
+                            type="number"
+                            min="0"
+                            max="1440"
+                            value={syncSettings.syncIntervals?.market || 10}
+                            onChange={(e) => updateSyncInterval('market', parseInt(e.target.value) || 10)}
+                            className="w-16 text-center text-sm h-8"
+                            disabled={(syncSettings.syncIntervals?.market || 0) === 0}
+                          />
+                          <span className="text-muted-foreground">min</span>
+                        </div>
+                      </div>
+                      <div>
+                        <p className="text-muted-foreground">Last Sync</p>
+                        <p className="font-medium">30 sec ago</p>
+                      </div>
+                      <div>
+                        <p className="text-muted-foreground">Records</p>
+                        <p className="font-medium">89 orders</p>
+                      </div>
+                      <div>
+                        <p className="text-muted-foreground">Status</p>
+                        <Badge variant="default" className="text-xs">Success</Badge>
+                      </div>
+                    </div>
+                    <div className="text-xs text-muted-foreground mt-2">
+                      <strong>Process:</strong> getMarketOrders.php • <strong>ESI Endpoint:</strong> /v3/corporations/{corporation_id}/orders/
+                    </div>
+                  </div>
+
+                  {/* Killmails Process */}
+                  <div className="p-4 border border-border rounded-lg">
+                    <div className="flex items-center justify-between mb-3">
+                      <div className="flex items-center gap-3">
+                        <Crosshair size={16} className="text-red-400" />
+                        <div>
+                          <h5 className="font-medium">Killmails</h5>
+                          <p className="text-sm text-muted-foreground">Corporation member kills and losses</p>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <Switch
+                          checked={(syncSettings.syncIntervals?.killmails || 0) > 0}
+                          onCheckedChange={(checked) => updateSyncInterval('killmails', checked ? 120 : 0)}
+                        />
+                      </div>
+                    </div>
+                    <div className="grid grid-cols-4 gap-4 text-sm">
+                      <div>
+                        <p className="text-muted-foreground">Interval</p>
+                        <div className="flex items-center gap-2">
+                          <Input
+                            type="number"
+                            min="0"
+                            max="1440"
+                            value={syncSettings.syncIntervals?.killmails || 120}
+                            onChange={(e) => updateSyncInterval('killmails', parseInt(e.target.value) || 120)}
+                            className="w-16 text-center text-sm h-8"
+                            disabled={(syncSettings.syncIntervals?.killmails || 0) === 0}
+                          />
+                          <span className="text-muted-foreground">min</span>
+                        </div>
+                      </div>
+                      <div>
+                        <p className="text-muted-foreground">Last Sync</p>
+                        <p className="font-medium">45 min ago</p>
+                      </div>
+                      <div>
+                        <p className="text-muted-foreground">Records</p>
+                        <p className="font-medium">7 new kills</p>
+                      </div>
+                      <div>
+                        <p className="text-muted-foreground">Status</p>
+                        <Badge variant="default" className="text-xs">Success</Badge>
+                      </div>
+                    </div>
+                    <div className="text-xs text-muted-foreground mt-2">
+                      <strong>Process:</strong> getKillmails.php • <strong>ESI Endpoint:</strong> /v1/corporations/{corporation_id}/killmails/recent/
+                    </div>
+                  </div>
+
+                  {/* Wallet & Transactions Process */}
+                  <div className="p-4 border border-border rounded-lg">
+                    <div className="flex items-center justify-between mb-3">
+                      <div className="flex items-center gap-3">
+                        <CurrencyDollar size={16} className="text-orange-400" />
+                        <div>
+                          <h5 className="font-medium">Wallet & Transactions</h5>
+                          <p className="text-sm text-muted-foreground">Corporation wallet balance, transactions, and journal</p>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <Switch
+                          checked={(syncSettings.syncIntervals?.income || 0) > 0}
+                          onCheckedChange={(checked) => updateSyncInterval('income', checked ? 30 : 0)}
+                        />
+                      </div>
+                    </div>
+                    <div className="grid grid-cols-4 gap-4 text-sm">
+                      <div>
+                        <p className="text-muted-foreground">Interval</p>
+                        <div className="flex items-center gap-2">
+                          <Input
+                            type="number"
+                            min="0"
+                            max="1440"
+                            value={syncSettings.syncIntervals?.income || 30}
+                            onChange={(e) => updateSyncInterval('income', parseInt(e.target.value) || 30)}
+                            className="w-16 text-center text-sm h-8"
+                            disabled={(syncSettings.syncIntervals?.income || 0) === 0}
+                          />
+                          <span className="text-muted-foreground">min</span>
+                        </div>
+                      </div>
+                      <div>
+                        <p className="text-muted-foreground">Last Sync</p>
+                        <p className="font-medium">8 min ago</p>
+                      </div>
+                      <div>
+                        <p className="text-muted-foreground">Records</p>
+                        <p className="font-medium">34 transactions</p>
+                      </div>
+                      <div>
+                        <p className="text-muted-foreground">Status</p>
+                        <Badge variant="default" className="text-xs">Success</Badge>
+                      </div>
+                    </div>
+                    <div className="text-xs text-muted-foreground mt-2">
+                      <strong>Process:</strong> getWalletTransactions.php • <strong>ESI Endpoint:</strong> /v1/corporations/{corporation_id}/wallets/{division}/transactions/
                     </div>
                   </div>
                 </div>
               </div>
 
-              <div className="border-t border-border pt-6 flex gap-3">
-                <Button onClick={handleSaveSettings}>Save Sync Settings</Button>
-                <Button 
-                  variant="outline"
-                  onClick={() => {
-                    updateSyncInterval('members', 60);
-                    updateSyncInterval('assets', 30);
-                    updateSyncInterval('manufacturing', 15);
-                    updateSyncInterval('mining', 45);
-                    updateSyncInterval('market', 10);
-                    updateSyncInterval('killmails', 120);
-                    updateSyncInterval('income', 30);
-                    toast.success('Reset to recommended defaults');
-                  }}
-                >
-                  Reset to Defaults
-                </Button>
+              {/* Process Management Controls */}
+              <div className="border-t border-border pt-6 space-y-4">
+                <div className="flex items-center justify-between">
+                  <h4 className="font-medium">Process Management</h4>
+                  <div className="flex items-center gap-2">
+                    <Button
+                      onClick={handleSyncData}
+                      disabled={syncStatus.isRunning}
+                      className="bg-accent hover:bg-accent/90"
+                      size="sm"
+                    >
+                      {syncStatus.isRunning ? (
+                        <>
+                          <ArrowClockwise size={16} className="mr-2 animate-spin" />
+                          Syncing...
+                        </>
+                      ) : (
+                        <>
+                          <Play size={16} className="mr-2" />
+                          Run Manual Sync
+                        </>
+                      )}
+                    </Button>
+                  </div>
+                </div>
+
+                {syncStatus.isRunning && (
+                  <div className="p-4 border border-accent/20 bg-accent/5 rounded-lg">
+                    <div className="flex items-center gap-2 mb-2">
+                      <ArrowClockwise size={16} className="text-accent animate-spin" />
+                      <span className="font-medium">Master Poller Running</span>
+                    </div>
+                    <div className="mb-2">
+                      <div className="flex justify-between text-sm mb-1">
+                        <span>{syncStatus.stage}</span>
+                        <span>{Math.round(syncStatus.progress)}%</span>
+                      </div>
+                      <Progress value={syncStatus.progress} className="h-2" />
+                    </div>
+                    <p className="text-sm text-muted-foreground">
+                      Orchestrating individual sync processes...
+                    </p>
+                  </div>
+                )}
+
+                <div className="flex gap-3">
+                  <Button onClick={saveSyncSettings} variant="default" size="sm">
+                    <CheckCircle size={16} className="mr-2" />
+                    Save Configuration
+                  </Button>
+                  <Button 
+                    variant="outline"
+                    size="sm"
+                    onClick={() => {
+                      // Reset to LMeve default intervals
+                      updateSyncInterval('members', 60);
+                      updateSyncInterval('assets', 30);
+                      updateSyncInterval('manufacturing', 15);
+                      updateSyncInterval('mining', 45);
+                      updateSyncInterval('market', 10);
+                      updateSyncInterval('killmails', 120);
+                      updateSyncInterval('income', 30);
+                      setSyncSettings(prev => ({
+                        ...prev,
+                        masterPoller: { ...prev.masterPoller, interval: 5, enabled: true }
+                      }));
+                      toast.success('Reset to LMeve defaults');
+                    }}
+                  >
+                    <ArrowClockwise size={16} className="mr-2" />
+                    Reset to LMeve Defaults
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => {
+                      // Disable all processes
+                      updateSyncInterval('members', 0);
+                      updateSyncInterval('assets', 0);
+                      updateSyncInterval('manufacturing', 0);
+                      updateSyncInterval('mining', 0);
+                      updateSyncInterval('market', 0);
+                      updateSyncInterval('killmails', 0);
+                      updateSyncInterval('income', 0);
+                      setSyncSettings(prev => ({
+                        ...prev,
+                        masterPoller: { ...prev.masterPoller, enabled: false }
+                      }));
+                      toast.success('All sync processes disabled');
+                    }}
+                  >
+                    <Stop size={16} className="mr-2" />
+                    Disable All
+                  </Button>
+                </div>
+
+                {/* Process Architecture Info */}
+                <div className="p-3 bg-muted/30 rounded-lg text-sm">
+                  <div className="flex items-center gap-2 mb-2">
+                    <Info size={14} className="text-muted-foreground" />
+                    <span className="font-medium">LMeve Process Architecture</span>
+                  </div>
+                  <p className="text-muted-foreground leading-relaxed">
+                    Based on the original LMeve design: individual PHP processes handle specific data types (members, assets, industry jobs, etc.) 
+                    while a master poller (poller.php) orchestrates execution timing. Set intervals to 0 to disable specific processes. 
+                    The master poller respects individual process schedules and handles ESI rate limiting.
+                  </p>
+                </div>
               </div>
             </CardContent>
           </Card>
