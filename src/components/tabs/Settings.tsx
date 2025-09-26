@@ -186,6 +186,12 @@ export function Settings({ activeTab, onTabChange }: SettingsProps) {
   const [corpInfo, setCorporationInfo] = useState<CorporationInfo | null>(null);
   const [characterInfo, setCharacterInfo] = useState<CharacterInfo | null>(null);
   
+  // ESI Routes management
+  const esiRoutes = useESIRoutes();
+  const [validatingRoutes, setValidatingRoutes] = useState(false);
+  const [esiRouteValidation, setESIRouteValidation] = useState<{[key: string]: boolean | undefined}>({});
+  const [routeUpdateResults, setRouteUpdateResults] = useState<{[key: string]: string}>({});
+  
   // Simplified setup state types
   interface SimpleSetupConfig {
     lmevePassword: string;
