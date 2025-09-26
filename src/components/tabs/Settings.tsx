@@ -1953,6 +1953,7 @@ export function Settings({ activeTab, onTabChange }: SettingsProps) {
                     </div>
                   </div>
                 </div>
+                </div>
               </div>
 
               {/* Database Tables - Collapsible Section */}
