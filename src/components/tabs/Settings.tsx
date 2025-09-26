@@ -1485,10 +1485,6 @@ export function Settings({ activeTab, onTabChange }: SettingsProps) {
     toast.success('Status refreshed');
   };
 
-  const handleNotificationToggle = (type: string) => {
-    updateNotificationEvent(type, !notificationSettings.events[type as keyof typeof notificationSettings.events]);
-  };
-
   return (
     <div className="space-y-6">
       <div>
@@ -1519,6 +1515,10 @@ export function Settings({ activeTab, onTabChange }: SettingsProps) {
         <TabsContent value="general" className="space-y-6">
           <Card>
             <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Globe size={20} />
+                General Settings
+              </CardTitle>
               <CardTitle className="flex items-center gap-2">
                 <Globe size={20} />
                 General Settings
