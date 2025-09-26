@@ -1442,9 +1442,92 @@ export function Settings({ activeTab, onTabChange }: SettingsProps) {
         <TabsContent value="database" className="space-y-6">
           <Card>
             <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Database size={20} />
-                Database Configuration
+              <CardTitle className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <Database size={20} />
+                  Database Configuration
+                </div>
+                <Dialog>
+                  <DialogTrigger asChild>
+                    <Button variant="outline" size="sm" className="gap-2">
+                      <Question size={16} />
+                      Setup Requirements
+                    </Button>
+                  </DialogTrigger>
+                  <DialogContent className="max-w-2xl">
+                    <DialogHeader>
+                      <DialogTitle className="flex items-center gap-2">
+                        <Info size={20} />
+                        Database Setup Requirements
+                      </DialogTitle>
+                      <DialogDescription>
+                        Follow these steps to properly configure your database environment
+                      </DialogDescription>
+                    </DialogHeader>
+                    <div className="space-y-4">
+                      <div className="border border-border rounded-lg p-4">
+                        <h4 className="font-semibold mb-2 flex items-center gap-2">
+                          <Database size={16} />
+                          Database Prerequisites
+                        </h4>
+                        <ul className="space-y-1 text-sm text-muted-foreground ml-4">
+                          <li>• MySQL/MariaDB server installed and running</li>
+                          <li>• Administrative (sudo) access to the database server</li>
+                          <li>• Network connectivity to the database server</li>
+                          <li>• Sufficient privileges to create databases and users</li>
+                        </ul>
+                      </div>
+                      
+                      <div className="border border-border rounded-lg p-4">
+                        <h4 className="font-semibold mb-2 flex items-center gap-2">
+                          <Key size={16} />
+                          EVE Online ESI Application
+                        </h4>
+                        <ol className="space-y-1 text-sm text-muted-foreground ml-4">
+                          <li>1. Visit <code className="bg-background px-1 rounded">https://developers.eveonline.com</code></li>
+                          <li>2. Create a new application with callback URL: <code className="bg-background px-1 rounded">{window.location.origin}/</code></li>
+                          <li>3. Copy the Client ID and Client Secret to the fields above</li>
+                          <li>4. Ensure your application has the required scopes for LMeve</li>
+                        </ol>
+                      </div>
+                      
+                      <div className="border border-border rounded-lg p-4">
+                        <h4 className="font-semibold mb-2 flex items-center gap-2">
+                          <Network size={16} />
+                          Remote Database Setup (Optional)
+                        </h4>
+                        <p className="text-sm text-muted-foreground mb-2">
+                          If your database is on a remote server, you'll need:
+                        </p>
+                        <ul className="space-y-1 text-sm text-muted-foreground ml-4">
+                          <li>• SSH access to the database server</li>
+                          <li>• SSH key-based authentication configured</li>
+                          <li>• Proper firewall rules for database access</li>
+                          <li>• Database server configured to accept remote connections</li>
+                        </ul>
+                      </div>
+                      
+                      <div className="border border-border rounded-lg p-4">
+                        <h4 className="font-semibold mb-2 flex items-center gap-2">
+                          <Archive size={16} />
+                          EVE Static Data Export (SDE)
+                        </h4>
+                        <p className="text-sm text-muted-foreground">
+                          LMeve requires the EVE Static Data Export for ship, item, and universe data. 
+                          This will be automatically downloaded and configured during the database setup process.
+                        </p>
+                      </div>
+
+                      <Alert>
+                        <Info size={16} />
+                        <AlertDescription>
+                          The automated setup process will handle database creation, user setup, and SDE import. 
+                          Ensure you have the administrative credentials ready before starting.
+                        </AlertDescription>
+                      </Alert>
+                    </div>
+                  </DialogContent>
+                </Dialog>
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-6">
@@ -1755,67 +1838,6 @@ export function Settings({ activeTab, onTabChange }: SettingsProps) {
                     </Button>
                   </div>
                 </div>
-              </div>
-
-              {/* Connection Controls and Status - Full Width */}
-              <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                {/* Connection Controls - Left */}
-                <div className="lg:col-span-2">
-                  <div className="flex gap-3">
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => {
-                        console.log('🧪 Test connection button clicked');
-                        handleTestDbConnection();
-                      }}
-                      disabled={testingConnection}
-                      className="flex-1 hover:bg-accent/10 active:bg-accent/20 transition-colors"
-                    >
-                      {testingConnection ? (
-                        <>
-                          <ArrowClockwise size={16} className="mr-2 animate-spin" />
-                          Testing...
-                        </>
-                      ) : (
-                        <>
-                          <Play size={16} className="mr-2" />
-                          Test Connection
-                        </>
-                      )}
-                    </Button>
-                    
-                    {dbStatus.connected ? (
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={handleDisconnectDb}
-                        className="flex-1 border-red-500/50 text-red-400 hover:bg-red-500/10"
-                      >
-                        <Stop size={16} className="mr-2" />
-                        Disconnect
-                      </Button>
-                    ) : (
-                      <Button
-                        size="sm"
-                        onClick={handleConnectDb}
-                        className="flex-1 bg-accent hover:bg-accent/90"
-                      >
-                        <Play size={16} className="mr-2" />
-                        Connect
-                      </Button>
-                    )}
-                    
-                    <Button
-                      onClick={saveDatabaseSettings}
-                      variant="secondary"
-                      size="sm"
-                      className="flex-1"
-                    >
-                      Save
-                    </Button>
-                  </div>
-                </div>
 
                 {/* Status Overview Panel - Right Column */}
                 <div className="space-y-4">
@@ -1903,7 +1925,20 @@ export function Settings({ activeTab, onTabChange }: SettingsProps) {
                           </SelectContent>
                         </Select>
                       </div>
-                      
+                    </div>
+                    
+                    <div className="border-t border-border pt-4 space-y-2 mb-4">
+                      <div className="flex items-center justify-between text-xs">
+                        <span className="text-muted-foreground">SDE Latest Version Check</span>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => toast.info('Version check coming soon')}
+                          className="h-6 px-2 text-xs"
+                        >
+                          Check
+                        </Button>
+                      </div>
                       <div className="flex items-center justify-between text-xs">
                         <span className="text-muted-foreground">SDE Version:</span>
                         <span className="text-foreground">Unknown</span>
