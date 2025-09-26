@@ -280,11 +280,7 @@ export function Settings({ activeTab, onTabChange }: SettingsProps) {
     testConnection: testRemoteConnection, 
     uploadFile: uploadRemoteFile 
   } = useRemoteOperations();
-  const [remoteConnectionStatus, setRemoteConnectionStatus] = useState({
-    isConnected: false,
-    message: 'Not tested'
-  });
-  const [isTestingRemoteConnection, setIsTestingRemoteConnection] = useState(false);
+
 
   // Save handlers for each settings category
   const saveGeneralSettings = async () => {
@@ -560,47 +556,7 @@ export function Settings({ activeTab, onTabChange }: SettingsProps) {
   };
 
   // Remote database operations handlers
-  const handleTestRemoteConnection = async () => {
-    if (isTestingRemoteConnection) return;
-    
-    setIsTestingRemoteConnection(true);
-    setRemoteConnectionStatus({ isConnected: false, message: 'Testing connection...' });
-    
-    try {
-      const config = {
-        host: databaseSettings.sudoHost || databaseSettings.host || '',
-        port: databaseSettings.sudoPort || databaseSettings.port || 3306,
-        sshUser: 'opsuser',
-        sshKeyPath: '~/.ssh/lmeve_ops',
-        mysqlRootPassword: databaseSettings.sudoPassword || '',
-        lmevePassword: databaseSettings.password || 'lmpassword'
-      };
-      
-      const result = await testRemoteConnection(config);
-      setRemoteConnectionStatus({
-        isConnected: result.success,
-        message: result.message
-      });
-      
-      if (result.success) {
-        addConnectionLog('✅ Remote database connection successful');
-        toast.success('Remote connection established');
-      } else {
-        addConnectionLog(`❌ Remote connection failed: ${result.message}`);
-        toast.error(`Connection failed: ${result.message}`);
-      }
-    } catch (error) {
-      const message = error instanceof Error ? error.message : 'Unknown error';
-      setRemoteConnectionStatus({
-        isConnected: false,
-        message: `Error: ${message}`
-      });
-      addConnectionLog(`❌ Remote connection error: ${message}`);
-      toast.error(`Connection error: ${message}`);
-    } finally {
-      setIsTestingRemoteConnection(false);
-    }
-  };
+
 
   const handleCreateRemoteDatabases = async () => {
     try {
@@ -1573,18 +1529,17 @@ export function Settings({ activeTab, onTabChange }: SettingsProps) {
                     </div>
                   </div>
 
-                  {/* Remote Connection Status */}
                   <div className="flex items-center gap-2">
                     <div className={`w-3 h-3 rounded-full ${
                       databaseSettings.host && databaseSettings.host !== 'localhost' && databaseSettings.host !== '127.0.0.1' 
-                        ? remoteConnectionStatus?.isConnected ? 'bg-green-500' : 'bg-orange-500'
+                        ? dbStatus.connected ? 'bg-green-500' : 'bg-orange-500'
                         : 'bg-gray-500'
                     }`} />
                     <div>
                       <p className="text-sm font-medium">Remote Access</p>
                       <p className="text-xs text-muted-foreground">
                         {databaseSettings.host && databaseSettings.host !== 'localhost' && databaseSettings.host !== '127.0.0.1'
-                          ? remoteConnectionStatus?.isConnected ? 'Ready' : 'Not Ready'
+                          ? dbStatus.connected ? 'Ready' : 'Not Ready'
                           : 'Local Mode'
                         }
                       </p>
@@ -1942,35 +1897,14 @@ export function Settings({ activeTab, onTabChange }: SettingsProps) {
                   {databaseSettings.host && databaseSettings.host !== 'localhost' && databaseSettings.host !== '127.0.0.1' && (
                     <div className="border border-border rounded-lg p-4">
                       <div className="flex items-center gap-2 mb-4">
-                        <div className={`w-2 h-2 rounded-full ${remoteConnectionStatus?.isConnected ? 'bg-green-500' : 'bg-orange-500'}`} />
+                        <div className={`w-2 h-2 rounded-full ${dbStatus.connected ? 'bg-green-500' : 'bg-orange-500'}`} />
                         <h4 className="font-medium">Remote Access</h4>
                       </div>
                       
                       <div className="space-y-3">
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={handleTestRemoteConnection}
-                          disabled={isTestingRemoteConnection}
-                          className="w-full"
-                        >
-                          {isTestingRemoteConnection ? (
-                            <ArrowClockwise size={14} className="animate-spin mr-2" />
-                          ) : (
-                            <Network size={14} className="mr-2" />
-                          )}
-                          Test SSH Connection
-                        </Button>
-
-                        {remoteConnectionStatus?.message && (
-                          <div className={`text-xs p-2 rounded ${
-                            remoteConnectionStatus.isConnected 
-                              ? 'text-green-300 bg-green-900/20 border border-green-500/20' 
-                              : 'text-orange-300 bg-orange-900/20 border border-orange-500/20'
-                          }`}>
-                            {remoteConnectionStatus.message}
-                          </div>
-                        )}
+                        <p className="text-xs text-muted-foreground">
+                          Remote connection status is managed by the database connection test above.
+                        </p>
                       </div>
                     </div>
                   )}
@@ -2077,59 +2011,7 @@ export function Settings({ activeTab, onTabChange }: SettingsProps) {
                     </Badge>
                   </div>
                   
-                  {databaseSettings.host && databaseSettings.host !== 'localhost' && databaseSettings.host !== '127.0.0.1' ? (
-                    <div className="space-y-3">
-                      {/* Remote Database Connection Status */}
-                      <div className="flex items-center justify-between p-3 border border-border rounded">
-                        <div className="flex items-center gap-2">
-                          <Network size={16} className={remoteConnectionStatus?.isConnected ? 'text-green-400' : 'text-orange-400'} />
-                          <span className="text-sm font-medium">Remote Connection</span>
-                        </div>
-                        <div className="flex items-center gap-2">
-                          {remoteConnectionStatus?.isConnected ? (
-                            <Badge variant="default" className="bg-green-600">Connected</Badge>
-                          ) : (
-                            <Badge variant="secondary">Not Connected</Badge>
-                          )}
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={handleTestRemoteConnection}
-                            disabled={isTestingRemoteConnection}
-                          >
-                            {isTestingRemoteConnection ? (
-                              <ArrowClockwise size={14} className="animate-spin" />
-                            ) : (
-                              <Network size={14} />
-                            )}
-                          </Button>
-                        </div>
-                      </div>
-                      
-                      {remoteConnectionStatus?.message && (
-                        <div className={`text-xs p-2 rounded ${
-                          remoteConnectionStatus.isConnected 
-                            ? 'text-green-300 bg-green-900/20 border border-green-500/20' 
-                            : 'text-orange-300 bg-orange-900/20 border border-orange-500/20'
-                        }`}>
-                          {remoteConnectionStatus.message}
-                        </div>
-                      )}
-                      
-                      <Alert>
-                        <Info size={16} />
-                        <AlertDescription>
-                          Remote setup requires SSH access to copy files and execute scripts on the database server.
-                          Ensure SSH keys are configured and the 'opsuser' account exists with sudo privileges.
-                        </AlertDescription>
-                      </Alert>
-                    </div>
-                  ) : (
-                    <div className="flex items-center gap-2 text-green-400">
-                      <CheckCircle size={16} />
-                      <span className="text-sm">Local database - direct execution supported</span>
-                    </div>
-                  )}
+
                 </div>
 
                 {/* Schema Selection */}
@@ -2291,8 +2173,8 @@ export function Settings({ activeTab, onTabChange }: SettingsProps) {
 
                           const isRemote = databaseSettings.host !== 'localhost' && databaseSettings.host !== '127.0.0.1';
                           
-                          if (isRemote && !remoteConnectionStatus?.isConnected) {
-                            toast.error('Please establish remote connection first');
+                          if (isRemote && !dbStatus.connected) {
+                            toast.error('Please establish database connection first');
                             return;
                           }
 
@@ -2456,7 +2338,7 @@ export function Settings({ activeTab, onTabChange }: SettingsProps) {
                         disabled={setupProgress.isRunning || !databaseSettings?.sudoPassword || 
                           (setupConfig.schemaSource === 'custom' && !setupConfig.customSchemaFile) ||
                           (setupConfig.sdeSource === 'custom' && !setupConfig.customSDEFile) ||
-                          (databaseSettings.host !== 'localhost' && databaseSettings.host !== '127.0.0.1' && !remoteConnectionStatus?.isConnected)
+                          (databaseSettings.host !== 'localhost' && databaseSettings.host !== '127.0.0.1' && !dbStatus.connected)
                         }
                       >
                         {setupProgress.isRunning ? (
@@ -2544,11 +2426,11 @@ export function Settings({ activeTab, onTabChange }: SettingsProps) {
                           </Alert>
                         )}
                         
-                        {databaseSettings.host !== 'localhost' && databaseSettings.host !== '127.0.0.1' && !remoteConnectionStatus?.isConnected && (
+                        {databaseSettings.host !== 'localhost' && databaseSettings.host !== '127.0.0.1' && !dbStatus.connected && (
                           <Alert>
                             <Network size={16} />
                             <AlertDescription>
-                              Remote database detected. Please test the remote connection first to ensure SSH access is available.
+                              Remote database detected. Please test the database connection first to ensure access is available.
                             </AlertDescription>
                           </Alert>
                         )}
@@ -2732,9 +2614,9 @@ export function Settings({ activeTab, onTabChange }: SettingsProps) {
             onCreateDatabases={handleCreateRemoteDatabases}
             onImportSchema={handleImportRemoteSchema}
             onImportSDE={handleImportRemoteSDE}
-            isConnected={remoteConnectionStatus.isConnected}
-            connectionMessage={remoteConnectionStatus.message}
-            onTestConnection={handleTestRemoteConnection}
+            isConnected={dbStatus.connected}
+            connectionMessage={dbStatus.message || 'Use connection test above to verify remote access'}
+            onTestConnection={() => toast.info('Use the database connection test above to verify remote access')}
           />
         </TabsContent>
 
