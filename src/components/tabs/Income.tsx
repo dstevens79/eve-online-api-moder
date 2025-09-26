@@ -41,7 +41,7 @@ export function Income({ onLoginClick }: TabComponentProps) {
       id: '1',
       pilotId: 91316135,
       pilotName: 'John Industrialist',
-      jobId: 'job_12345',
+      jobId: 12345,
       jobType: 'manufacturing',
       productTypeId: 587,
       productTypeName: 'Rifter',
@@ -66,7 +66,7 @@ export function Income({ onLoginClick }: TabComponentProps) {
       id: '2',
       pilotId: 91316136,
       pilotName: 'Jane Manufacturer',
-      jobId: 'job_12346',
+      jobId: 12346,
       jobType: 'manufacturing',
       productTypeId: 12058,
       productTypeName: 'Hobgoblin I',
@@ -91,7 +91,7 @@ export function Income({ onLoginClick }: TabComponentProps) {
       id: '3',
       pilotId: 91316135,
       pilotName: 'John Industrialist',
-      jobId: 'job_12347',
+      jobId: 12347,
       jobType: 'research',
       productTypeId: 0,
       productTypeName: 'Blueprint Research',
@@ -139,7 +139,7 @@ export function Income({ onLoginClick }: TabComponentProps) {
         cutoffDate = new Date(0);
     }
 
-    filtered = filtered.filter(record => new Date(record.completedDate) >= cutoffDate);
+    filtered = filtered.filter(record => new Date(record.completedDate || record.date) >= cutoffDate);
 
     // Filter by pilot
     if (selectedPilot !== 'all') {
@@ -154,7 +154,7 @@ export function Income({ onLoginClick }: TabComponentProps) {
     // Filter by search term
     if (searchTerm) {
       filtered = filtered.filter(record =>
-        record.productTypeName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        (record.productTypeName || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
         record.pilotName.toLowerCase().includes(searchTerm.toLowerCase())
       );
     }
@@ -164,10 +164,14 @@ export function Income({ onLoginClick }: TabComponentProps) {
 
   // Calculate analytics
   const analytics: IncomeAnalytics = useMemo(() => {
-    const totalProfit = filteredRecords.reduce((sum, record) => sum + record.profit, 0);
-    const totalRevenue = filteredRecords.reduce((sum, record) => sum + record.marketValue, 0);
-    const totalCost = filteredRecords.reduce((sum, record) => sum + record.totalCost, 0);
+    const totalProfit = filteredRecords.reduce((sum, record) => sum + (record.profit || 0), 0);
+    const totalRevenue = filteredRecords.reduce((sum, record) => sum + (record.marketValue || 0), 0);
+    const totalCost = filteredRecords.reduce((sum, record) => sum + (record.totalCost || 0), 0);
     const averageProfitMargin = totalCost > 0 ? totalProfit / totalCost : 0;
+    
+    const totalEarned = filteredRecords.reduce((sum, record) => sum + record.totalEarned, 0);
+    const totalHours = filteredRecords.reduce((sum, record) => sum + record.hoursWorked, 0);
+    const averageRate = totalHours > 0 ? totalEarned / totalHours : 0;
 
     // Calculate top pilots
     const pilotStats = new Map<number, { pilotName: string; jobs: number; profit: number }>();
@@ -175,7 +179,7 @@ export function Income({ onLoginClick }: TabComponentProps) {
     filteredRecords.forEach(record => {
       const existing = pilotStats.get(record.pilotId) || { pilotName: record.pilotName, jobs: 0, profit: 0 };
       existing.jobs += 1;
-      existing.profit += record.profit;
+      existing.profit += (record.profit || 0);
       pilotStats.set(record.pilotId, existing);
     });
 
@@ -194,10 +198,11 @@ export function Income({ onLoginClick }: TabComponentProps) {
     const productStats = new Map<number, { typeName: string; units: number; profit: number }>();
     
     filteredRecords.forEach(record => {
-      const existing = productStats.get(record.productTypeId) || { typeName: record.productTypeName, units: 0, profit: 0 };
-      existing.units += record.productQuantity;
-      existing.profit += record.profit;
-      productStats.set(record.productTypeId, existing);
+      const typeId = record.productTypeId || 0;
+      const existing = productStats.get(typeId) || { typeName: record.productTypeName || 'Unknown', units: 0, profit: 0 };
+      existing.units += (record.productQuantity || 0);
+      existing.profit += (record.profit || 0);
+      productStats.set(typeId, existing);
     });
 
     const topProducts = Array.from(productStats.entries())
@@ -219,6 +224,20 @@ export function Income({ onLoginClick }: TabComponentProps) {
     ];
 
     return {
+      totalEarned,
+      totalHours,
+      averageRate,
+      topEarners: topPilots.map(pilot => ({
+        pilotName: pilot.pilotName,
+        totalEarned: pilot.totalProfit,
+        hoursWorked: 0 // Not calculated yet
+      })),
+      activityBreakdown: [],
+      monthlyTrend: monthlyTrends.map(trend => ({
+        month: trend.month,
+        totalEarned: trend.revenue,
+        totalHours: 0
+      })),
       totalProfit,
       totalRevenue,
       averageProfitMargin,
@@ -265,7 +284,7 @@ export function Income({ onLoginClick }: TabComponentProps) {
   if (!user && onLoginClick && false) { // Added && false to disable this check
     return (
       <LoginPrompt 
-        onLoginClick={onLoginClick}
+        onLoginClick={onLoginClick || (() => {})}
         title="Income Analytics"
         description="Sign in to view and manage pilot compensation and income tracking"
       />

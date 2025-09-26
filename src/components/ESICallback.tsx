@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Rocket, AlertCircle, CheckCircle, Loader2 } from '@phosphor-icons/react';
+import { Rocket, Warning, CheckCircle, CircleNotch } from '@phosphor-icons/react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Alert, AlertDescription } from '@/components/ui/alert';
@@ -81,7 +81,7 @@ export function ESICallback({ onLoginSuccess, onLoginError }: ESICallbackProps) 
           <div className="flex justify-center mb-4">
             {status === 'processing' && (
               <div className="bg-accent/20 p-4 rounded-full">
-                <Loader2 size={32} className="text-accent animate-spin" />
+                <CircleNotch size={32} className="text-accent animate-spin" />
               </div>
             )}
             {status === 'success' && (
@@ -91,7 +91,7 @@ export function ESICallback({ onLoginSuccess, onLoginError }: ESICallbackProps) 
             )}
             {status === 'error' && (
               <div className="bg-red-500/20 p-4 rounded-full">
-                <AlertCircle size={32} className="text-red-500" />
+                <Warning size={32} className="text-red-500" />
               </div>
             )}
           </div>
@@ -126,7 +126,7 @@ export function ESICallback({ onLoginSuccess, onLoginError }: ESICallbackProps) 
           {status === 'error' && (
             <div className="space-y-4">
               <Alert variant="destructive">
-                <AlertCircle size={16} />
+                <Warning size={16} />
                 <AlertDescription>
                   {error}
                 </AlertDescription>

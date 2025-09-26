@@ -32,6 +32,7 @@ export interface SDEDatabaseStats {
   availableVersion?: string;
   lastUpdateCheck?: string;
   isOutdated?: boolean;
+  tables?: string[];
 }
 
 class SDEService {

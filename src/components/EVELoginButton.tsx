@@ -1,5 +1,5 @@
 import React from 'react';
-import { Rocket, Shield, ExclamationTriangle } from '@phosphor-icons/react';
+import { Rocket, Shield, Warning } from '@phosphor-icons/react';
 
 interface EVELoginButtonProps {
   onClick: () => void;
@@ -34,9 +34,9 @@ export function EVELoginButton({
     if (showValidationStatus === 'configured') {
       return <Shield size={iconSizes[size]} className="text-green-400" />;
     } else if (showValidationStatus === 'no-corps') {
-      return <ExclamationTriangle size={iconSizes[size]} className="text-yellow-400" />;
+      return <Warning size={iconSizes[size]} className="text-yellow-400" />;
     } else if (showValidationStatus === 'not-configured') {
-      return <ExclamationTriangle size={iconSizes[size]} className="text-red-400" />;
+      return <Warning size={iconSizes[size]} className="text-red-400" />;
     }
     return <Rocket size={iconSizes[size]} className="text-orange-400" />;
   };

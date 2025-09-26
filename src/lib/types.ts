@@ -111,6 +111,8 @@ export interface Blueprint {
   jobType: string;
   baseMaterials: MaterialRequirement[];
   materials?: MaterialRequirement[];
+  ownerName?: string;
+  ownerId?: number;
 }
 
 export interface ProductionPlan {
@@ -146,6 +148,9 @@ export interface MaterialRequirement {
   estimatedCost?: number;
   priority?: 'critical' | 'high' | 'normal' | 'low';
   source?: 'inventory' | 'market' | 'manufacturing' | 'mining';
+  available?: number;
+  category?: string;
+  unitPrice?: number;
 }
 
 // Income tracking types
@@ -167,16 +172,51 @@ export interface IncomeRecord {
   approvedDate?: string;
   paidDate?: string;
   notes?: string;
+  completedDate?: string;
+  jobType?: string;
+  productTypeName?: string;
+  productTypeId?: number;
+  productQuantity?: number;
+  profit?: number;
+  totalCost?: number;
+  marketValue?: number;
+  profitMargin?: number;
+  runs?: number;
+  materialCost?: number;
 }
 
 export interface IncomeAnalytics {
   totalEarned: number;
   totalHours: number;
   averageRate: number;
+  totalProfit?: number;
+  totalRevenue?: number;
+  averageProfitMargin?: number;
+  jobsCompleted?: number;
   topEarners: Array<{
     pilotName: string;
     totalEarned: number;
     hoursWorked: number;
+  }>;
+  topPilots?: Array<{
+    pilotId: number;
+    pilotName: string;
+    jobsCompleted: number;
+    totalProfit: number;
+    averageProfit: number;
+  }>;
+  topProducts?: Array<{
+    productTypeId: number;
+    productTypeName: string;
+    quantity: number;
+    totalProfit: number;
+    averageProfit: number;
+  }>;
+  monthlyTrends?: Array<{
+    month: string;
+    totalProfit: number;
+    totalRevenue: number;
+    jobsCompleted: number;
   }>;
   activityBreakdown: Array<{
     activityType: string;
@@ -419,6 +459,7 @@ export interface KillmailSummary {
   timestamp: string;
   systemId: number;
   systemName: string;
+  system?: string; // Alternative system field name
   regionId: number;
   regionName: string;
   victim: KillmailVictim;
@@ -529,6 +570,10 @@ export interface LMeveUser {
   lastLogin: string;
   sessionExpiry: string;
   isActive: boolean;
+  
+  // Admin flags
+  isAdmin?: boolean;
+  canManageESI?: boolean;
   
   // Metadata
   createdDate: string;

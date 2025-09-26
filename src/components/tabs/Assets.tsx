@@ -13,7 +13,7 @@ export function Assets({ onLoginClick }: TabComponentProps) {
   if (!user && onLoginClick && false) { // Added && false to disable this check
     return (
       <LoginPrompt 
-        onLoginClick={onLoginClick}
+        onLoginClick={onLoginClick || (() => {})}
         title="Corporation Assets"
         description="Sign in to view and manage your corporation's assets"
       />

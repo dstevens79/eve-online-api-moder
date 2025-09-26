@@ -11,12 +11,12 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import { toast } from 'sonner';
 import { 
   UserPlus, 
-  Trash2, 
-  Edit3, 
+  Trash, 
+  PencilSimple, 
   Shield, 
   Users, 
   Key,
-  AlertTriangle,
+  Warning,
   CheckCircle,
   Clock
 } from '@phosphor-icons/react';
@@ -370,7 +370,7 @@ export function UserManagement() {
                       </div>
                     ) : (
                       <div className="flex items-center gap-2 text-red-600">
-                        <AlertTriangle size={14} />
+                        <Warning size={14} />
                         <span className="text-xs">Inactive</span>
                       </div>
                     )}
@@ -385,7 +385,7 @@ export function UserManagement() {
                           size="sm"
                           onClick={() => openEditDialog(user)}
                         >
-                          <Edit3 size={14} />
+                          <PencilSimple size={14} />
                         </Button>
                       )}
                       
@@ -397,7 +397,7 @@ export function UserManagement() {
                           onClick={() => openDeleteDialog(user)}
                           className="text-red-600 hover:text-red-700 hover:bg-red-50"
                         >
-                          <Trash2 size={14} />
+                          <Trash size={14} />
                         </Button>
                       )}
                     </div>
@@ -492,7 +492,7 @@ export function UserManagement() {
           {selectedUser && (
             <div className="space-y-4 pt-4">
               <Alert variant="destructive">
-                <AlertTriangle size={16} />
+                <Warning size={16} />
                 <AlertDescription>
                   This action cannot be undone. This will permanently delete the user account for:{' '}
                   <strong>{selectedUser.characterName || selectedUser.username}</strong>

@@ -99,7 +99,7 @@ export function JobDetailsDialog({ job, open, onOpenChange, onJobUpdate }: JobDe
   };
 
   const getMaterialStatus = (material: MaterialRequirement) => {
-    const percentage = (material.available / material.quantity) * 100;
+    const percentage = ((material.available || 0) / material.quantity) * 100;
     if (percentage >= 100) return { color: 'text-green-400', icon: CheckCircle };
     if (percentage >= 50) return { color: 'text-yellow-400', icon: Warning };
     return { color: 'text-red-400', icon: Warning };
@@ -241,14 +241,14 @@ export function JobDetailsDialog({ job, open, onOpenChange, onJobUpdate }: JobDe
                         <TableRow key={index}>
                           <TableCell className="font-medium">{material.typeName}</TableCell>
                           <TableCell>{material.quantity.toLocaleString()}</TableCell>
-                          <TableCell>{material.available.toLocaleString()}</TableCell>
+                          <TableCell>{(material.available || 0).toLocaleString()}</TableCell>
                           <TableCell>
                             <div className={`flex items-center gap-2 ${status.color}`}>
                               <StatusIcon size={16} />
-                              {material.available >= material.quantity ? 'Available' : 'Shortage'}
+                              {(material.available || 0) >= material.quantity ? 'Available' : 'Shortage'}
                             </div>
                           </TableCell>
-                          <TableCell>{formatISK(material.unitPrice)}</TableCell>
+                          <TableCell>{formatISK(material.unitPrice || 0)}</TableCell>
                           <TableCell>{formatISK(material.totalValue)}</TableCell>
                         </TableRow>
                       );

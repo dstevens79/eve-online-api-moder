@@ -19,7 +19,7 @@ export function Sidebar({ onSelectEndpoint }: SidebarProps) {
 
   const getFavoriteEndpoints = () => {
     const allEndpoints = API_CATEGORIES.flatMap(cat => cat.endpoints);
-    return favorites.map(favKey => {
+    return (favorites || []).map(favKey => {
       const [method, path] = favKey.split(':', 2);
       return allEndpoints.find(ep => ep.method === method && ep.path === path);
     }).filter(Boolean) as EveApiEndpoint[];
@@ -27,7 +27,7 @@ export function Sidebar({ onSelectEndpoint }: SidebarProps) {
 
   const removeFavorite = (endpoint: EveApiEndpoint) => {
     const endpointKey = `${endpoint.method}:${endpoint.path}`;
-    setFavorites((current) => current.filter(key => key !== endpointKey));
+    setFavorites((current) => (current || []).filter(key => key !== endpointKey));
   };
 
   const clearHistory = () => {
@@ -35,7 +35,7 @@ export function Sidebar({ onSelectEndpoint }: SidebarProps) {
   };
 
   const favoriteEndpoints = getFavoriteEndpoints();
-  const recentHistory = history.slice(-10).reverse();
+  const recentHistory = (history || []).slice(-10).reverse();
 
   return (
     <div className="space-y-6">
@@ -101,7 +101,7 @@ export function Sidebar({ onSelectEndpoint }: SidebarProps) {
               <Clock size={16} />
               Recent
             </CardTitle>
-            {history.length > 0 && (
+            {(history || []).length > 0 && (
               <Button variant="ghost" size="sm" onClick={clearHistory}>
                 <Trash size={12} />
               </Button>

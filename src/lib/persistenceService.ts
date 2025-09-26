@@ -38,6 +38,7 @@ export interface DatabaseSettings {
   sudoPort: number;
   sudoUsername: string;
   sudoPassword: string;
+  sudoSsl?: boolean;
 }
 
 export interface ESISettings {
@@ -150,11 +151,13 @@ export interface IncomeSettings {
   bonusRates: {
     weekendMultiplier: number;
     holidayMultiplier: number;
+    nightShiftMultiplier?: number;
   };
   paymentSettings: {
-    currency: 'ISK';
+    currency: 'ISK' | 'USD' | 'EUR';
     minimumPayout: number;
     paymentSchedule: 'daily' | 'weekly' | 'monthly';
+    taxRate?: number;
   };
 }
 

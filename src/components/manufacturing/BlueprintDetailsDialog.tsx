@@ -185,15 +185,15 @@ export function BlueprintDetailsDialog({ blueprint, open, onOpenChange, onStartJ
               <TableRow key={index}>
                 <TableCell className="font-medium">{material.typeName}</TableCell>
                 <TableCell>{material.quantity.toLocaleString()}</TableCell>
-                <TableCell className={material.available >= material.quantity ? 'text-green-400' : 'text-red-400'}>
-                  {material.available.toLocaleString()}
+                <TableCell className={(material.available || 0) >= material.quantity ? 'text-green-400' : 'text-red-400'}>
+                  {(material.available || 0).toLocaleString()}
                 </TableCell>
                 <TableCell>
                   <Badge variant="outline" className="text-xs capitalize">
-                    {material.category}
+                    {material.category || 'Unknown'}
                   </Badge>
                 </TableCell>
-                <TableCell>{formatISK(material.unitPrice)}</TableCell>
+                <TableCell>{formatISK(material.unitPrice || 0)}</TableCell>
                 <TableCell>{formatISK(material.totalValue)}</TableCell>
               </TableRow>
             ))}
@@ -218,7 +218,7 @@ export function BlueprintDetailsDialog({ blueprint, open, onOpenChange, onStartJ
             </div>
             <div>
               <p className="text-2xl font-bold text-green-400">
-                {Math.round((blueprint.baseMaterials.filter(mat => mat.available >= mat.quantity).length / blueprint.baseMaterials.length) * 100)}%
+                {Math.round((blueprint.baseMaterials.filter(mat => (mat.available || 0) >= mat.quantity).length / blueprint.baseMaterials.length) * 100)}%
               </p>
               <p className="text-sm text-muted-foreground">Available</p>
             </div>

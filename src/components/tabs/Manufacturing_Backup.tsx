@@ -28,7 +28,7 @@ import {
   Star,
   Warning,
   CheckCircle,
-  Refresh,
+  ArrowCounterClockwise,
   Globe
 } from '@phosphor-icons/react';
 import { ManufacturingJob, Blueprint, ProductionPlan, MaterialRequirement, CorpSettings } from '@/lib/types';
@@ -58,6 +58,7 @@ export function Manufacturing() {
       enabled: false,
       autoSync: false,
       syncInterval: 30,
+      lastSync: new Date().toISOString(),
       corporationId: 498125261,
       characterId: 91316135
     }
@@ -344,7 +345,7 @@ export function Manufacturing() {
               disabled={safeEveData.isLoading}
             >
               {safeEveData.isLoading ? (
-                <Refresh size={16} className="mr-2 animate-spin" />
+                <ArrowCounterClockwise size={16} className="mr-2 animate-spin" />
               ) : (
                 <Globe size={16} className="mr-2" />
               )}
@@ -788,7 +789,7 @@ export function Manufacturing() {
                     onClick={refreshIndustryJobs}
                     disabled={safeEveData.isLoading}
                   >
-                    <Refresh size={12} className={safeEveData.isLoading ? 'animate-spin' : ''} />
+                    <ArrowCounterClockwise size={12} className={safeEveData.isLoading ? 'animate-spin' : ''} />
                   </Button>
                 )}
               </div>

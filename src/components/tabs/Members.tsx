@@ -100,7 +100,7 @@ export function Members({ onLoginClick }: MembersProps) {
   if (!user && onLoginClick && false) { // Added && false to disable this check
     return (
       <LoginPrompt 
-        onLoginClick={onLoginClick}
+        onLoginClick={onLoginClick || (() => {})}
         title="Corporation Members"
         description="Sign in to view and manage your corporation's member roster"
       />

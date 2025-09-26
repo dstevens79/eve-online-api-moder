@@ -261,7 +261,7 @@ export function Manufacturing({ onLoginClick }: ManufacturingProps) {
   if (!user && onLoginClick && false) { // Added && false to disable this check
     return (
       <LoginPrompt 
-        onLoginClick={onLoginClick}
+        onLoginClick={onLoginClick || (() => {})}
         title="Manufacturing Operations"
         description="Sign in to manage your corporation's manufacturing jobs and blueprints"
       />

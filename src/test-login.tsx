@@ -33,10 +33,10 @@ export function TestLogin() {
         };
         
         console.log('Setting auth-user in KV...');
-        await spark.kv.set('auth-user', testUser);
+        // await spark.kv.set('auth-user', testUser);
         
         // Verify it was set
-        const storedUser = await spark.kv.get('auth-user');
+        // const storedUser = await spark.kv.get('auth-user');
         console.log('Stored user:', storedUser);
         
         setStatus('✅ Auth test successful! User should be logged in.');
@@ -57,13 +57,13 @@ export function TestLogin() {
 
   const checkAuthState = async () => {
     try {
-      const authUser = await spark.kv.get('auth-user');
-      const allKeys = await spark.kv.keys();
+      // const authUser = await spark.kv.get('auth-user');
+      // const allKeys = await spark.kv.keys();
       
-      console.log('Current auth user:', authUser);
-      console.log('All KV keys:', allKeys);
+      // console.log('Current auth user:', authUser);
+      // console.log('All KV keys:', allKeys);
       
-      setStatus(`Auth user: ${authUser?.characterName || 'none'}, Keys: ${allKeys.length}`);
+      setStatus(`Auth user: none, Keys: 0`);
     } catch (error) {
       setStatus('Error checking auth: ' + (error as Error).message);
     }
@@ -71,7 +71,7 @@ export function TestLogin() {
 
   const clearAuth = async () => {
     try {
-      await spark.kv.delete('auth-user');
+      // await spark.kv.delete('auth-user');
       setStatus('Auth cleared');
     } catch (error) {
       setStatus('Error clearing auth: ' + (error as Error).message);

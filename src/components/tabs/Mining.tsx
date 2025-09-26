@@ -13,7 +13,7 @@ export function Mining({ onLoginClick }: TabComponentProps) {
   if (!user && onLoginClick && false) { // Added && false to disable this check
     return (
       <LoginPrompt 
-        onLoginClick={onLoginClick}
+        onLoginClick={onLoginClick || (() => {})}
         title="Mining Operations"
         description="Sign in to view and manage your corporation's mining activities"
       />

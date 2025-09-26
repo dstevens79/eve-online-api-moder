@@ -5,7 +5,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { useKV } from '@github/spark/hooks';
-import { Play, Trash2 } from '@phosphor-icons/react';
+import { Play, Trash } from '@phosphor-icons/react';
 
 interface TestUser {
   id: number;
@@ -92,7 +92,7 @@ export function SimpleKVTest() {
               variant="outline"
               className="text-xs"
             >
-              <Trash2 size={12} className="mr-1" />
+              <Trash size={12} className="mr-1" />
               Clear
             </Button>
           </div>
