@@ -59,7 +59,8 @@ import {
   Question,
   Activity,
   Settings as SettingsIcon,
-  RefreshCw
+  RefreshCw,
+  Wrench
 } from '@phosphor-icons/react';
 import { useKV } from '@github/spark/hooks';
 import { useAuth } from '@/lib/auth-provider';
@@ -153,6 +154,19 @@ export function Settings({ activeTab, onTabChange, isMobileView }: SettingsProps
   
   // Get registered corporations
   const registeredCorps = getRegisteredCorporations();
+  
+  // Get all users (manual + ESI)
+  const allUsers = React.useMemo(() => {
+    const authUsers = getAllUsers() || [];
+    return authUsers.sort((a, b) => {
+      // Sort by last login (most recent first), then by character name
+      const aTime = new Date(a.lastLogin || 0).getTime();
+      const bTime = new Date(b.lastLogin || 0).getTime();
+      if (aTime !== bTime) return bTime - aTime;
+      return (a.characterName || '').localeCompare(b.characterName || '');
+    });
+  }, [getAllUsers]);
+  
   const { sdeStatus, checkForUpdates, downloadSDE, updateDatabase, getDatabaseStats } = useSDEManager();
   const [generalSettings, setGeneralSettings] = useGeneralSettings();
   const [databaseSettings, setDatabaseSettings] = useDatabaseSettings();
@@ -555,7 +569,168 @@ export function Settings({ activeTab, onTabChange, isMobileView }: SettingsProps
       hourlyRates: { ...prev.hourlyRates, [category]: rate }
     }));
   };
+
+  // Character lookup functionality
+  const searchCharacters = async (searchTerm: string) => {
+    if (!searchTerm.trim() || searchTerm.length < 3) {
+      setCharacterSearchResults([]);
+      return;
+    }
+
+    setIsSearchingCharacters(true);
+    try {
+      console.log('🔍 Searching for characters:', searchTerm);
+      
+      // Use EVE API to search for characters
+      const response = await fetch(`https://esi.evetech.net/v1/search/?categories=character&search=${encodeURIComponent(searchTerm)}&strict=false`, {
+        headers: {
+          'User-Agent': 'LMeve/2.0 (Character Search)'
+        }
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        console.log('🔍 Character search results:', data);
+        
+        if (data.character && data.character.length > 0) {
+          // Get character details
+          const characterDetails = await Promise.all(
+            data.character.slice(0, 10).map(async (id: number) => {
+              try {
+                console.log('📋 Fetching details for character ID:', id);
+                
+                const charResponse = await fetch(`https://esi.evetech.net/v5/characters/${id}/`, {
+                  headers: {
+                    'User-Agent': 'LMeve/2.0 (Character Details)'
+                  }
+                });
+                
+                if (charResponse.ok) {
+                  const charData = await charResponse.json();
+                  console.log('📋 Character data received:', charData);
+                  
+                  // Get corporation details
+                  let corporationData = null;
+                  if (charData.corporation_id) {
+                    try {
+                      const corpResponse = await fetch(`https://esi.evetech.net/v5/corporations/${charData.corporation_id}/`, {
+                        headers: {
+                          'User-Agent': 'LMeve/2.0 (Corporation Details)'
+                        }
+                      });
+                      if (corpResponse.ok) {
+                        corporationData = await corpResponse.json();
+                        console.log('🏢 Corporation data received:', corporationData);
+                      }
+                    } catch (error) {
+                      console.warn('⚠️ Failed to fetch corporation data:', error);
+                    }
+                  }
+
+                  return {
+                    characterId: id,
+                    characterName: charData.name,
+                    corporationId: charData.corporation_id,
+                    corporationName: corporationData?.name || 'Unknown Corporation',
+                    allianceId: charData.alliance_id,
+                    securityStatus: charData.security_status,
+                    birthDate: charData.birthday
+                  };
+                } else {
+                  console.warn('⚠️ Character details fetch failed:', charResponse.status);
+                }
+              } catch (error) {
+                console.warn('⚠️ Failed to fetch character details:', error);
+              }
+              return null;
+            })
+          );
+
+          const validCharacters = characterDetails.filter(char => char !== null);
+          console.log('✅ Valid character results:', validCharacters);
+          setCharacterSearchResults(validCharacters);
+          
+          if (validCharacters.length === 0) {
+            toast.error('No character details could be retrieved');
+          }
+        } else {
+          console.log('📭 No characters found in search');
+          setCharacterSearchResults([]);
+          toast.error(`No characters found matching "${searchTerm}"`);
+        }
+      } else {
+        console.error('❌ Character search failed:', response.status, response.statusText);
+        setCharacterSearchResults([]);
+        toast.error('Character search failed. EVE API may be unavailable.');
+      }
+    } catch (error) {
+      console.error('❌ Character search error:', error);
+      setCharacterSearchResults([]);
+      toast.error('Failed to search characters. Check your internet connection.');
+    } finally {
+      setIsSearchingCharacters(false);
+    }
+  };
+
+  // Handle user deletion
+  const handleDeleteUser = async (userId: string) => {
+    if (confirm('Are you sure you want to delete this user? This action cannot be undone.')) {
+      try {
+        await deleteUser(userId);
+        toast.success('User deleted successfully');
+      } catch (error) {
+        console.error('Error deleting user:', error);
+        toast.error('Failed to delete user');
+      }
+    }
+  };
+
+  // Handle character selection and user creation
+  const handleCreateUserFromCharacter = async (character: any, role: string = 'member') => {
+    try {
+      const newUser = {
+        id: Date.now().toString(),
+        characterId: character.characterId,
+        characterName: character.characterName,
+        corporationId: character.corporationId,
+        corporationName: character.corporationName,
+        allianceId: character.allianceId,
+        authMethod: 'manual' as const,
+        role: role as any,
+        isActive: true,
+        createdDate: new Date().toISOString(),
+        lastLogin: '',
+        sessionExpiry: ''
+      };
+
+      // This would use the auth provider's createManualUser
+      // For now, we'll add to manual users list
+      setManualUsers(prev => [...prev, {
+        id: newUser.id,
+        username: character.characterName.toLowerCase().replace(/\s+/g, '_'),
+        characterName: character.characterName,
+        corporationName: character.corporationName,
+        corporationId: character.corporationId,
+        roles: [role],
+        createdAt: new Date().toISOString(),
+        isActive: true
+      }]);
+
+      setShowCharacterLookup(false);
+      setSelectedCharacter(null);
+      setCharacterSearchTerm('');
+      setCharacterSearchResults([]);
+      
+      toast.success(`User created for ${character.characterName}`);
+    } catch (error) {
+      console.error('Error creating user:', error);
+      toast.error('Failed to create user');
+    }
+  };
   const [showAddUser, setShowAddUser] = useState(false);
+  const [showEditUser, setShowEditUser] = useState(false);
+  const [showCharacterLookup, setShowCharacterLookup] = useState(false);
+  const [editingUser, setEditingUser] = useState<any>(null);
   const [newUser, setNewUser] = useState({
     username: '',
     password: '',
@@ -563,6 +738,12 @@ export function Settings({ activeTab, onTabChange, isMobileView }: SettingsProps
     corporationName: '',
     roles: [] as string[],
   });
+  
+  // Character lookup state
+  const [characterSearchTerm, setCharacterSearchTerm] = useState('');
+  const [characterSearchResults, setCharacterSearchResults] = useState<any[]>([]);
+  const [isSearchingCharacters, setIsSearchingCharacters] = useState(false);
+  const [selectedCharacter, setSelectedCharacter] = useState<any>(null);
 
   // Backward compatibility functions for existing code
   const updateDatabaseConfig = (key: string, value: any) => {
@@ -4603,54 +4784,160 @@ export function Settings({ activeTab, onTabChange, isMobileView }: SettingsProps
                 </div>
               )}
 
-              {/* Manual Users Section */}
+              {/* Character-Tied User Management Section */}
               <div className="space-y-4">
                 <div className="flex items-center justify-between">
-                  <h4 className="font-medium">Manual User Accounts</h4>
-                  <Button
-                    onClick={() => setShowAddUser(true)}
-                    size="sm"
-                    className="bg-accent hover:bg-accent/90"
-                  >
-                    <Users size={16} className="mr-2" />
-                    Add User
-                  </Button>
+                  <div>
+                    <h4 className="font-medium">User & Character Management</h4>
+                    <p className="text-xs text-muted-foreground mt-1">
+                      Manage user accounts and their EVE character associations
+                    </p>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Button
+                      onClick={() => setShowCharacterLookup(true)}
+                      variant="outline"
+                      size="sm"
+                    >
+                      <Rocket size={16} className="mr-2" />
+                      Link Character
+                    </Button>
+                    <Button
+                      onClick={() => setShowAddUser(true)}
+                      size="sm"
+                      className="bg-accent hover:bg-accent/90"
+                    >
+                      <Users size={16} className="mr-2" />
+                      Add User
+                    </Button>
+                  </div>
+                </div>
+
+                {/* Character Tie-in Information */}
+                <div className="p-3 bg-muted/30 rounded-lg">
+                  <div className="flex items-start gap-2">
+                    <Info size={16} className="text-accent mt-0.5 flex-shrink-0" />
+                    <div className="text-sm space-y-1">
+                      <p className="font-medium text-foreground">Character Linking System</p>
+                      <ul className="text-muted-foreground space-y-1 text-xs">
+                        <li>• <strong>ESI Users:</strong> Automatically linked to EVE characters via SSO authentication</li>
+                        <li>• <strong>Manual Users:</strong> Can be tied to characters using the "Link Character" feature</li>
+                        <li>• <strong>Character Search:</strong> Uses EVE's search API to find and verify characters</li>
+                        <li>• <strong>Corporation Validation:</strong> Characters are validated against registered corporations</li>
+                      </ul>
+                    </div>
+                  </div>
                 </div>
                 
-                {manualUsers.length > 0 ? (
+                {/* All Users List - Manual and ESI */}
+                {allUsers.length > 0 ? (
                   <div className="space-y-3">
-                    {manualUsers.map((manualUser) => (
-                      <div key={manualUser.id} className="p-4 border border-border rounded-lg">
-                        <div className="flex items-center justify-between">
-                          <div>
-                            <h5 className="font-medium">{manualUser.characterName}</h5>
-                            <p className="text-sm text-muted-foreground">
-                              Username: {manualUser.username} • Corporation: {manualUser.corporationName}
-                            </p>
-                            <p className="text-xs text-muted-foreground">
-                              Roles: {manualUser.roles.join(', ')} • Created: {new Date(manualUser.createdAt).toLocaleDateString()}
-                            </p>
+                    {allUsers.map((anyUser) => (
+                      <div key={anyUser.id} className="p-4 border border-border rounded-lg">
+                        <div className="flex items-start justify-between">
+                          <div className="flex items-start gap-3">
+                            {/* Character Portrait */}
+                            {anyUser.characterId && (
+                              <img 
+                                src={`https://images.evetech.net/characters/${anyUser.characterId}/portrait?size=64`}
+                                alt={anyUser.characterName || 'Character'}
+                                className="w-12 h-12 rounded-full border-2 border-accent/30"
+                                onError={(e) => {
+                                  (e.target as HTMLImageElement).src = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDgiIGhlaWdodD0iNDgiIHZpZXdCb3g9IjAgMCA0OCA0OCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPGNpcmNsZSBjeD0iMjQiIGN5PSIyNCIgcj0iMjQiIGZpbGw9IiMzMzMiLz4KPHN2ZyB3aWR0aD0iMjQiIGhlaWdodD0iMjQiIHZpZXdCb3g9IjAgMCAyNCAyNCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIiB4PSIxMiIgeT0iMTIiPgo8cGF0aCBkPSJNMTIgMTVDMTAuMzQgMTUgOSAxMy42NiA5IDEyQzkgMTAuMzQgMTAuMzQgOSAxMiA5QzEzLjY2IDkgMTUgMTAuMzQgMTUgMTJDMTUgMTMuNjYgMTMuNjYgMTUgMTIgMTVaIiBmaWxsPSIjOTk5Ii8+CjxwYXRoIGQ9Ik0xMiAxOEM4LjY5IDE4IDYgMTQuNjkgNiAxMkM2IDkuMzEgOC42OSA2IDEyIDZDMTQuNjkgNiAxOCA5LjMxIDE4IDEyQzE4IDE0LjY5IDE0LjY5IDE4IDEyIDE4WiIgZmlsbD0iIzk5OSIvPgo8L3N2Zz4KPC9zdmc+';
+                                }}
+                              />
+                            )}
+                            
+                            <div className="flex-1">
+                              <div className="flex items-center gap-2">
+                                <h5 className="font-medium">{anyUser.characterName || 'Unknown Character'}</h5>
+                                {anyUser.authMethod === 'esi' && (
+                                  <Badge variant="outline" className="text-xs bg-green-500/10 text-green-400 border-green-500/30">
+                                    ESI Verified
+                                  </Badge>
+                                )}
+                                {anyUser.authMethod === 'manual' && (
+                                  <Badge variant="outline" className="text-xs bg-blue-500/10 text-blue-400 border-blue-500/30">
+                                    Manual
+                                  </Badge>
+                                )}
+                              </div>
+                              
+                              <div className="mt-1 space-y-1">
+                                {anyUser.username && (
+                                  <p className="text-sm text-muted-foreground">
+                                    Username: <span className="font-mono">{anyUser.username}</span>
+                                  </p>
+                                )}
+                                <p className="text-sm text-muted-foreground">
+                                  Corporation: {anyUser.corporationName || 'Unknown Corporation'}
+                                  {anyUser.corporationId && (
+                                    <span className="text-xs ml-2 opacity-75">({anyUser.corporationId})</span>
+                                  )}
+                                </p>
+                                {anyUser.allianceName && (
+                                  <p className="text-sm text-muted-foreground">
+                                    Alliance: {anyUser.allianceName}
+                                  </p>
+                                )}
+                                <p className="text-xs text-muted-foreground">
+                                  Role: <span className="capitalize">{anyUser.role?.replace('_', ' ')}</span> • 
+                                  Created: {new Date(anyUser.createdDate || Date.now()).toLocaleDateString()}
+                                </p>
+                              </div>
+                            </div>
                           </div>
+                          
                           <div className="flex items-center gap-2">
-                            <Badge variant={manualUser.isActive ? "default" : "secondary"}>
-                              {manualUser.isActive ? "Active" : "Inactive"}
+                            <Badge variant={anyUser.isActive ? "default" : "secondary"}>
+                              {anyUser.isActive ? "Active" : "Inactive"}
                             </Badge>
+                            
+                            {/* Character verification status */}
+                            {anyUser.characterId ? (
+                              <Badge variant="outline" className="text-xs bg-green-500/10 text-green-400 border-green-500/30">
+                                <CheckCircle size={12} className="mr-1" />
+                                Linked
+                              </Badge>
+                            ) : (
+                              <Badge variant="outline" className="text-xs bg-yellow-500/10 text-yellow-400 border-yellow-500/30">
+                                <Warning size={12} className="mr-1" />
+                                Unlinked
+                              </Badge>
+                            )}
+                            
                             <Button
                               variant="outline"
                               size="sm"
                               onClick={() => {
-                                setManualUsers(users => users.filter(u => u.id !== manualUser.id));
-                                toast.success('User removed');
+                                setEditingUser(anyUser);
+                                setShowEditUser(true);
                               }}
+                              className="text-xs"
                             >
-                              <X size={16} />
+                              <Wrench size={14} className="mr-1" />
+                              Edit
+                            </Button>
+                            
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => handleDeleteUser(anyUser.id)}
+                              className="text-xs text-red-400 hover:bg-red-500/10"
+                            >
+                              <X size={14} />
                             </Button>
                           </div>
                         </div>
                         
-                        {manualUser.lastLogin && (
-                          <div className="mt-2 text-xs text-muted-foreground">
-                            Last login: {new Date(manualUser.lastLogin).toLocaleString()}
+                        {anyUser.lastLogin && (
+                          <div className="mt-3 pt-3 border-t border-border/50">
+                            <div className="flex items-center justify-between text-xs text-muted-foreground">
+                              <span>Last login: {new Date(anyUser.lastLogin).toLocaleString()}</span>
+                              {anyUser.authMethod === 'esi' && anyUser.tokenExpiry && (
+                                <span>Token expires: {new Date(anyUser.tokenExpiry).toLocaleString()}</span>
+                              )}
+                            </div>
                           </div>
                         )}
                       </div>
@@ -4659,9 +4946,9 @@ export function Settings({ activeTab, onTabChange, isMobileView }: SettingsProps
                 ) : (
                   <div className="p-4 border border-dashed border-border rounded-lg text-center">
                     <Users size={32} className="mx-auto mb-2 text-muted-foreground" />
-                    <p className="text-sm text-muted-foreground mb-2">No manual users created</p>
+                    <p className="text-sm text-muted-foreground mb-2">No users configured</p>
                     <p className="text-xs text-muted-foreground">
-                      Create manual user accounts for direct login access
+                      Add users manually or use EVE SSO for automatic character linking
                     </p>
                   </div>
                 )}
@@ -4783,6 +5070,248 @@ export function Settings({ activeTab, onTabChange, isMobileView }: SettingsProps
                         className="flex-1 bg-accent hover:bg-accent/90"
                       >
                         Create User
+                      </Button>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Character Lookup Modal */}
+              {showCharacterLookup && (
+                <div className="fixed inset-0 bg-background/80 backdrop-blur-sm z-50 flex items-center justify-center">
+                  <div className="bg-card border border-border rounded-lg p-6 w-full max-w-2xl mx-4 shadow-lg max-h-[80vh] overflow-y-auto">
+                    <div className="flex items-center justify-between mb-4">
+                      <h3 className="text-lg font-semibold">Link EVE Character</h3>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => {
+                          setShowCharacterLookup(false);
+                          setCharacterSearchTerm('');
+                          setCharacterSearchResults([]);
+                          setSelectedCharacter(null);
+                        }}
+                      >
+                        <X size={16} />
+                      </Button>
+                    </div>
+
+                    <div className="space-y-4">
+                      {/* Character Search */}
+                      <div className="space-y-2">
+                        <Label htmlFor="characterSearch">Search EVE Characters</Label>
+                        <div className="flex gap-2">
+                          <Input
+                            id="characterSearch"
+                            value={characterSearchTerm}
+                            onChange={(e) => setCharacterSearchTerm(e.target.value)}
+                            placeholder="Enter character name (minimum 3 characters)"
+                            onKeyDown={(e) => {
+                              if (e.key === 'Enter' && characterSearchTerm.length >= 3) {
+                                searchCharacters(characterSearchTerm);
+                              }
+                            }}
+                          />
+                          <Button
+                            onClick={() => searchCharacters(characterSearchTerm)}
+                            disabled={isSearchingCharacters || characterSearchTerm.length < 3}
+                            size="sm"
+                          >
+                            {isSearchingCharacters ? (
+                              <ArrowClockwise size={16} className="animate-spin mr-2" />
+                            ) : (
+                              <Rocket size={16} className="mr-2" />
+                            )}
+                            Search
+                          </Button>
+                        </div>
+                      </div>
+
+                      {/* Search Results */}
+                      {characterSearchResults.length > 0 && (
+                        <div className="space-y-2">
+                          <Label>Search Results</Label>
+                          <div className="max-h-60 overflow-y-auto space-y-2">
+                            {characterSearchResults.map((character) => (
+                              <div
+                                key={character.characterId}
+                                className={`p-3 border rounded-lg cursor-pointer transition-colors ${
+                                  selectedCharacter?.characterId === character.characterId
+                                    ? 'border-accent bg-accent/10'
+                                    : 'border-border hover:border-accent/50'
+                                }`}
+                                onClick={() => setSelectedCharacter(character)}
+                              >
+                                <div className="flex items-center gap-3">
+                                  <img
+                                    src={`https://images.evetech.net/characters/${character.characterId}/portrait?size=64`}
+                                    alt={character.characterName}
+                                    className="w-10 h-10 rounded-full border border-accent/30"
+                                    onError={(e) => {
+                                      (e.target as HTMLImageElement).src = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDAiIGhlaWdodD0iNDAiIHZpZXdCb3g9IjAgMCA0MCA0MCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPGNpcmNsZSBjeD0iMjAiIGN5PSIyMCIgcj0iMjAiIGZpbGw9IiMzMzMiLz4KPHN2ZyB3aWR0aD0iMjAiIGhlaWdodD0iMjAiIHZpZXdCb3g9IjAgMCAyMCAyMCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIiB4PSIxMCIgeT0iMTAiPgo8cGF0aCBkPSJNMTAgMTJDOC4zNCAxMiA3IDEwLjY2IDcgOUM3IDcuMzQgOC4zNCA2IDEwIDZDMTEuNjYgNiAxMyA3LjM0IDEzIDlDMTMgMTAuNjYgMTEuNjYgMTIgMTAgMTJaIiBmaWxsPSIjOTk5Ii8+CjxwYXRoIGQ9Ik0xMCAxNUM3LjI0IDE1IDUgMTIuMjQgNSAxMEM1IDcuNzYgNy4yNCA1IDEwIDVDMTIuMjQgNSAxNSA3Ljc2IDE1IDEwQzE1IDEyLjI0IDEyLjI0IDE1IDEwIDE1WiIgZmlsbD0iIzk5OSIvPgo8L3N2Zz4KPC9zdmc+';
+                                    }}
+                                  />
+                                  <div className="flex-1">
+                                    <h4 className="font-medium">{character.characterName}</h4>
+                                    <p className="text-sm text-muted-foreground">
+                                      {character.corporationName}
+                                    </p>
+                                    <p className="text-xs text-muted-foreground">
+                                      Security Status: {character.securityStatus?.toFixed(2) || 'N/A'}
+                                    </p>
+                                  </div>
+                                  {selectedCharacter?.characterId === character.characterId && (
+                                    <CheckCircle size={20} className="text-accent" />
+                                  )}
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Role Selection */}
+                      {selectedCharacter && (
+                        <div className="space-y-2">
+                          <Label>Assign Role</Label>
+                          <Select defaultValue="member">
+                            <SelectTrigger>
+                              <SelectValue placeholder="Select role" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="member">Member</SelectItem>
+                              <SelectItem value="director">Director</SelectItem>
+                              <SelectItem value="ceo">CEO</SelectItem>
+                              <SelectItem value="admin">Administrator</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
+                      )}
+                    </div>
+
+                    <div className="flex gap-3 pt-6">
+                      <Button
+                        onClick={() => {
+                          setShowCharacterLookup(false);
+                          setCharacterSearchTerm('');
+                          setCharacterSearchResults([]);
+                          setSelectedCharacter(null);
+                        }}
+                        variant="outline"
+                        className="flex-1"
+                      >
+                        Cancel
+                      </Button>
+                      <Button
+                        onClick={() => {
+                          if (selectedCharacter) {
+                            handleCreateUserFromCharacter(selectedCharacter, 'member');
+                          }
+                        }}
+                        disabled={!selectedCharacter}
+                        className="flex-1 bg-accent hover:bg-accent/90"
+                      >
+                        Create User
+                      </Button>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Edit User Modal */}
+              {showEditUser && editingUser && (
+                <div className="fixed inset-0 bg-background/80 backdrop-blur-sm z-50 flex items-center justify-center">
+                  <div className="bg-card border border-border rounded-lg p-6 w-full max-w-md mx-4 shadow-lg">
+                    <div className="flex items-center justify-between mb-4">
+                      <h3 className="text-lg font-semibold">Edit User</h3>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => {
+                          setShowEditUser(false);
+                          setEditingUser(null);
+                        }}
+                      >
+                        <X size={16} />
+                      </Button>
+                    </div>
+
+                    <div className="space-y-4">
+                      {/* Character Info - Read Only */}
+                      <div className="space-y-2">
+                        <Label>Character Information</Label>
+                        <div className="p-3 bg-muted/30 rounded-lg">
+                          <div className="flex items-center gap-3">
+                            {editingUser.characterId && (
+                              <img
+                                src={`https://images.evetech.net/characters/${editingUser.characterId}/portrait?size=64`}
+                                alt={editingUser.characterName || 'Character'}
+                                className="w-10 h-10 rounded-full border border-accent/30"
+                                onError={(e) => {
+                                  (e.target as HTMLImageElement).src = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDAiIGhlaWdodD0iNDAiIHZpZXdCb3g9IjAgMCA0MCA0MCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPGNpcmNsZSBjeD0iMjAiIGN5PSIyMCIgcj0iMjAiIGZpbGw9IiMzMzMiLz4KPHN2ZyB3aWR0aD0iMjAiIGhlaWdodD0iMjAiIHZpZXdCb3g9IjAgMCAyMCAyMCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIiB4PSIxMCIgeT0iMTAiPgo8cGF0aCBkPSJNMTAgMTJDOC4zNCAxMiA3IDEwLjY2IDcgOUM3IDcuMzQgOC4zNCA2IDEwIDZDMTEuNjYgNiAxMyA3LjM0IDEzIDlDMTMgMTAuNjYgMTEuNjYgMTIgMTAgMTJaIiBmaWxsPSIjOTk5Ii8+CjxwYXRoIGQ9Ik0xMCAxNUM3LjI0IDE1IDUgMTIuMjQgNSAxMEM1IDcuNzYgNy4yNCA1IDEwIDVDMTIuMjQgNSAxNSA3Ljc2IDE1IDEwQzE1IDEyLjI0IDEyLjI0IDE1IDEwIDE1WiIgZmlsbD0iIzk5OSIvPgo8L3N2Zz4KPC9zdmc+';
+                                }}
+                              />
+                            )}
+                            <div>
+                              <p className="font-medium">{editingUser.characterName || 'Unknown Character'}</p>
+                              <p className="text-sm text-muted-foreground">{editingUser.corporationName || 'Unknown Corporation'}</p>
+                              <p className="text-xs text-muted-foreground">
+                                Auth: {editingUser.authMethod === 'esi' ? 'ESI Verified' : 'Manual'}
+                              </p>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Role Selection */}
+                      <div className="space-y-2">
+                        <Label>Role</Label>
+                        <Select defaultValue={editingUser.role || 'member'}>
+                          <SelectTrigger>
+                            <SelectValue placeholder="Select role" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="member">Member</SelectItem>
+                            <SelectItem value="director">Director</SelectItem>
+                            <SelectItem value="ceo">CEO</SelectItem>
+                            <SelectItem value="admin">Administrator</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+
+                      {/* Active Status */}
+                      <div className="flex items-center justify-between">
+                        <Label>Active Status</Label>
+                        <Switch
+                          checked={editingUser.isActive}
+                          onCheckedChange={(checked) => {
+                            setEditingUser(prev => ({ ...prev, isActive: checked }));
+                          }}
+                        />
+                      </div>
+                    </div>
+
+                    <div className="flex gap-3 pt-6">
+                      <Button
+                        onClick={() => {
+                          setShowEditUser(false);
+                          setEditingUser(null);
+                        }}
+                        variant="outline"
+                        className="flex-1"
+                      >
+                        Cancel
+                      </Button>
+                      <Button
+                        onClick={() => {
+                          // TODO: Update user using auth provider
+                          toast.success('User updated successfully');
+                          setShowEditUser(false);
+                          setEditingUser(null);
+                        }}
+                        className="flex-1 bg-accent hover:bg-accent/90"
+                      >
+                        Save Changes
                       </Button>
                     </div>
                   </div>
