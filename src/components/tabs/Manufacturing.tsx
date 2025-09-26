@@ -31,12 +31,15 @@ import {
   Warning,
   CheckCircle,
   ArrowClockwise,
-  Globe
+  Globe,
+  Users
 } from '@phosphor-icons/react';
-import { ManufacturingJob, Blueprint, ProductionPlan, MaterialRequirement, CorpSettings } from '@/lib/types';
+import { ManufacturingJob, Blueprint, ProductionPlan, MaterialRequirement, CorpSettings, ManufacturingTask, Member } from '@/lib/types';
 import { JobDetailsDialog } from '@/components/manufacturing/JobDetailsDialog';
 import { BlueprintDetailsDialog } from '@/components/manufacturing/BlueprintDetailsDialog';
 import { ProductionPlanDialog } from '@/components/manufacturing/ProductionPlanDialog';
+import { TaskAssignmentDialog } from '@/components/manufacturing/TaskAssignmentDialog';
+import { TaskManagementView } from '@/components/manufacturing/TaskManagementView';
 import { toast } from 'sonner';
 
 interface ManufacturingProps {
@@ -49,6 +52,8 @@ export function Manufacturing({ onLoginClick, isMobileView }: ManufacturingProps
   const [activeJobs, setActiveJobs] = useKV<ManufacturingJob[]>('manufacturing-jobs', []);
   const [blueprints, setBlueprints] = useKV<Blueprint[]>('blueprints-library', []);
   const [productionPlans, setProductionPlans] = useKV<ProductionPlan[]>('production-plans', []);
+  const [manufacturingTasks, setManufacturingTasks] = useKV<ManufacturingTask[]>('manufacturing-tasks', []);
+  const [members] = useKV<Member[]>('corp-members', []);
   const [settings] = useKV<CorpSettings>('corp-settings', {
     corpName: 'Test Alliance Please Ignore',
     corpTicker: 'TEST',
@@ -100,13 +105,325 @@ export function Manufacturing({ onLoginClick, isMobileView }: ManufacturingProps
     }
   });
 
-  const [selectedTab, setSelectedTab] = useState('jobs');
+  const [selectedTab, setSelectedTab] = useState('tasks'); // Start with tasks tab
   const [newJobDialogOpen, setNewJobDialogOpen] = useState(false);
   const [jobDetailsOpen, setJobDetailsOpen] = useState(false);
   const [blueprintDetailsOpen, setBlueprintDetailsOpen] = useState(false);
   const [planDialogOpen, setPlanDialogOpen] = useState(false);
+  const [taskAssignmentOpen, setTaskAssignmentOpen] = useState(false);
   const [selectedJob, setSelectedJob] = useState<ManufacturingJob | null>(null);
   const [selectedBlueprint, setSelectedBlueprint] = useState<Blueprint | null>(null);
+  const [editingTask, setEditingTask] = useState<ManufacturingTask | null>(null);
+
+  // Initialize sample data if empty
+  React.useEffect(() => {
+    // Sample members for task assignment
+    if ((members || []).length === 0) {
+      const sampleMembers: Member[] = [
+        {
+          id: 1,
+          characterId: 91316135,
+          characterName: 'Director Smith',
+          name: 'Director Smith',
+          corporationId: 498125261,
+          corporationName: 'Test Alliance Please Ignore',
+          roles: ['Director', 'Manager'],
+          titles: ['Fleet Commander', 'Manufacturing Director'],
+          title: 'Manufacturing Director',
+          lastLogin: new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString(),
+          location: 'Jita IV - Moon 4',
+          ship: 'Buzzard',
+          isActive: true,
+          accessLevel: 'director',
+          joinedDate: '2023-01-15',
+          totalSkillPoints: 85000000,
+          securityStatus: 5.0
+        },
+        {
+          id: 2,
+          characterId: 456789123,
+          characterName: 'Pilot Johnson',
+          name: 'Pilot Johnson',
+          corporationId: 498125261,
+          corporationName: 'Test Alliance Please Ignore',
+          roles: ['Member'],
+          titles: ['Industrialist'],
+          title: 'Industrialist',
+          lastLogin: new Date(Date.now() - 8 * 60 * 60 * 1000).toISOString(),
+          location: 'Dodixie IX - Moon 20',
+          ship: 'Retriever',
+          isActive: true,
+          accessLevel: 'member',
+          joinedDate: '2023-03-22',
+          totalSkillPoints: 45000000,
+          securityStatus: 2.1
+        },
+        {
+          id: 3,
+          characterId: 789456321,
+          characterName: 'Pilot Anderson',
+          name: 'Pilot Anderson',
+          corporationId: 498125261,
+          corporationName: 'Test Alliance Please Ignore',
+          roles: ['Member'],
+          titles: ['Manufacturer'],
+          title: 'Manufacturer',
+          lastLogin: new Date(Date.now() - 4 * 60 * 60 * 1000).toISOString(),
+          location: 'Rens VI - Moon 8',
+          ship: 'Hulk',
+          isActive: true,
+          accessLevel: 'member',
+          joinedDate: '2023-05-10',
+          totalSkillPoints: 52000000,
+          securityStatus: 1.8
+        },
+        {
+          id: 4,
+          characterId: 321654987,
+          characterName: 'Captain Rodriguez',
+          name: 'Captain Rodriguez',
+          corporationId: 498125261,
+          corporationName: 'Test Alliance Please Ignore',
+          roles: ['Member'],
+          titles: ['PvP Specialist'],
+          title: 'PvP Specialist',
+          lastLogin: new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString(),
+          location: 'Unknown',
+          ship: 'Interceptor',
+          isActive: true,
+          accessLevel: 'member',
+          joinedDate: '2023-02-28',
+          totalSkillPoints: 68000000,
+          securityStatus: -2.5
+        }
+      ];
+      
+      // Save sample members to KV storage for other components to use
+      spark.kv.set('corp-members', sampleMembers);
+    }
+    // Sample blueprints
+    if ((blueprints || []).length === 0) {
+      const sampleBlueprints: Blueprint[] = [
+        {
+          id: 'bp-1',
+          typeId: 644,
+          typeName: 'Caracal Blueprint',
+          location: 'Jita IV - Moon 4 - Caldari Navy Assembly Plant',
+          materialEfficiency: 10,
+          timeEfficiency: 20,
+          runs: -1,
+          isOriginal: true,
+          category: 'Ship',
+          estimatedValue: 15000000,
+          productTypeId: 621,
+          productTypeName: 'Caracal',
+          baseTime: 3600,
+          jobType: 'manufacturing',
+          baseMaterials: [
+            { typeId: 34, typeName: 'Tritanium', quantity: 2800000, totalValue: 8400000, unitPrice: 3 },
+            { typeId: 35, typeName: 'Pyerite', quantity: 700000, totalValue: 2100000, unitPrice: 3 },
+            { typeId: 36, typeName: 'Mexallon', quantity: 175000, totalValue: 1750000, unitPrice: 10 },
+            { typeId: 37, typeName: 'Isogen', quantity: 43750, totalValue: 875000, unitPrice: 20 },
+            { typeId: 38, typeName: 'Nocxium', quantity: 8750, totalValue: 525000, unitPrice: 60 },
+            { typeId: 39, typeName: 'Zydrine', quantity: 2200, totalValue: 396000, unitPrice: 180 },
+            { typeId: 40, typeName: 'Megacyte', quantity: 550, totalValue: 143000, unitPrice: 260 }
+          ]
+        },
+        {
+          id: 'bp-2',
+          typeId: 1034,
+          typeName: 'Vexor Blueprint',
+          location: 'Dodixie IX - Moon 20 - Federation Navy Assembly Plant',
+          materialEfficiency: 8,
+          timeEfficiency: 16,
+          runs: -1,
+          isOriginal: true,
+          category: 'Ship',
+          estimatedValue: 22000000,
+          productTypeId: 1031,
+          productTypeName: 'Vexor',
+          baseTime: 5400,
+          jobType: 'manufacturing',
+          baseMaterials: [
+            { typeId: 34, typeName: 'Tritanium', quantity: 3200000, totalValue: 9600000, unitPrice: 3 },
+            { typeId: 35, typeName: 'Pyerite', quantity: 800000, totalValue: 2400000, unitPrice: 3 },
+            { typeId: 36, typeName: 'Mexallon', quantity: 200000, totalValue: 2000000, unitPrice: 10 },
+            { typeId: 37, typeName: 'Isogen', quantity: 50000, totalValue: 1000000, unitPrice: 20 },
+            { typeId: 38, typeName: 'Nocxium', quantity: 10000, totalValue: 600000, unitPrice: 60 }
+          ]
+        },
+        {
+          id: 'bp-3',
+          typeId: 12745,
+          typeName: 'Hammerhead II Blueprint',
+          location: 'Rens VI - Moon 8 - Brutor Tribe Treasury',
+          materialEfficiency: 10,
+          timeEfficiency: 20,
+          runs: 10,
+          maxRuns: 10,
+          isOriginal: false,
+          category: 'Drone',
+          estimatedValue: 5000000,
+          productTypeId: 12742,
+          productTypeName: 'Hammerhead II',
+          baseTime: 1800,
+          jobType: 'manufacturing',
+          baseMaterials: [
+            { typeId: 12744, typeName: 'Hammerhead I', quantity: 1, totalValue: 50000, unitPrice: 50000 },
+            { typeId: 34, typeName: 'Tritanium', quantity: 500000, totalValue: 1500000, unitPrice: 3 },
+            { typeId: 36, typeName: 'Mexallon', quantity: 25000, totalValue: 250000, unitPrice: 10 }
+          ]
+        }
+      ];
+      setBlueprints(sampleBlueprints);
+    }
+
+    // Sample manufacturing tasks
+    if ((manufacturingTasks || []).length === 0) {
+      const sampleTasks: ManufacturingTask[] = [
+        {
+          id: 'task-1',
+          title: 'Produce Caracal Cruisers for Fleet Op',
+          description: 'We need 5 Caracal cruisers for next week\'s fleet operation. Standard fit with T2 modules. Deadline is Friday.',
+          taskType: 'manufacturing',
+          priority: 'high',
+          status: 'assigned',
+          targetItem: {
+            typeId: 621,
+            typeName: 'Caracal',
+            quantity: 5
+          },
+          blueprintId: 644,
+          blueprintName: 'Caracal Blueprint',
+          runs: 5,
+          materialEfficiency: 10,
+          timeEfficiency: 20,
+          
+          createdBy: 'corp-director-123',
+          createdByName: 'Director Smith',
+          createdDate: new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString(),
+          assignedTo: 'pilot-456',
+          assignedToName: 'Pilot Johnson',
+          assignedDate: new Date(Date.now() - 12 * 60 * 60 * 1000).toISOString(),
+          assignedBy: 'corp-director-123',
+          assignedByName: 'Director Smith',
+          
+          materials: [
+            { typeId: 34, typeName: 'Tritanium', quantity: 14000000, totalValue: 42000000, unitPrice: 3 },
+            { typeId: 35, typeName: 'Pyerite', quantity: 3500000, totalValue: 10500000, unitPrice: 3 },
+            { typeId: 36, typeName: 'Mexallon', quantity: 875000, totalValue: 8750000, unitPrice: 10 }
+          ],
+          estimatedCost: 61250000,
+          estimatedDuration: 18000,
+          suggestedLocation: 'Jita IV - Moon 4 - Caldari Navy Assembly Plant',
+          
+          reward: {
+            type: 'fixed',
+            amount: 75000000,
+            paymentStatus: 'pending'
+          },
+          deadline: new Date(Date.now() + 5 * 24 * 60 * 60 * 1000).toISOString(),
+          
+          corporationId: 498125261,
+          corporationName: 'Test Alliance Please Ignore',
+          tags: ['fleet-op', 'urgent', 'pvp'],
+          progressNotes: [
+            '[' + new Date(Date.now() - 6 * 60 * 60 * 1000).toLocaleString() + '] Pilot Johnson: Started gathering materials. Have 80% of required minerals.',
+            '[' + new Date(Date.now() - 3 * 60 * 60 * 1000).toLocaleString() + '] Pilot Johnson: All materials acquired. Starting production runs tomorrow.'
+          ]
+        },
+        {
+          id: 'task-2',
+          title: 'Research Vexor Blueprint ME/TE',
+          description: 'Research the Vexor blueprint to ME 10 and TE 20 for more efficient production.',
+          taskType: 'research',
+          priority: 'normal',
+          status: 'pending',
+          targetItem: {
+            typeId: 1034,
+            typeName: 'Vexor Blueprint',
+            quantity: 1
+          },
+          blueprintId: 1034,
+          blueprintName: 'Vexor Blueprint',
+          runs: 1,
+          
+          createdBy: 'corp-director-123',
+          createdByName: 'Director Smith',
+          createdDate: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString(),
+          
+          materials: [],
+          estimatedCost: 5000000,
+          estimatedDuration: 172800, // 48 hours
+          suggestedLocation: 'Any Research Facility',
+          
+          reward: {
+            type: 'fixed',
+            amount: 25000000,
+            paymentStatus: 'pending'
+          },
+          
+          corporationId: 498125261,
+          corporationName: 'Test Alliance Please Ignore',
+          tags: ['research', 'blueprint-optimization']
+        },
+        {
+          id: 'task-3',
+          title: 'T2 Drone Production Run',
+          description: 'Produce 50 Hammerhead II drones for corp hangar. We have the BPC ready.',
+          taskType: 'manufacturing',
+          priority: 'urgent',
+          status: 'in_progress',
+          targetItem: {
+            typeId: 12742,
+            typeName: 'Hammerhead II',
+            quantity: 50
+          },
+          blueprintId: 12745,
+          blueprintName: 'Hammerhead II Blueprint',
+          runs: 50,
+          materialEfficiency: 10,
+          timeEfficiency: 20,
+          
+          createdBy: 'corp-director-123',
+          createdByName: 'Director Smith',
+          createdDate: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000).toISOString(),
+          assignedTo: 'pilot-789',
+          assignedToName: 'Pilot Anderson',
+          assignedDate: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString(),
+          assignedBy: 'corp-director-123',
+          assignedByName: 'Director Smith',
+          startedDate: new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString(),
+          
+          materials: [
+            { typeId: 12744, typeName: 'Hammerhead I', quantity: 50, totalValue: 2500000, unitPrice: 50000 },
+            { typeId: 34, typeName: 'Tritanium', quantity: 25000000, totalValue: 75000000, unitPrice: 3 },
+            { typeId: 36, typeName: 'Mexallon', quantity: 1250000, totalValue: 12500000, unitPrice: 10 }
+          ],
+          estimatedCost: 90000000,
+          estimatedDuration: 90000, // 25 hours
+          suggestedLocation: 'Any Manufacturing Station',
+          
+          reward: {
+            type: 'percentage',
+            amount: 15,
+            paymentStatus: 'pending'
+          },
+          deadline: new Date(Date.now() + 2 * 24 * 60 * 60 * 1000).toISOString(),
+          
+          corporationId: 498125261,
+          corporationName: 'Test Alliance Please Ignore',
+          tags: ['drones', 't2-production', 'urgent'],
+          progressNotes: [
+            '[' + new Date(Date.now() - 18 * 60 * 60 * 1000).toLocaleString() + '] Pilot Anderson: Production started. Running 10 parallel jobs.',
+            '[' + new Date(Date.now() - 12 * 60 * 60 * 1000).toLocaleString() + '] Pilot Anderson: 20 drones completed, 30 remaining.',
+            '[' + new Date(Date.now() - 6 * 60 * 60 * 1000).toLocaleString() + '] Pilot Anderson: 35 drones done. Should finish by tomorrow.'
+          ]
+        }
+      ];
+      setManufacturingTasks(sampleTasks);
+    }
+  }, [blueprints, manufacturingTasks, setBlueprints, setManufacturingTasks]);
 
   const eveOnlineSync = settings?.eveOnlineSync || {
     enabled: false,
@@ -258,6 +575,37 @@ export function Manufacturing({ onLoginClick, isMobileView }: ManufacturingProps
     toast.success(`Production plan "${plan.name}" created successfully`);
   };
 
+  const handleCreateTask = (task: ManufacturingTask) => {
+    if (editingTask) {
+      // Update existing task
+      setManufacturingTasks(current => 
+        (current || []).map(t => t.id === task.id ? task : t)
+      );
+    } else {
+      // Create new task
+      setManufacturingTasks(current => [...(current || []), task]);
+    }
+    setEditingTask(null);
+  };
+
+  const handleUpdateTask = (taskId: string, updates: Partial<ManufacturingTask>) => {
+    setManufacturingTasks(current => 
+      (current || []).map(task => 
+        task.id === taskId ? { ...task, ...updates } : task
+      )
+    );
+  };
+
+  const handleEditTask = (task: ManufacturingTask) => {
+    setEditingTask(task);
+    setTaskAssignmentOpen(true);
+  };
+
+  const openNewTaskDialog = () => {
+    setEditingTask(null);
+    setTaskAssignmentOpen(true);
+  };
+
   // Show login prompt if not authenticated - TEMPORARILY DISABLED FOR DEBUG
   if (!user && onLoginClick && false) { // Added && false to disable this check
     return (
@@ -282,7 +630,7 @@ export function Manufacturing({ onLoginClick, isMobileView }: ManufacturingProps
       </div>
 
       {/* Stats Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-6 gap-4">
         <Card className="bg-card border-border">
           <CardContent className="p-4">
             <div className="flex items-center justify-between">
@@ -306,8 +654,25 @@ export function Manufacturing({ onLoginClick, isMobileView }: ManufacturingProps
           <CardContent className="p-4">
             <div className="flex items-center justify-between">
               <div>
+                <p className="text-sm text-muted-foreground">Assigned Tasks</p>
+                <p className="text-2xl font-bold text-blue-400">
+                  {(manufacturingTasks || []).filter(t => t.status === 'assigned' || t.status === 'in_progress').length}
+                </p>
+                <p className="text-xs text-muted-foreground">
+                  Total: {(manufacturingTasks || []).length}
+                </p>
+              </div>
+              <Users size={24} className="text-muted-foreground" />
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card className="bg-card border-border">
+          <CardContent className="p-4">
+            <div className="flex items-center justify-between">
+              <div>
                 <p className="text-sm text-muted-foreground">Blueprints</p>
-                <p className="text-2xl font-bold text-blue-400">{(blueprints || []).length}</p>
+                <p className="text-2xl font-bold text-purple-400">{(blueprints || []).length}</p>
                 {safeEveData.blueprints.length > 0 && (
                   <p className="text-xs text-muted-foreground">
                     EVE: {safeEveData.blueprints.length}
@@ -384,11 +749,37 @@ export function Manufacturing({ onLoginClick, isMobileView }: ManufacturingProps
 
       {/* Main Tabs */}
       <Tabs value={selectedTab} onValueChange={setSelectedTab}>
-        <TabsList className="grid grid-cols-3 w-fit bg-muted">
+        <TabsList className="grid grid-cols-4 w-fit bg-muted">
+          <TabsTrigger value="tasks">Task Management</TabsTrigger>
           <TabsTrigger value="jobs">Active Jobs</TabsTrigger>
           <TabsTrigger value="blueprints">Blueprints</TabsTrigger>
           <TabsTrigger value="schedule">Plans</TabsTrigger>
         </TabsList>
+
+        <TabsContent value="tasks">
+          <div className="space-y-6">
+            <div className="flex justify-between items-center">
+              <div>
+                <h3 className="text-lg font-semibold">Manufacturing Task Assignment</h3>
+                <p className="text-sm text-muted-foreground">
+                  Create and assign manufacturing tasks to corporation members
+                </p>
+              </div>
+              <Button onClick={openNewTaskDialog}>
+                <Plus size={16} className="mr-2" />
+                Assign New Task
+              </Button>
+            </div>
+
+            <TaskManagementView
+              tasks={manufacturingTasks || []}
+              members={members || []}
+              onUpdateTask={handleUpdateTask}
+              onEditTask={handleEditTask}
+              isMobileView={isMobileView}
+            />
+          </div>
+        </TabsContent>
 
         <TabsContent value="jobs">
           <div className="space-y-6">
@@ -731,6 +1122,15 @@ export function Manufacturing({ onLoginClick, isMobileView }: ManufacturingProps
         onOpenChange={setPlanDialogOpen}
         blueprints={blueprints || []}
         onSavePlan={handleSaveProductionPlan}
+      />
+
+      <TaskAssignmentDialog
+        open={taskAssignmentOpen}
+        onOpenChange={setTaskAssignmentOpen}
+        blueprints={blueprints || []}
+        members={members || []}
+        onCreateTask={handleCreateTask}
+        editTask={editingTask}
       />
     </div>
   );

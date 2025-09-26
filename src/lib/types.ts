@@ -139,6 +139,83 @@ export interface ProductionPlan {
   completionDate?: string;
 }
 
+// Manufacturing Job Assignment types - LMeve style task management
+export interface ManufacturingTask {
+  id: string;
+  title: string;
+  description: string;
+  taskType: 'manufacturing' | 'research' | 'invention' | 'copy' | 'reaction';
+  priority: 'low' | 'normal' | 'high' | 'urgent';
+  status: 'pending' | 'assigned' | 'in_progress' | 'completed' | 'cancelled';
+  
+  // Task definition
+  targetItem: {
+    typeId: number;
+    typeName: string;
+    quantity: number;
+  };
+  blueprintId?: number;
+  blueprintName?: string;
+  runs: number;
+  materialEfficiency?: number;
+  timeEfficiency?: number;
+  
+  // Assignment details
+  createdBy: string;
+  createdByName: string;
+  createdDate: string;
+  assignedTo?: string;
+  assignedToName?: string;
+  assignedDate?: string;
+  assignedBy?: string;
+  assignedByName?: string;
+  
+  // Progress tracking
+  startedDate?: string;
+  completedDate?: string;
+  deliveredDate?: string;
+  progressNotes?: string[];
+  completionProof?: {
+    jobId?: string;
+    screenshots?: string[];
+    deliveryLocation?: string;
+    actualQuantity?: number;
+  };
+  
+  // Resources and requirements
+  materials: MaterialRequirement[];
+  estimatedCost: number;
+  estimatedDuration: number; // in seconds
+  suggestedLocation?: string;
+  requiredSkills?: Array<{
+    skillId: number;
+    skillName: string;
+    level: number;
+  }>;
+  
+  // Rewards and payments
+  reward: {
+    type: 'fixed' | 'percentage' | 'market_rate';
+    amount: number;
+    paymentStatus: 'pending' | 'approved' | 'paid';
+    bonusConditions?: Array<{
+      condition: string;
+      bonus: number;
+    }>;
+  };
+  
+  // Deadline and scheduling
+  deadline?: string;
+  preferredStartTime?: string;
+  canDelayUntil?: string;
+  
+  // Corporation tracking
+  corporationId?: number;
+  corporationName?: string;
+  tags?: string[];
+  relatedTasks?: string[]; // IDs of related tasks
+}
+
 export interface MaterialRequirement {
   typeId: number;
   typeName: string;
