@@ -257,6 +257,7 @@ export function Settings({ activeTab, onTabChange }: SettingsProps) {
     lastError: null as string | null
   });
   const [tableInfo, setTableInfo] = useState<any[]>([]);
+  const [showDatabaseTables, setShowDatabaseTables] = useKV<boolean>('database-tables-expanded', false);
   
   // Admin configuration state
   const [tempAdminConfig, setTempAdminConfig] = useState(adminConfig);
@@ -2079,47 +2080,68 @@ export function Settings({ activeTab, onTabChange }: SettingsProps) {
                 </div>
               </div>
 
-              {/* Database Tables */}
+              {/* Database Tables - Collapsible Section */}
               {dbStatus.connected && tableInfo.length > 0 && (
                 <div className="border-t border-border pt-6 space-y-4">
                   <div className="flex items-center justify-between">
-                    <h4 className="font-medium">Database Tables</h4>
                     <Button
-                      variant="outline"
+                      variant="ghost"
                       size="sm"
-                      onClick={loadTableInfo}
+                      className="p-0 h-auto hover:bg-transparent"
+                      onClick={() => setShowDatabaseTables(!showDatabaseTables)}
                     >
-                      <ArrowClockwise size={16} className="mr-2" />
-                      Refresh
+                      <div className="flex items-center gap-2">
+                        {showDatabaseTables ? (
+                          <CaretDown size={16} className="text-muted-foreground" />
+                        ) : (
+                          <CaretUp size={16} className="text-muted-foreground" />
+                        )}
+                        <h4 className="font-medium">Database Tables</h4>
+                        <Badge variant="outline" className="text-xs">
+                          {tableInfo.length} tables
+                        </Badge>
+                      </div>
                     </Button>
+                    {showDatabaseTables && (
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={loadTableInfo}
+                      >
+                        <ArrowClockwise size={16} className="mr-2" />
+                        Refresh
+                      </Button>
+                    )}
                   </div>
                   
-                  <div className="border border-border rounded-lg overflow-hidden">
-                    <div className="bg-muted/50 px-4 py-2 border-b border-border">
-                      <div className="grid grid-cols-5 gap-4 text-sm font-medium text-muted-foreground">
-                        <span>Table Name</span>
-                        <span>Rows</span>
-                        <span>Size</span>
-                        <span>Engine</span>
-                        <span>Last Update</span>
+                  {showDatabaseTables && (
+                    <div className="border border-border rounded-lg overflow-hidden">
+                      <div className="bg-muted/50 px-4 py-2 border-b border-border">
+                        <div className="grid grid-cols-5 gap-4 text-sm font-medium text-muted-foreground">
+                          <span>Table Name</span>
+                          <span>Rows</span>
+                          <span>Size</span>
+                          <span>Engine</span>
+                          <span>Last Update</span>
+                        </div>
+                      </div>
+                      <div className="max-h-64 overflow-y-auto">
+                        {tableInfo.map((table, index) => (
+                          <div key={index} className="px-4 py-2 border-b border-border/50 last:border-b-0 hover:bg-muted/30">
+                            <div className="grid grid-cols-5 gap-4 text-sm">
+                              <span className="font-mono">{table.name}</span>
+                              <span>{table.rowCount.toLocaleString()}</span>
+                              <span>{table.size}</span>
+                              <span>{table.engine}</span>
+                              <span className="text-muted-foreground">
+                                {new Date(table.lastUpdate).toLocaleDateString()}
+                              </span>
+                            </div>
+                          </div>
+                        ))}
                       </div>
                     </div>
-                    <div className="max-h-64 overflow-y-auto">
-                      {tableInfo.map((table, index) => (
-                        <div key={index} className="px-4 py-2 border-b border-border/50 last:border-b-0 hover:bg-muted/30">
-                          <div className="grid grid-cols-5 gap-4 text-sm">
-                            <span className="font-mono">{table.name}</span>
-                            <span>{table.rowCount.toLocaleString()}</span>
-                            <span>{table.size}</span>
-                            <span>{table.engine}</span>
-                            <span className="text-muted-foreground">
-                              {new Date(table.lastUpdate).toLocaleDateString()}
-                            </span>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
+                  )}
                 </div>
               )}
 
