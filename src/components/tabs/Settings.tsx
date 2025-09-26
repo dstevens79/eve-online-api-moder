@@ -72,6 +72,24 @@ import { SimpleLoginTest } from '@/components/SimpleLoginTest';
 import { runDatabaseValidationTests } from '@/lib/databaseTestCases';
 import { EnhancedDatabaseSetupManager, validateSetupConfig, type DatabaseSetupConfig } from '@/lib/database-setup-scripts';
 import { DatabaseManager } from '@/lib/database';
+import { 
+  useGeneralSettings, 
+  useDatabaseSettings, 
+  useESISettings, 
+  useSDESettings, 
+  useSyncSettings, 
+  useNotificationSettings, 
+  useIncomeSettings, 
+  useApplicationData,
+  useManualUsers,
+  useCorporationData,
+  backupSettings,
+  exportAllSettings,
+  importAllSettings,
+  resetAllSettings,
+  validateSettings
+} from '@/lib/persistenceService';
+import { UserManagement } from '@/components/UserManagement';
 
 // Status Indicator Component
 const StatusIndicator: React.FC<{
@@ -94,25 +112,6 @@ const StatusIndicator: React.FC<{
     </div>
   </div>
 );
-
-import { 
-  useGeneralSettings, 
-  useDatabaseSettings, 
-  useESISettings, 
-  useSDESettings, 
-  useSyncSettings, 
-  useNotificationSettings, 
-  useIncomeSettings, 
-  useApplicationData,
-  useManualUsers,
-  useCorporationData,
-  backupSettings,
-  exportAllSettings,
-  importAllSettings,
-  resetAllSettings,
-  validateSettings
-} from '@/lib/persistenceService';
-import { UserManagement } from '@/components/UserManagement';
 
 interface SyncStatus {
   isRunning: boolean;
@@ -148,7 +147,11 @@ export function Settings({ activeTab, onTabChange, isMobileView }: SettingsProps
     updateCorporation,
     deleteCorporation,
     adminConfig,
-    updateAdminConfig
+    updateAdminConfig,
+    getAllUsers,
+    createManualUser,
+    updateUserRole,
+    deleteUser
   } = useAuth();
   
   // Get registered corporations
