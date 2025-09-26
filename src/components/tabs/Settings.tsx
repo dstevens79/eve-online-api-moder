@@ -232,7 +232,6 @@ export function Settings({ activeTab, onTabChange }: SettingsProps) {
   const [showConnectionLogs, setShowConnectionLogs] = useState(true);
   const [showSetupWizard, setShowSetupWizard] = useState(false);
   const [showSetupCommands, setShowSetupCommands] = useState(false);
-  const [validatingRoutes, setValidatingRoutes] = useState(false);
   
   // SDE Management - using the existing useSDEManager hook imported above
   const [sdeStats, setSDEStats] = useState<SDEDatabaseStats>({
