@@ -10,6 +10,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Progress } from '@/components/ui/progress';
 import { Separator } from '@/components/ui/separator';
 import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { DatabaseSchemaManager } from '@/components/DatabaseSchemaManager';
 import { lmeveSchemas } from '@/lib/database-schemas';
@@ -54,7 +55,8 @@ import {
   Network,
   CaretUp,
   CaretDown,
-  CaretRight
+  CaretRight,
+  Question
 } from '@phosphor-icons/react';
 import { useKV } from '@github/spark/hooks';
 import { useAuth } from '@/lib/auth-provider';
@@ -66,8 +68,7 @@ import { AdminLoginTest } from '@/components/AdminLoginTest';
 import { SimpleLoginTest } from '@/components/SimpleLoginTest';
 import { runDatabaseValidationTests } from '@/lib/databaseTestCases';
 import { EnhancedDatabaseSetupManager, validateSetupConfig, type DatabaseSetupConfig } from '@/lib/database-setup-scripts';
-import { RemoteOperations } from '@/components/RemoteOperations';
-import { useRemoteOperations } from '@/hooks/useRemoteOperations';
+
 import { 
   useGeneralSettings, 
   useDatabaseSettings, 
@@ -273,13 +274,7 @@ export function Settings({ activeTab, onTabChange }: SettingsProps) {
   // Admin configuration state
   const [tempAdminConfig, setTempAdminConfig] = useState(adminConfig);
   
-  // Remote database operations
-  const { 
-    tasks: remoteTasks, 
-    executeTask: executeRemoteTask, 
-    testConnection: testRemoteConnection, 
-    uploadFile: uploadRemoteFile 
-  } = useRemoteOperations();
+
 
 
   // Save handlers for each settings category
@@ -558,82 +553,7 @@ export function Settings({ activeTab, onTabChange }: SettingsProps) {
   // Remote database operations handlers
 
 
-  const handleCreateRemoteDatabases = async () => {
-    try {
-      addConnectionLog('🚀 Starting remote database creation...');
-      const task = await executeRemoteTask('create-databases', {
-        mysqlRootPassword: databaseSettings.sudoPassword,
-        lmevePassword: databaseSettings.password || 'lmpassword'
-      });
-      addConnectionLog(`✅ Database creation task started: ${task.id}`);
-      toast.success('Database creation started');
-    } catch (error) {
-      const message = error instanceof Error ? error.message : 'Unknown error';
-      addConnectionLog(`❌ Failed to start database creation: ${message}`);
-      toast.error(`Failed to create databases: ${message}`);
-    }
-  };
 
-  const handleImportRemoteSchema = async (file?: File) => {
-    try {
-      addConnectionLog('🚀 Starting remote schema import...');
-      
-      let taskParams: any = {
-        mysqlRootPassword: databaseSettings.sudoPassword,
-        lmevePassword: databaseSettings.password || 'lmpassword'
-      };
-      
-      if (file) {
-        // Upload file first
-        addConnectionLog(`📁 Uploading schema file: ${file.name}`);
-        const uploadResult = await uploadRemoteFile(file, `schema_${Date.now()}`);
-        if (!uploadResult.success) {
-          throw new Error('Failed to upload schema file');
-        }
-        taskParams.schemaFile = uploadResult.path;
-      }
-      
-      const task = await executeRemoteTask('import-schema', taskParams);
-      addConnectionLog(`✅ Schema import task started: ${task.id}`);
-      toast.success('Schema import started');
-    } catch (error) {
-      const message = error instanceof Error ? error.message : 'Unknown error';
-      addConnectionLog(`❌ Failed to start schema import: ${message}`);
-      toast.error(`Failed to import schema: ${message}`);
-    }
-  };
-
-  const handleImportRemoteSDE = async (file?: File) => {
-    try {
-      addConnectionLog('🚀 Starting remote SDE import...');
-      
-      let taskParams: any = {
-        mysqlRootPassword: databaseSettings.sudoPassword,
-        lmevePassword: databaseSettings.password || 'lmpassword'
-      };
-      
-      if (file) {
-        // Upload file first
-        addConnectionLog(`📁 Uploading SDE file: ${file.name}`);
-        const uploadResult = await uploadRemoteFile(file, `sde_${Date.now()}`);
-        if (!uploadResult.success) {
-          throw new Error('Failed to upload SDE file');
-        }
-        taskParams.sdeFile = uploadResult.path;
-      } else {
-        // Use default SDE download
-        taskParams.downloadSDE = true;
-      }
-      
-      const task = await executeRemoteTask('import-sde', taskParams);
-      addConnectionLog(`✅ SDE import task started: ${task.id}`);
-      toast.success('SDE import started');
-    } catch (error) {
-      const message = error instanceof Error ? error.message : 'Unknown error';
-      addConnectionLog(`❌ Failed to start SDE import: ${message}`);
-      toast.error(`Failed to import SDE: ${message}`);
-    }
-  };
 
   // Load SDE database stats on component mount
   React.useEffect(() => {
@@ -1991,14 +1911,66 @@ export function Settings({ activeTab, onTabChange }: SettingsProps) {
               </div>
 
               {/* Automated Database Setup Section */}
-              <div className="border-t border-border pt-6 space-y-4">
-                <h4 className="font-medium">Automated Database Setup</h4>
+              <div className="border-t border-border pt-6 space-y-6">
+                <div className="flex items-center justify-between">
+                  <h4 className="font-medium">Database Setup Operations</h4>
+                  <Dialog>
+                    <DialogTrigger asChild>
+                      <Button variant="outline" size="sm">
+                        <Question size={16} className="mr-2" />
+                        Setup Requirements
+                      </Button>
+                    </DialogTrigger>
+                    <DialogContent className="max-w-2xl">
+                      <DialogHeader>
+                        <DialogTitle>Database Setup Requirements</DialogTitle>
+                        <DialogDescription>
+                          Basic steps to prepare for database setup
+                        </DialogDescription>
+                      </DialogHeader>
+                      <div className="space-y-4 text-sm">
+                        <div className="space-y-3">
+                          <div className="p-3 border border-border rounded bg-muted/30">
+                            <p className="font-medium mb-2">Before You Begin:</p>
+                            <ul className="list-disc list-inside space-y-1 text-muted-foreground">
+                              <li>Ensure MySQL/MariaDB is installed and running</li>
+                              <li>Have database administrator (sudo) credentials ready</li>
+                              <li>Verify network connectivity to database server if remote</li>
+                              <li>Choose a secure password for the LMeve database user</li>
+                            </ul>
+                          </div>
+                          
+                          <div className="p-3 border border-border rounded bg-muted/30">
+                            <p className="font-medium mb-2">For Remote Databases:</p>
+                            <ul className="list-disc list-inside space-y-1 text-muted-foreground">
+                              <li>Set up SSH key authentication to the database server</li>
+                              <li>Create opsuser account with sudo privileges for database scripts</li>
+                              <li>Place provided setup scripts in /usr/local/lmeve/ directory</li>
+                              <li>Configure sudoers file for automated setup operations</li>
+                            </ul>
+                          </div>
+                          
+                          <div className="p-3 border border-border rounded bg-muted/30">
+                            <p className="font-medium mb-2">What This Setup Does:</p>
+                            <ul className="list-disc list-inside space-y-1 text-muted-foreground">
+                              <li>Creates "lmeve" and "EveStaticData" databases</li>
+                              <li>Imports database schema with all required tables</li>
+                              <li>Downloads and installs latest EVE SDE data</li>
+                              <li>Creates database users with proper access privileges</li>
+                              <li>Validates the complete installation</li>
+                            </ul>
+                          </div>
+                        </div>
+                      </div>
+                    </DialogContent>
+                  </Dialog>
+                </div>
                 
                 <div className="p-3 bg-muted/50 rounded-lg text-sm text-muted-foreground">
                   <p className="font-medium mb-2">Complete LMeve Database Initialization</p>
                   <p>
-                    Automated setup for new LMeve installations. Creates databases, downloads EVE SDE data, 
-                    imports schema, and configures users. Handles both local and remote database scenarios.
+                    Unified setup process that combines schema installation and EVE SDE data import. 
+                    Handles both local and remote database scenarios with automated setup scripts.
                   </p>
                 </div>
 
@@ -2010,126 +1982,127 @@ export function Settings({ activeTab, onTabChange }: SettingsProps) {
                       {databaseSettings.host === 'localhost' || databaseSettings.host === '127.0.0.1' ? 'Local' : 'Remote'}
                     </Badge>
                   </div>
-                  
-
                 </div>
 
-                {/* Schema Selection */}
-                <div className="border border-border rounded-lg p-4 space-y-4">
-                  <div className="flex items-center justify-between">
-                    <h5 className="font-medium flex items-center gap-2">
-                      <Database size={16} />
-                      Database Schema
-                    </h5>
-                  </div>
-                  
-                  <div className="space-y-3">
-                    <div className="space-y-2">
-                      <Label>Schema Source</Label>
-                      <Select value={setupConfig.schemaSource || 'default'} onValueChange={(value) => setSetupConfig(prev => ({ ...prev, schemaSource: value }))}>
-                        <SelectTrigger>
-                          <SelectValue placeholder="Select schema source" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="default">Use Site Default Schema</SelectItem>
-                          <SelectItem value="custom">Upload Custom Schema File</SelectItem>
-                          <SelectItem value="managed">Use Database Schema Manager</SelectItem>
-                        </SelectContent>
-                      </Select>
+                {/* Unified Database Setup Operations */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  {/* Schema Selection */}
+                  <div className="border border-border rounded-lg p-4 space-y-4">
+                    <div className="flex items-center justify-between">
+                      <h5 className="font-medium flex items-center gap-2">
+                        <Database size={16} />
+                        Database Schema
+                      </h5>
                     </div>
                     
-                    {setupConfig.schemaSource === 'custom' && (
+                    <div className="space-y-3">
                       <div className="space-y-2">
-                        <Label htmlFor="schema-file">Custom Schema File</Label>
-                        <Input
-                          id="schema-file"
-                          type="file"
-                          accept=".sql"
-                          onChange={(e) => {
-                            const file = e.target.files?.[0];
-                            if (file) {
-                              setSetupConfig(prev => ({ ...prev, customSchemaFile: file }));
-                            }
-                          }}
-                        />
-                        <p className="text-xs text-muted-foreground">
-                          Upload a custom .sql schema file instead of using the default
-                        </p>
+                        <Label>Schema Source</Label>
+                        <Select value={setupConfig.schemaSource || 'default'} onValueChange={(value) => setSetupConfig(prev => ({ ...prev, schemaSource: value }))}>
+                          <SelectTrigger>
+                            <SelectValue placeholder="Select schema source" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="default">Use Site Default Schema</SelectItem>
+                            <SelectItem value="custom">Upload Custom Schema File</SelectItem>
+                            <SelectItem value="managed">Use Database Schema Manager</SelectItem>
+                          </SelectContent>
+                        </Select>
                       </div>
-                    )}
-                    
-                    {setupConfig.schemaSource === 'managed' && (
-                      <div className="p-3 border border-accent/20 bg-accent/5 rounded text-sm">
-                        <p className="text-accent font-medium mb-1">Using Database Schema Manager</p>
-                        <p className="text-muted-foreground">
-                          Schema will be dynamically generated from the Database Schema Manager with {Object.keys(lmeveSchemas).length} table definitions.
-                        </p>
-                      </div>
-                    )}
-                  </div>
-                </div>
-
-                {/* EVE SDE Configuration */}
-                <div className="border border-border rounded-lg p-4 space-y-4">
-                  <div className="flex items-center justify-between">
-                    <h5 className="font-medium flex items-center gap-2">
-                      <Archive size={16} />
-                      EVE Static Data Export
-                    </h5>
-                    <Badge variant={sdeStats.isOutdated ? 'destructive' : 'default'}>
-                      {sdeStats.isOutdated ? 'Update Available' : 'Current'}
-                    </Badge>
-                  </div>
-                  
-                  <div className="space-y-3">
-                    <div className="space-y-2">
-                      <Label>SDE Source</Label>
-                      <Select value={setupConfig.sdeSource || 'auto'} onValueChange={(value) => setSetupConfig(prev => ({ ...prev, sdeSource: value }))}>
-                        <SelectTrigger>
-                          <SelectValue placeholder="Select SDE source" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="auto">Download Latest from Fuzzwork</SelectItem>
-                          <SelectItem value="custom">Upload Custom SDE File</SelectItem>
-                          <SelectItem value="skip">Skip SDE Installation</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
-                    
-                    {setupConfig.sdeSource === 'auto' && (
-                      <div className="p-3 border border-border rounded text-sm">
-                        <div className="flex items-center justify-between mb-2">
-                          <span className="font-medium">Fuzzwork SDE</span>
-                          <Badge variant="outline" className="text-xs">~500MB</Badge>
+                      
+                      {setupConfig.schemaSource === 'custom' && (
+                        <div className="space-y-2">
+                          <Label htmlFor="schema-file">Custom Schema File</Label>
+                          <Input
+                            id="schema-file"
+                            type="file"
+                            accept=".sql"
+                            onChange={(e) => {
+                              const file = e.target.files?.[0];
+                              if (file) {
+                                setSetupConfig(prev => ({ ...prev, customSchemaFile: file }));
+                              }
+                            }}
+                          />
+                          <p className="text-xs text-muted-foreground">
+                            Upload a custom .sql schema file instead of using the default
+                          </p>
                         </div>
-                        <p className="text-muted-foreground text-xs mb-2">
-                          Latest version: {sdeStats.availableVersion || 'Checking...'}
-                        </p>
-                        <p className="text-muted-foreground text-xs">
-                          Source: https://www.fuzzwork.co.uk/dump/mysql-latest.tar.bz2
-                        </p>
-                      </div>
-                    )}
+                      )}
+                      
+                      {setupConfig.schemaSource === 'managed' && (
+                        <div className="p-3 border border-accent/20 bg-accent/5 rounded text-sm">
+                          <p className="text-accent font-medium mb-1">Using Database Schema Manager</p>
+                          <p className="text-muted-foreground">
+                            Schema will be dynamically generated from the Database Schema Manager with {Object.keys(lmeveSchemas).length} table definitions.
+                          </p>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* EVE SDE Configuration */}
+                  <div className="border border-border rounded-lg p-4 space-y-4">
+                    <div className="flex items-center justify-between">
+                      <h5 className="font-medium flex items-center gap-2">
+                        <Archive size={16} />
+                        EVE Static Data Export
+                      </h5>
+                      <Badge variant={sdeStats.isOutdated ? 'destructive' : 'default'}>
+                        {sdeStats.isOutdated ? 'Update Available' : 'Current'}
+                      </Badge>
+                    </div>
                     
-                    {setupConfig.sdeSource === 'custom' && (
+                    <div className="space-y-3">
                       <div className="space-y-2">
-                        <Label htmlFor="sde-file">Custom SDE File</Label>
-                        <Input
-                          id="sde-file"
-                          type="file"
-                          accept=".tar.bz2,.sql"
-                          onChange={(e) => {
-                            const file = e.target.files?.[0];
-                            if (file) {
-                              setSetupConfig(prev => ({ ...prev, customSDEFile: file }));
-                            }
-                          }}
-                        />
-                        <p className="text-xs text-muted-foreground">
-                          Upload a custom SDE tar.bz2 or .sql file
-                        </p>
+                        <Label>SDE Source</Label>
+                        <Select value={setupConfig.sdeSource || 'auto'} onValueChange={(value) => setSetupConfig(prev => ({ ...prev, sdeSource: value }))}>
+                          <SelectTrigger>
+                            <SelectValue placeholder="Select SDE source" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="auto">Download Latest from Fuzzwork</SelectItem>
+                            <SelectItem value="custom">Upload Custom SDE File</SelectItem>
+                            <SelectItem value="skip">Skip SDE Installation</SelectItem>
+                          </SelectContent>
+                        </Select>
                       </div>
-                    )}
+                      
+                      {setupConfig.sdeSource === 'auto' && (
+                        <div className="p-3 border border-border rounded text-sm">
+                          <div className="flex items-center justify-between mb-2">
+                            <span className="font-medium">Fuzzwork SDE</span>
+                            <Badge variant="outline" className="text-xs">~500MB</Badge>
+                          </div>
+                          <p className="text-muted-foreground text-xs mb-2">
+                            Latest version: {sdeStats.availableVersion || 'Checking...'}
+                          </p>
+                          <p className="text-muted-foreground text-xs">
+                            Source: https://www.fuzzwork.co.uk/dump/mysql-latest.tar.bz2
+                          </p>
+                        </div>
+                      )}
+                      
+                      {setupConfig.sdeSource === 'custom' && (
+                        <div className="space-y-2">
+                          <Label htmlFor="sde-file">Custom SDE File</Label>
+                          <Input
+                            id="sde-file"
+                            type="file"
+                            accept=".tar.bz2,.sql"
+                            onChange={(e) => {
+                              const file = e.target.files?.[0];
+                              if (file) {
+                                setSetupConfig(prev => ({ ...prev, customSDEFile: file }));
+                              }
+                            }}
+                          />
+                          <p className="text-xs text-muted-foreground">
+                            Upload a custom SDE tar.bz2 or .sql file
+                          </p>
+                        </div>
+                      )}
+                    </div>
                   </div>
                 </div>
 
@@ -2415,7 +2388,7 @@ export function Settings({ activeTab, onTabChange }: SettingsProps) {
                         </div>
                       </div>
                       
-                      {/* Requirements Validation */}
+                      {/* Validation Alerts */}
                       <div className="space-y-2">
                         {!databaseSettings?.sudoPassword && (
                           <Alert>
@@ -2507,7 +2480,7 @@ export function Settings({ activeTab, onTabChange }: SettingsProps) {
                         {showDatabaseTables ? (
                           <CaretDown size={16} className="text-muted-foreground" />
                         ) : (
-                          <CaretUp size={16} className="text-muted-foreground" />
+                          <CaretRight size={16} className="text-muted-foreground" />
                         )}
                         <h4 className="font-medium">Database Tables</h4>
                         <Badge variant="outline" className="text-xs">
@@ -2608,16 +2581,7 @@ export function Settings({ activeTab, onTabChange }: SettingsProps) {
             </CardContent>
           </Card>
 
-          {/* Remote Database Operations */}
-          <RemoteOperations
-            tasks={remoteTasks}
-            onCreateDatabases={handleCreateRemoteDatabases}
-            onImportSchema={handleImportRemoteSchema}
-            onImportSDE={handleImportRemoteSDE}
-            isConnected={dbStatus.connected}
-            connectionMessage={dbStatus.message || 'Use connection test above to verify remote access'}
-            onTestConnection={() => toast.info('Use the database connection test above to verify remote access')}
-          />
+
         </TabsContent>
 
         <TabsContent value="sde" className="space-y-6">
