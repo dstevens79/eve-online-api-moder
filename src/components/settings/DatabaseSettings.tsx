@@ -93,7 +93,6 @@ export function DatabaseSettings({ isMobileView = false }: DatabaseSettingsProps
 
   // Load settings on component mount
   useEffect(() => {
-    loadDatabaseSettings();
     checkSDEStatus();
   }, []);
 
