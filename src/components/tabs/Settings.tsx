@@ -1448,65 +1448,6 @@ export function Settings({ activeTab, onTabChange }: SettingsProps) {
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-6">
-              {/* System Status Overview */}
-              <div className="p-4 bg-gradient-to-r from-muted/30 to-accent/10 rounded-lg">
-                <h4 className="font-medium mb-3">System Status Overview</h4>
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                  {/* Database Connection Status */}
-                  <div className="flex items-center gap-2">
-                    <div className={`w-3 h-3 rounded-full ${dbStatus.connected ? 'bg-green-500' : 'bg-red-500'}`} />
-                    <div>
-                      <p className="text-sm font-medium">Database</p>
-                      <p className="text-xs text-muted-foreground">
-                        {dbStatus.connected ? 'Connected' : 'Disconnected'}
-                      </p>
-                    </div>
-                  </div>
-
-                  {/* EVE Online API Status */}
-                  <div className="flex items-center gap-2">
-                    <div className={`w-3 h-3 rounded-full ${esiConfig.clientId ? 'bg-green-500' : 'bg-red-500'}`} />
-                    <div>
-                      <p className="text-sm font-medium">EVE API</p>
-                      <p className="text-xs text-muted-foreground">
-                        {esiConfig.clientId ? 'Configured' : 'Not Setup'}
-                      </p>
-                    </div>
-                  </div>
-
-                  <div className="flex items-center gap-2">
-                    <div className={`w-3 h-3 rounded-full ${
-                      databaseSettings.host && databaseSettings.host !== 'localhost' && databaseSettings.host !== '127.0.0.1' 
-                        ? dbStatus.connected ? 'bg-green-500' : 'bg-orange-500'
-                        : 'bg-gray-500'
-                    }`} />
-                    <div>
-                      <p className="text-sm font-medium">Remote Access</p>
-                      <p className="text-xs text-muted-foreground">
-                        {databaseSettings.host && databaseSettings.host !== 'localhost' && databaseSettings.host !== '127.0.0.1'
-                          ? dbStatus.connected ? 'Ready' : 'Not Ready'
-                          : 'Local Mode'
-                        }
-                      </p>
-                    </div>
-                  </div>
-
-                  {/* Overall System Health */}
-                  <div className="flex items-center gap-2">
-                    <div className={`w-3 h-3 rounded-full ${
-                      dbStatus.connected && esiConfig.clientId ? 'bg-green-500' : 
-                      dbStatus.connected || esiConfig.clientId ? 'bg-orange-500' : 'bg-red-500'
-                    }`} />
-                    <div>
-                      <p className="text-sm font-medium">Overall</p>
-                      <p className="text-xs text-muted-foreground">
-                        {dbStatus.connected && esiConfig.clientId ? 'Operational' :
-                         dbStatus.connected || esiConfig.clientId ? 'Partial' : 'Setup Needed'}
-                      </p>
-                    </div>
-                  </div>
-                </div>
-              </div>
 
               {/* ESI Configuration Section */}
               <div className="border border-border rounded-lg p-4">
@@ -1612,10 +1553,9 @@ export function Settings({ activeTab, onTabChange }: SettingsProps) {
               </div>
 
               {/* Database Connection Configuration */}
-              <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                {/* Database Connection & Users - Left Column */}
-                <div className="lg:col-span-2 space-y-6">
-                  {/* Database Connection Section */}
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                {/* Database Connection - Left Column */}
+                <div className="space-y-4">
                   <div className="border border-border rounded-lg p-4">
                     <div className="flex items-center gap-2 mb-4">
                       <div className={`w-2 h-2 rounded-full ${dbStatus.connected ? 'bg-green-500' : 'bg-red-500'}`} />
@@ -1671,65 +1611,12 @@ export function Settings({ activeTab, onTabChange }: SettingsProps) {
                           />
                         </div>
                       </div>
-
-                      <div className="flex gap-3 pt-2">
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => {
-                            console.log('🧪 Test connection button clicked');
-                            handleTestDbConnection();
-                          }}
-                          disabled={testingConnection}
-                          className="flex-1 hover:bg-accent/10 active:bg-accent/20 transition-colors"
-                        >
-                          {testingConnection ? (
-                            <>
-                              <ArrowClockwise size={16} className="mr-2 animate-spin" />
-                              Testing...
-                            </>
-                          ) : (
-                            <>
-                              <Play size={16} className="mr-2" />
-                              Test Connection
-                            </>
-                          )}
-                        </Button>
-                        
-                        {dbStatus.connected ? (
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={handleDisconnectDb}
-                            className="flex-1 border-red-500/50 text-red-400 hover:bg-red-500/10"
-                          >
-                            <Stop size={16} className="mr-2" />
-                            Disconnect
-                          </Button>
-                        ) : (
-                          <Button
-                            size="sm"
-                            onClick={handleConnectDb}
-                            className="flex-1 bg-accent hover:bg-accent/90"
-                          >
-                            <Play size={16} className="mr-2" />
-                            Connect
-                          </Button>
-                        )}
-                        
-                        <Button
-                          onClick={saveDatabaseSettings}
-                          variant="secondary"
-                          size="sm"
-                          className="flex-1"
-                        >
-                          Save
-                        </Button>
-                      </div>
                     </div>
                   </div>
+                </div>
 
-                  {/* Database Users Section */}
+                {/* Database Users - Right Column */}
+                <div className="space-y-4">
                   <div className="border border-border rounded-lg p-4">
                     <div className="flex items-center gap-2 mb-4">
                       <div className={`w-2 h-2 rounded-full ${databaseSettings.sudoUsername && databaseSettings.sudoPassword ? 'bg-green-500' : 'bg-red-500'}`} />
@@ -1805,6 +1692,125 @@ export function Settings({ activeTab, onTabChange }: SettingsProps) {
                         </div>
                       </div>
                     </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Connection Controls and Status - Full Width */}
+              <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                {/* Connection Controls - Left */}
+                <div className="lg:col-span-2">
+                  <div className="flex gap-3">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => {
+                        console.log('🧪 Test connection button clicked');
+                        handleTestDbConnection();
+                      }}
+                      disabled={testingConnection}
+                      className="flex-1 hover:bg-accent/10 active:bg-accent/20 transition-colors"
+                    >
+                      {testingConnection ? (
+                        <>
+                          <ArrowClockwise size={16} className="mr-2 animate-spin" />
+                          Testing...
+                        </>
+                      ) : (
+                        <>
+                          <Play size={16} className="mr-2" />
+                          Test Connection
+                        </>
+                      )}
+                    </Button>
+                    
+                    {dbStatus.connected ? (
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={handleDisconnectDb}
+                        className="flex-1 border-red-500/50 text-red-400 hover:bg-red-500/10"
+                      >
+                        <Stop size={16} className="mr-2" />
+                        Disconnect
+                      </Button>
+                    ) : (
+                      <Button
+                        size="sm"
+                        onClick={handleConnectDb}
+                        className="flex-1 bg-accent hover:bg-accent/90"
+                      >
+                        <Play size={16} className="mr-2" />
+                        Connect
+                      </Button>
+                    )}
+                    
+                    <Button
+                      onClick={saveDatabaseSettings}
+                      variant="secondary"
+                      size="sm"
+                      className="flex-1"
+                    >
+                      Save
+                    </Button>
+                  </div>
+              {/* Connection Controls and Status - Full Width */}
+              <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                {/* Connection Controls - Left */}
+                <div className="lg:col-span-2">
+                  <div className="flex gap-3">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => {
+                        console.log('🧪 Test connection button clicked');
+                        handleTestDbConnection();
+                      }}
+                      disabled={testingConnection}
+                      className="flex-1 hover:bg-accent/10 active:bg-accent/20 transition-colors"
+                    >
+                      {testingConnection ? (
+                        <>
+                          <ArrowClockwise size={16} className="mr-2 animate-spin" />
+                          Testing...
+                        </>
+                      ) : (
+                        <>
+                          <Play size={16} className="mr-2" />
+                          Test Connection
+                        </>
+                      )}
+                    </Button>
+                    
+                    {dbStatus.connected ? (
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={handleDisconnectDb}
+                        className="flex-1 border-red-500/50 text-red-400 hover:bg-red-500/10"
+                      >
+                        <Stop size={16} className="mr-2" />
+                        Disconnect
+                      </Button>
+                    ) : (
+                      <Button
+                        size="sm"
+                        onClick={handleConnectDb}
+                        className="flex-1 bg-accent hover:bg-accent/90"
+                      >
+                        <Play size={16} className="mr-2" />
+                        Connect
+                      </Button>
+                    )}
+                    
+                    <Button
+                      onClick={saveDatabaseSettings}
+                      variant="secondary"
+                      size="sm"
+                      className="flex-1"
+                    >
+                      Save
+                    </Button>
                   </div>
                 </div>
 
@@ -1944,562 +1950,6 @@ export function Settings({ activeTab, onTabChange }: SettingsProps) {
                           </div>
                         )}
                       </div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              {/* Automated Database Setup Section */}
-              <div className="border-t border-border pt-6 space-y-6">
-                <div className="flex items-center justify-between">
-                  <h4 className="font-medium">Database Setup Operations</h4>
-                  <Dialog>
-                    <DialogTrigger asChild>
-                      <Button variant="outline" size="sm">
-                        <Question size={16} className="mr-2" />
-                        Setup Requirements
-                      </Button>
-                    </DialogTrigger>
-                    <DialogContent className="max-w-2xl">
-                      <DialogHeader>
-                        <DialogTitle>Database Setup Requirements</DialogTitle>
-                        <DialogDescription>
-                          Basic steps to prepare for database setup
-                        </DialogDescription>
-                      </DialogHeader>
-                      <div className="space-y-4 text-sm">
-                        <div className="space-y-3">
-                          <div className="p-3 border border-border rounded bg-muted/30">
-                            <p className="font-medium mb-2">Before You Begin:</p>
-                            <ul className="list-disc list-inside space-y-1 text-muted-foreground">
-                              <li>Ensure MySQL/MariaDB is installed and running</li>
-                              <li>Have database administrator (sudo) credentials ready</li>
-                              <li>Verify network connectivity to database server if remote</li>
-                              <li>Choose a secure password for the LMeve database user</li>
-                            </ul>
-                          </div>
-                          
-                          <div className="p-3 border border-border rounded bg-muted/30">
-                            <p className="font-medium mb-2">For Remote Databases:</p>
-                            <ul className="list-disc list-inside space-y-1 text-muted-foreground">
-                              <li>Set up SSH key authentication to the database server</li>
-                              <li>Create opsuser account with sudo privileges for database scripts</li>
-                              <li>Place provided setup scripts in /usr/local/lmeve/ directory</li>
-                              <li>Configure sudoers file for automated setup operations</li>
-                            </ul>
-                          </div>
-                          
-                          <div className="p-3 border border-border rounded bg-muted/30">
-                            <p className="font-medium mb-2">What This Setup Does:</p>
-                            <ul className="list-disc list-inside space-y-1 text-muted-foreground">
-                              <li>Creates "lmeve" and "EveStaticData" databases</li>
-                              <li>Imports database schema with all required tables</li>
-                              <li>Downloads and installs latest EVE SDE data</li>
-                              <li>Creates database users with proper access privileges</li>
-                              <li>Validates the complete installation</li>
-                            </ul>
-                          </div>
-                        </div>
-                      </div>
-                    </DialogContent>
-                  </Dialog>
-                </div>
-                
-                <div className="p-3 bg-muted/50 rounded-lg text-sm text-muted-foreground">
-                  <p className="font-medium mb-2">Complete LMeve Database Initialization</p>
-                  <p>
-                    Unified setup process that combines schema installation and EVE SDE data import. 
-                    Handles both local and remote database scenarios with automated setup scripts.
-                  </p>
-                </div>
-
-                {/* Environment Detection */}
-                <div className="border border-border rounded-lg p-4 space-y-4">
-                  <div className="flex items-center justify-between">
-                    <h5 className="font-medium">Database Environment</h5>
-                    <Badge variant={databaseSettings.host === 'localhost' || databaseSettings.host === '127.0.0.1' ? 'default' : 'secondary'}>
-                      {databaseSettings.host === 'localhost' || databaseSettings.host === '127.0.0.1' ? 'Local' : 'Remote'}
-                    </Badge>
-                  </div>
-                </div>
-
-                {/* Unified Database Setup Operations */}
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  {/* Schema Selection */}
-                  <div className="border border-border rounded-lg p-4 space-y-4">
-                    <div className="flex items-center justify-between">
-                      <h5 className="font-medium flex items-center gap-2">
-                        <Database size={16} />
-                        Database Schema
-                      </h5>
-                    </div>
-                    
-                    <div className="space-y-3">
-                      <div className="space-y-2">
-                        <Label>Schema Source</Label>
-                        <Select value={setupConfig.schemaSource || 'default'} onValueChange={(value) => setSetupConfig(prev => ({ ...prev, schemaSource: value }))}>
-                          <SelectTrigger>
-                            <SelectValue placeholder="Select schema source" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="default">Use Site Default Schema</SelectItem>
-                            <SelectItem value="custom">Upload Custom Schema File</SelectItem>
-                            <SelectItem value="managed">Use Database Schema Manager</SelectItem>
-                          </SelectContent>
-                        </Select>
-                      </div>
-                      
-                      {setupConfig.schemaSource === 'custom' && (
-                        <div className="space-y-2">
-                          <Label htmlFor="schema-file">Custom Schema File</Label>
-                          <Input
-                            id="schema-file"
-                            type="file"
-                            accept=".sql"
-                            onChange={(e) => {
-                              const file = e.target.files?.[0];
-                              if (file) {
-                                setSetupConfig(prev => ({ ...prev, customSchemaFile: file }));
-                              }
-                            }}
-                          />
-                          <p className="text-xs text-muted-foreground">
-                            Upload a custom .sql schema file instead of using the default
-                          </p>
-                        </div>
-                      )}
-                      
-                      {setupConfig.schemaSource === 'managed' && (
-                        <div className="p-3 border border-accent/20 bg-accent/5 rounded text-sm">
-                          <p className="text-accent font-medium mb-1">Using Database Schema Manager</p>
-                          <p className="text-muted-foreground">
-                            Schema will be dynamically generated from the Database Schema Manager with {Object.keys(lmeveSchemas).length} table definitions.
-                          </p>
-                        </div>
-                      )}
-                    </div>
-                  </div>
-
-                  {/* EVE SDE Configuration */}
-                  <div className="border border-border rounded-lg p-4 space-y-4">
-                    <div className="flex items-center justify-between">
-                      <h5 className="font-medium flex items-center gap-2">
-                        <Archive size={16} />
-                        EVE Static Data Export
-                      </h5>
-                      <Badge variant={sdeStats.isOutdated ? 'destructive' : 'default'}>
-                        {sdeStats.isOutdated ? 'Update Available' : 'Current'}
-                      </Badge>
-                    </div>
-                    
-                    <div className="space-y-3">
-                      <div className="space-y-2">
-                        <Label>SDE Source</Label>
-                        <Select value={setupConfig.sdeSource || 'auto'} onValueChange={(value) => setSetupConfig(prev => ({ ...prev, sdeSource: value }))}>
-                          <SelectTrigger>
-                            <SelectValue placeholder="Select SDE source" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="auto">Download Latest from Fuzzwork</SelectItem>
-                            <SelectItem value="custom">Upload Custom SDE File</SelectItem>
-                            <SelectItem value="skip">Skip SDE Installation</SelectItem>
-                          </SelectContent>
-                        </Select>
-                      </div>
-                      
-                      {setupConfig.sdeSource === 'auto' && (
-                        <div className="p-3 border border-border rounded text-sm">
-                          <div className="flex items-center justify-between mb-2">
-                            <span className="font-medium">Fuzzwork SDE</span>
-                            <Badge variant="outline" className="text-xs">~500MB</Badge>
-                          </div>
-                          <p className="text-muted-foreground text-xs mb-2">
-                            Latest version: {sdeStats.availableVersion || 'Checking...'}
-                          </p>
-                          <p className="text-muted-foreground text-xs">
-                            Source: https://www.fuzzwork.co.uk/dump/mysql-latest.tar.bz2
-                          </p>
-                        </div>
-                      )}
-                      
-                      {setupConfig.sdeSource === 'custom' && (
-                        <div className="space-y-2">
-                          <Label htmlFor="sde-file">Custom SDE File</Label>
-                          <Input
-                            id="sde-file"
-                            type="file"
-                            accept=".tar.bz2,.sql"
-                            onChange={(e) => {
-                              const file = e.target.files?.[0];
-                              if (file) {
-                                setSetupConfig(prev => ({ ...prev, customSDEFile: file }));
-                              }
-                            }}
-                          />
-                          <p className="text-xs text-muted-foreground">
-                            Upload a custom SDE tar.bz2 or .sql file
-                          </p>
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                </div>
-
-                <div className="space-y-4">
-                  {/* Complete Setup Section */}
-                  <div className="border border-green-500/20 rounded-lg p-4 bg-green-500/5">
-                    <div className="flex items-center justify-between mb-4">
-                      <div className="flex items-center gap-2">
-                        <Wrench size={20} className="text-green-400" />
-                        <h5 className="font-medium">Complete Database Setup</h5>
-                      </div>
-                      <Button
-                        onClick={async () => {
-                          // Enhanced setup with schema and SDE options
-                          if (!setupConfig.lmevePassword) {
-                            toast.error('Please enter a database password');
-                            return;
-                          }
-
-                          if (setupConfig.lmevePassword.length < 8) {
-                            toast.error('Password must be at least 8 characters');
-                            return;
-                          }
-
-                          if (!databaseSettings?.sudoHost || !databaseSettings?.sudoUsername || !databaseSettings?.sudoPassword) {
-                            toast.error('Please configure sudo database connection first');
-                            return;
-                          }
-                          
-                          // Validate schema source
-                          if (setupConfig.schemaSource === 'custom' && !setupConfig.customSchemaFile) {
-                            toast.error('Please select a custom schema file');
-                            return;
-                          }
-                          
-                          // Validate SDE source
-                          if (setupConfig.sdeSource === 'custom' && !setupConfig.customSDEFile) {
-                            toast.error('Please select a custom SDE file');
-                            return;
-                          }
-
-                          const isRemote = databaseSettings.host !== 'localhost' && databaseSettings.host !== '127.0.0.1';
-                          
-                          if (isRemote && !dbStatus.connected) {
-                            toast.error('Please establish database connection first');
-                            return;
-                          }
-
-                          setSetupProgress(prev => ({
-                            ...prev,
-                            isRunning: true,
-                            progress: 0,
-                            currentStep: 1,
-                            currentStage: 'Starting comprehensive database setup...',
-                            steps: [
-                              { id: 'connection', name: 'Database Connection', description: 'Establishing connection to database server', status: 'pending' },
-                              { id: 'databases', name: 'Create Databases', description: 'Creating lmeve and EveStaticData databases', status: 'pending' },
-                              { id: 'schema', name: 'Schema Import', description: 'Importing database schema', status: 'pending' },
-                              { id: 'user', name: 'User Creation', description: 'Creating lmeve database user', status: 'pending' },
-                              { id: 'privileges', name: 'Grant Privileges', description: 'Setting up database permissions', status: 'pending' },
-                              { id: 'sde', name: 'SDE Installation', description: setupConfig.sdeSource === 'skip' ? 'Skipping SDE installation' : 'Installing EVE SDE data', status: 'pending' },
-                              { id: 'validation', name: 'Setup Validation', description: 'Validating complete setup', status: 'pending' }
-                            ],
-                            totalSteps: 7
-                          }));
-
-                          try {
-                            addConnectionLog('🚀 Starting automated database setup...');
-                            addConnectionLog(`🌐 Target: ${isRemote ? 'Remote' : 'Local'} database at ${databaseSettings.host}:${databaseSettings.port}`);
-                            
-                            // Generate schema content based on source
-                            let schemaContent = '';
-                            if (setupConfig.schemaSource === 'managed') {
-                              addConnectionLog('📝 Generating schema from Database Schema Manager...');
-                              // Generate SQL from schema manager
-                              const schemaSQL = Object.entries(lmeveSchemas).map(([tableName, schema]) => {
-                                const columns = schema.columns.map(col => 
-                                  `${col.name} ${col.type}${col.constraints ? ' ' + col.constraints : ''}`
-                                ).join(',\n  ');
-                                return `CREATE TABLE IF NOT EXISTS \`${tableName}\` (\n  ${columns}\n)${schema.engine ? ` ENGINE=${schema.engine}` : ''}${schema.charset ? ` DEFAULT CHARSET=${schema.charset}` : ''};`;
-                              }).join('\n\n');
-                              schemaContent = schemaSQL;
-                              addConnectionLog(`✅ Generated schema for ${Object.keys(lmeveSchemas).length} tables`);
-                            } else if (setupConfig.schemaSource === 'custom' && setupConfig.customSchemaFile) {
-                              addConnectionLog('📁 Reading custom schema file...');
-                              schemaContent = await setupConfig.customSchemaFile.text();
-                              addConnectionLog('✅ Custom schema file loaded');
-                            } else {
-                              addConnectionLog('📋 Using default LMeve schema...');
-                              schemaContent = '/* Default LMeve Schema - Replace with actual schema */';
-                            }
-                            
-                            // Handle SDE source
-                            let sdeConfig = {
-                              download: setupConfig.sdeSource === 'auto',
-                              customFile: setupConfig.sdeSource === 'custom' ? setupConfig.customSDEFile : null,
-                              skip: setupConfig.sdeSource === 'skip'
-                            };
-                            
-                            if (setupConfig.sdeSource === 'auto') {
-                              addConnectionLog(`📦 Will download latest SDE from Fuzzwork (${sdeStats.availableVersion || 'latest'})`);
-                            } else if (setupConfig.sdeSource === 'custom') {
-                              addConnectionLog(`📁 Will use custom SDE file: ${setupConfig.customSDEFile?.name}`);
-                            } else {
-                              addConnectionLog('⏭️ SDE installation will be skipped');
-                            }
-
-                            // Use the enhanced DatabaseSetupManager
-                            const enhancedSetupConfig: DatabaseSetupConfig = {
-                              // Connection details
-                              host: databaseSettings.host,
-                              port: databaseSettings.port,
-                              mysqlRootPassword: databaseSettings.sudoPassword,
-                              
-                              // LMeve user setup  
-                              lmevePassword: setupConfig.lmevePassword,
-                              allowedHosts: setupConfig.allowedHosts,
-                              
-                              // Schema configuration
-                              schemaContent: schemaContent,
-                              useCustomSchema: setupConfig.schemaSource !== 'default',
-                              
-                              // SDE configuration
-                              sdeConfig: sdeConfig,
-                              
-                              // Setup steps
-                              createDatabases: true,
-                              importSchema: true,
-                              createUser: true,
-                              grantPrivileges: true,
-                              validateSetup: true,
-                              
-                              // Environment
-                              isRemote: isRemote,
-                              sshConfig: isRemote ? {
-                                host: databaseSettings.host,
-                                user: 'opsuser',
-                                keyPath: '~/.ssh/lmeve_ops'
-                              } : undefined
-                            };
-                            
-                            // Validate configuration
-                            const configErrors = validateSetupConfig(enhancedSetupConfig);
-                            if (configErrors.length > 0) {
-                              throw new Error(`Configuration errors: ${configErrors.join(', ')}`);
-                            }
-
-                            const setupManager = new EnhancedDatabaseSetupManager(enhancedSetupConfig, (progress) => {
-                              setSetupProgress(prev => ({
-                                ...prev,
-                                progress: progress.progress,
-                                currentStep: progress.step,
-                                currentStage: progress.stage,
-                                steps: prev.steps.map((step, index) => ({
-                                  ...step,
-                                  status: index < progress.step ? 'completed' : index === progress.step ? 'running' : 'pending'
-                                }))
-                              }));
-                              addConnectionLog(`📊 ${progress.message}`);
-                            });
-
-                            addConnectionLog(`🔧 Setup configuration validated for ${isRemote ? 'remote' : 'local'} execution`);
-                            
-                            // Execute database setup
-                            const result = await setupManager.setupDatabase();
-
-                            if (result.success) {
-                              addConnectionLog('🎉 Database setup completed successfully!');
-                              if (result.details) {
-                                result.details.forEach(detail => addConnectionLog(detail));
-                              }
-                              toast.success('Database setup completed successfully');
-                              
-                              // Update the lmeve database config with the new setup
-                              updateDatabaseConfig('password', setupConfig.lmevePassword);
-                              updateDatabaseConfig('database', 'lmeve');
-                              if (!databaseSettings?.username) {
-                                updateDatabaseConfig('username', 'lmeve');
-                              }
-                              
-                              addConnectionLog('🔄 Testing new connection configuration...');
-                              
-                              // Automatically test the new connection
-                              setTimeout(() => {
-                                handleTestDbConnection();
-                              }, 1000);
-                              
-                            } else {
-                              throw new Error(result.error || 'Setup failed');
-                            }
-                          } catch (error) {
-                            console.error('Setup failed:', error);
-                            const errorMsg = error instanceof Error ? error.message : 'Unknown error';
-                            addConnectionLog(`❌ Database setup failed: ${errorMsg}`);
-                            setSetupProgress(prev => ({
-                              ...prev,
-                              isRunning: false,
-                              error: errorMsg,
-                              currentStage: 'Setup failed'
-                            }));
-                            toast.error(`Database setup failed: ${errorMsg}`);
-                          }
-                        }}
-                        className="bg-green-600 hover:bg-green-700 text-white"
-                        size="sm"
-                        disabled={setupProgress.isRunning || !databaseSettings?.sudoPassword || 
-                          (setupConfig.schemaSource === 'custom' && !setupConfig.customSchemaFile) ||
-                          (setupConfig.sdeSource === 'custom' && !setupConfig.customSDEFile) ||
-                          (databaseSettings.host !== 'localhost' && databaseSettings.host !== '127.0.0.1' && !dbStatus.connected)
-                        }
-                      >
-                        {setupProgress.isRunning ? (
-                          <>
-                            <ArrowClockwise size={16} className="mr-2 animate-spin" />
-                            Setting Up...
-                          </>
-                        ) : (
-                          <>
-                            <Play size={16} className="mr-2" />
-                            Complete Setup
-                          </>
-                        )}
-                      </Button>
-                    </div>
-                    
-                    <p className="text-sm text-muted-foreground mb-3">
-                      Creates both lmeve and EveStaticData databases, applies selected schema, handles SDE data, 
-                      and configures database users with proper privileges. Supports both local and remote database scenarios.
-                    </p>
-                    
-                    <div className="space-y-3">
-                      <div className="space-y-2">
-                        <Label htmlFor="setup-password">LMeve Database Password</Label>
-                        <Input
-                          id="setup-password"
-                          type="password"
-                          placeholder="Enter secure password (8+ characters)"
-                          value={setupConfig.lmevePassword}
-                          onChange={(e) => setSetupConfig(prev => ({ ...prev, lmevePassword: e.target.value }))}
-                          disabled={setupProgress.isRunning}
-                        />
-                        <p className="text-xs text-muted-foreground">
-                          This password will be used for the 'lmeve' database user
-                        </p>
-                      </div>
-                      
-                      <div className="space-y-2">
-                        <Label htmlFor="allowed-hosts">Allowed Hosts</Label>
-                        <Input
-                          id="allowed-hosts"
-                          value={setupConfig.allowedHosts}
-                          onChange={(e) => setSetupConfig(prev => ({ ...prev, allowedHosts: e.target.value }))}
-                          placeholder="% (any host) or specific IP like 192.168.1.%"
-                          disabled={setupProgress.isRunning}
-                        />
-                        <p className="text-xs text-muted-foreground">
-                          Use '%' for any host or specify IP range for security
-                        </p>
-                      </div>
-                      
-                      <div className="grid grid-cols-2 gap-4">
-                        <div className="space-y-2">
-                          <Label>Schema: {setupConfig.schemaSource === 'managed' ? 'Schema Manager' : setupConfig.schemaSource === 'custom' ? 'Custom File' : 'Default'}</Label>
-                          <p className="text-xs text-muted-foreground">
-                            {setupConfig.schemaSource === 'managed' 
-                              ? `Using ${Object.keys(lmeveSchemas).length} managed tables`
-                              : setupConfig.schemaSource === 'custom'
-                              ? `Custom file: ${setupConfig.customSchemaFile?.name || 'None selected'}`
-                              : 'Using built-in default schema'
-                            }
-                          </p>
-                        </div>
-                        <div className="space-y-2">
-                          <Label>SDE: {setupConfig.sdeSource === 'auto' ? 'Latest Download' : setupConfig.sdeSource === 'custom' ? 'Custom File' : 'Skip'}</Label>
-                          <p className="text-xs text-muted-foreground">
-                            {setupConfig.sdeSource === 'auto' 
-                              ? `Will download ${sdeStats.availableVersion || 'latest'}`
-                              : setupConfig.sdeSource === 'custom'
-                              ? `Custom file: ${setupConfig.customSDEFile?.name || 'None selected'}`
-                              : 'SDE installation will be skipped'
-                            }
-                          </p>
-                        </div>
-                      </div>
-                      
-                      {/* Validation Alerts */}
-                      <div className="space-y-2">
-                        {!databaseSettings?.sudoPassword && (
-                          <Alert>
-                            <Warning size={16} />
-                            <AlertDescription>
-                              Please configure the sudo database connection above before running setup.
-                            </AlertDescription>
-                          </Alert>
-                        )}
-                        
-                        {databaseSettings.host !== 'localhost' && databaseSettings.host !== '127.0.0.1' && !dbStatus.connected && (
-                          <Alert>
-                            <Network size={16} />
-                            <AlertDescription>
-                              Remote database detected. Please test the database connection first to ensure access is available.
-                            </AlertDescription>
-                          </Alert>
-                        )}
-                        
-                        {setupConfig.schemaSource === 'custom' && !setupConfig.customSchemaFile && (
-                          <Alert>
-                            <FileText size={16} />
-                            <AlertDescription>
-                              Custom schema selected but no file uploaded. Please select a schema file above.
-                            </AlertDescription>
-                          </Alert>
-                        )}
-                        
-                        {setupConfig.sdeSource === 'custom' && !setupConfig.customSDEFile && (
-                          <Alert>
-                            <Archive size={16} />
-                            <AlertDescription>
-                              Custom SDE selected but no file uploaded. Please select an SDE file above.
-                            </AlertDescription>
-                          </Alert>
-                        )}
-                      </div>
-                      
-                      {/* Setup Progress */}
-                      {setupProgress.isRunning && (
-                        <div className="space-y-2">
-                          <div className="flex justify-between text-sm">
-                            <span>{setupProgress.currentStage || 'Initializing...'}</span>
-                            <span>{Math.round(setupProgress.progress)}%</span>
-                          </div>
-                          <Progress value={setupProgress.progress} className="h-2" />
-                          <p className="text-xs text-muted-foreground">
-                            Step {setupProgress.currentStep} of {setupProgress.totalSteps}
-                          </p>
-                        </div>
-                      )}
-                    </div>
-                    
-                    <div className="flex gap-2 mt-4">
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={handleGenerateCommands}
-                        disabled={setupProgress.isRunning}
-                      >
-                        <Terminal size={16} className="mr-2" />
-                        Generate Commands
-                      </Button>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => setShowSetupWizard(true)}
-                        disabled={setupProgress.isRunning}
-                      >
-                        <Gear size={16} className="mr-2" />
-                        Step-by-Step Wizard
-                      </Button>
                     </div>
                   </div>
                 </div>
