@@ -25,33 +25,36 @@ const SSO_AUTH_URL = `${SSO_BASE_URL}/v2/oauth/authorize`;
 const SSO_TOKEN_URL = `${SSO_BASE_URL}/v2/oauth/token`;
 const SSO_VERIFY_URL = `${SSO_BASE_URL}/oauth/verify`;
 
-// Required scopes for corporation management based on LMeve requirements
-const REQUIRED_SCOPES = [
-  // Character and corporation info
-  'esi-characters.read_corporation_roles.v1',
+// Required scopes for different authentication levels
+const BASIC_SCOPES = [
+  // Character info only - for basic site access
+  'esi-characters.read_character_info.v1',
+  'esi-characters.read_corporation_roles.v1'
+];
+
+const ENHANCED_SCOPES = [
+  ...BASIC_SCOPES,
+  // Character jobs and wallet for manufacturing assignments
+  'esi-industry.read_character_jobs.v1',
+  'esi-wallet.read_character_wallet.v1',
+  'esi-assets.read_assets.v1',
+  'esi-characters.read_blueprints.v1'
+];
+
+const CORPORATION_SCOPES = [
+  ...ENHANCED_SCOPES,
+  // Corporation management scopes for directors/CEOs
   'esi-corporations.read_corporation_membership.v1',
   'esi-corporations.read_titles.v1',
-  
-  // Corporation data
   'esi-assets.read_corporation_assets.v1',
   'esi-industry.read_corporation_jobs.v1',
-  'esi-industry.read_character_jobs.v1',
   'esi-wallet.read_corporation_wallets.v1',
-  'esi-wallet.read_character_wallet.v1',
-  
-  // Killmails and structures
   'esi-killmails.read_corporation_killmails.v1',
   'esi-universe.read_structures.v1',
-  
-  // Market and contracts
   'esi-markets.read_corporation_orders.v1',
   'esi-contracts.read_corporation_contracts.v1',
-  
-  // Mining and planetary interaction
   'esi-industry.read_corporation_mining.v1',
   'esi-planets.read_customs_offices.v1',
-  
-  // Additional corporation management
   'esi-corporations.read_blueprints.v1',
   'esi-corporations.read_containers_logs.v1',
   'esi-corporations.read_divisions.v1',
@@ -61,6 +64,16 @@ const REQUIRED_SCOPES = [
   'esi-corporations.read_standings.v1',
   'esi-corporations.track_members.v1'
 ];
+
+// Map scope types to scope arrays
+const SCOPE_SETS = {
+  basic: BASIC_SCOPES,
+  enhanced: ENHANCED_SCOPES,
+  corporation: CORPORATION_SCOPES
+};
+
+// Legacy compatibility - remove after testing
+const REQUIRED_SCOPES = CORPORATION_SCOPES;
 
 export class ESIAuthService {
   private clientId: string;
@@ -120,13 +133,14 @@ export class ESIAuthService {
   }
 
   /**
-   * Initiate EVE SSO login
+   * Initiate EVE SSO login with different scope types
    */
-  async initiateLogin(corporationId?: number): Promise<string> {
-    console.log('🚀 Initiating EVE SSO login');
+  async initiateLogin(scopeType: 'basic' | 'enhanced' | 'corporation' = 'basic'): Promise<string> {
+    console.log('🚀 Initiating EVE SSO login with scope type:', scopeType);
     
     const { verifier, challenge } = await this.generatePKCE();
     const state = this.generateState();
+    const scopes = SCOPE_SETS[scopeType];
 
     // Store auth state in session storage
     const authState: ESIAuthState = {
@@ -134,7 +148,8 @@ export class ESIAuthService {
       verifier,
       challenge,
       timestamp: Date.now(),
-      corporationId
+      scopeType, // Store the requested scope type
+      scopes
     };
 
     sessionStorage.setItem('esi-auth-state', JSON.stringify(authState));
@@ -145,14 +160,14 @@ export class ESIAuthService {
       response_type: 'code',
       redirect_uri: this.redirectUri,
       client_id: this.clientId,
-      scope: REQUIRED_SCOPES.join(' '),
+      scope: scopes.join(' '),
       code_challenge: challenge,
       code_challenge_method: 'S256',
       state: state
     });
 
     const authUrl = `${SSO_AUTH_URL}?${params.toString()}`;
-    console.log('🔗 Generated auth URL:', authUrl);
+    console.log('🔗 Generated auth URL for', scopeType, 'scopes:', authUrl);
     
     return authUrl;
   }

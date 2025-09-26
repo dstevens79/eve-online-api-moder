@@ -720,6 +720,8 @@ export interface ESIAuthState {
   challenge: string;
   timestamp: number;
   corporationId?: number;
+  scopeType?: 'basic' | 'enhanced' | 'corporation';
+  scopes?: string[];
 }
 
 export interface ESIConfig {

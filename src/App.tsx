@@ -256,15 +256,15 @@ function AppContent() {
   };
 
   // Handle ESI SSO login
-  const handleESILogin = () => {
+  const handleESILogin = (scopeType: 'basic' | 'enhanced' | 'corporation' = 'basic') => {
     try {
       if (!esiConfig?.clientId) {
         toast.error('ESI authentication is not configured. Please contact your administrator.');
         return;
       }
       
-      console.log('🚀 Starting ESI SSO login');
-      const authUrl = loginWithESI();
+      console.log('🚀 Starting ESI SSO login with scope type:', scopeType);
+      const authUrl = loginWithESI(scopeType);
       
       // Redirect to EVE Online SSO
       window.location.href = authUrl;
@@ -568,7 +568,7 @@ function AppContent() {
                       {/* Show EVE SSO button for manual users if ESI is configured */}
                       {currentUser.authMethod === 'manual' && esiConfig?.clientId && (
                         <EVELoginButton
-                          onClick={handleESILogin}
+                          onClick={() => handleESILogin('basic')}
                           size="small"
                           disabled={!esiConfig?.clientId}
                           showCorporationCount={registeredCorps.length}
@@ -637,7 +637,7 @@ function AppContent() {
                     </Button>
                     {/* Always show EVE SSO button if configured */}
                     <EVELoginButton
-                      onClick={handleESILogin}
+                      onClick={() => handleESILogin('basic')}
                       size="small"
                       disabled={!esiConfig?.clientId}
                       showCorporationCount={registeredCorps.length}
@@ -930,7 +930,7 @@ function AppContent() {
                               Local Sign In
                             </Button>
                             <EVELoginButton
-                              onClick={handleESILogin}
+                              onClick={() => handleESILogin('basic')}
                               showCorporationCount={registeredCorps.length}
                               showValidationStatus={getValidationStatus()}
                             />
@@ -954,7 +954,7 @@ function AppContent() {
                               Local Sign In
                             </Button>
                             <EVELoginButton
-                              onClick={handleESILogin}
+                              onClick={() => handleESILogin('basic')}
                               showCorporationCount={registeredCorps.length}
                               showValidationStatus={getValidationStatus()}
                             />
