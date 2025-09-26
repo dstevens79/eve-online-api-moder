@@ -56,7 +56,10 @@ import {
   CaretUp,
   CaretDown,
   CaretRight,
-  Question
+  Question,
+  Activity,
+  Settings as SettingsIcon,
+  RefreshCw
 } from '@phosphor-icons/react';
 import { useKV } from '@github/spark/hooks';
 import { useAuth } from '@/lib/auth-provider';
@@ -68,6 +71,28 @@ import { AdminLoginTest } from '@/components/AdminLoginTest';
 import { SimpleLoginTest } from '@/components/SimpleLoginTest';
 import { runDatabaseValidationTests } from '@/lib/databaseTestCases';
 import { EnhancedDatabaseSetupManager, validateSetupConfig, type DatabaseSetupConfig } from '@/lib/database-setup-scripts';
+
+// Status Indicator Component
+const StatusIndicator: React.FC<{
+  label: string;
+  status: 'online' | 'offline' | 'unknown';
+}> = ({ label, status }) => (
+  <div className="flex items-center justify-between">
+    <span className="text-xs text-muted-foreground">{label}</span>
+    <div className="flex items-center gap-2">
+      <div 
+        className={`w-2 h-2 rounded-full ${
+          status === 'online' ? 'bg-green-500' : 
+          status === 'offline' ? 'bg-red-500' : 
+          'bg-gray-400'
+        }`} 
+      />
+      <span className="text-xs font-medium">
+        {status === 'online' ? 'Online' : status === 'offline' ? 'Offline' : 'Unknown'}
+      </span>
+    </div>
+  </div>
+);
 
 import { 
   useGeneralSettings, 
@@ -1588,9 +1613,9 @@ export function Settings({ activeTab, onTabChange }: SettingsProps) {
 
               {/* Database Connection Configuration */}
               <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                
-                {/* Connection Settings Column */}
-                <div className="space-y-4">
+                {/* Database Connection & Users - Left Column */}
+                <div className="lg:col-span-2 space-y-6">
+                  {/* Database Connection Section */}
                   <div className="border border-border rounded-lg p-4">
                     <div className="flex items-center gap-2 mb-4">
                       <div className={`w-2 h-2 rounded-full ${dbStatus.connected ? 'bg-green-500' : 'bg-red-500'}`} />
@@ -1626,19 +1651,85 @@ export function Settings({ activeTab, onTabChange }: SettingsProps) {
                           />
                         </div>
                       </div>
-                      <div className="space-y-2">
-                        <Label htmlFor="dbName">Database Name</Label>
-                        <Input
-                          id="dbName"
-                          value={databaseSettings.database || ''}
-                          onChange={(e) => updateDatabaseSetting('database', e.target.value)}
-                          placeholder="lmeve"
-                        />
+                      <div className="grid grid-cols-2 gap-4">
+                        <div className="space-y-2">
+                          <Label htmlFor="dbName">LMeve Database</Label>
+                          <Input
+                            id="dbName"
+                            value={databaseSettings.database || ''}
+                            onChange={(e) => updateDatabaseSetting('database', e.target.value)}
+                            placeholder="lmeve"
+                          />
+                        </div>
+                        <div className="space-y-2">
+                          <Label htmlFor="sdeDbName">SDE Database</Label>
+                          <Input
+                            id="sdeDbName"
+                            value="EveStaticData"
+                            placeholder="EveStaticData"
+                            disabled
+                          />
+                        </div>
+                      </div>
+
+                      <div className="flex gap-3 pt-2">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => {
+                            console.log('🧪 Test connection button clicked');
+                            handleTestDbConnection();
+                          }}
+                          disabled={testingConnection}
+                          className="flex-1 hover:bg-accent/10 active:bg-accent/20 transition-colors"
+                        >
+                          {testingConnection ? (
+                            <>
+                              <ArrowClockwise size={16} className="mr-2 animate-spin" />
+                              Testing...
+                            </>
+                          ) : (
+                            <>
+                              <Play size={16} className="mr-2" />
+                              Test Connection
+                            </>
+                          )}
+                        </Button>
+                        
+                        {dbStatus.connected ? (
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={handleDisconnectDb}
+                            className="flex-1 border-red-500/50 text-red-400 hover:bg-red-500/10"
+                          >
+                            <Stop size={16} className="mr-2" />
+                            Disconnect
+                          </Button>
+                        ) : (
+                          <Button
+                            size="sm"
+                            onClick={handleConnectDb}
+                            className="flex-1 bg-accent hover:bg-accent/90"
+                          >
+                            <Play size={16} className="mr-2" />
+                            Connect
+                          </Button>
+                        )}
+                        
+                        <Button
+                          onClick={saveDatabaseSettings}
+                          variant="secondary"
+                          size="sm"
+                          className="flex-1"
+                        >
+                          Save
+                        </Button>
                       </div>
                     </div>
                   </div>
 
-                  {/* User Credentials - Condensed */}
+                  {/* Database Users Section */}
                   <div className="border border-border rounded-lg p-4">
                     <div className="flex items-center gap-2 mb-4">
                       <div className={`w-2 h-2 rounded-full ${databaseSettings.sudoUsername && databaseSettings.sudoPassword ? 'bg-green-500' : 'bg-red-500'}`} />
@@ -1717,161 +1808,118 @@ export function Settings({ activeTab, onTabChange }: SettingsProps) {
                   </div>
                 </div>
 
-                {/* Control & Status Column */}
+                {/* Status Overview Panel - Right Column */}
                 <div className="space-y-4">
-                  
-                  {/* Connection Controls */}
                   <div className="border border-border rounded-lg p-4">
                     <div className="flex items-center gap-2 mb-4">
-                      <div className={`w-2 h-2 rounded-full ${testingConnection ? 'bg-yellow-500 animate-pulse' : dbStatus.connected ? 'bg-green-500' : 'bg-red-500'}`} />
-                      <h4 className="font-medium">Connection Controls</h4>
+                      <Activity size={18} />
+                      <h4 className="font-medium">System Status</h4>
                     </div>
                     
-                    <div className="space-y-3">
+                    {/* Status Indicators */}
+                    <div className="space-y-3 mb-4">
+                      <StatusIndicator 
+                        label="Database Status" 
+                        status={dbStatus.connected ? 'online' : 'offline'} 
+                      />
+                      <StatusIndicator 
+                        label="Remote Access" 
+                        status={databaseSettings.host && databaseSettings.host !== 'localhost' && databaseSettings.host !== '127.0.0.1' ? (dbStatus.connected ? 'online' : 'offline') : 'unknown'} 
+                      />
+                      <StatusIndicator 
+                        label="ESI Status" 
+                        status={esiConfig?.clientId ? 'online' : 'offline'} 
+                      />
+                      <StatusIndicator 
+                        label="EVE Online API" 
+                        status="unknown" 
+                      />
+                      <StatusIndicator 
+                        label="Overall Status" 
+                        status={dbStatus.connected && esiConfig?.clientId ? 'online' : 'offline'} 
+                      />
+                    </div>
+
+                    <div className="border-t border-border pt-4 space-y-3 mb-4">
                       <Button
-                        variant="outline"
-                        size="sm"
                         onClick={() => {
-                          console.log('🧪 Test connection button clicked');
-                          handleTestDbConnection();
+                          toast.info('Application management coming soon');
                         }}
-                        disabled={testingConnection}
-                        className="w-full hover:bg-accent/10 active:bg-accent/20 transition-colors"
-                      >
-                        {testingConnection ? (
-                          <>
-                            <ArrowClockwise size={16} className="mr-2 animate-spin" />
-                            Testing...
-                          </>
-                        ) : (
-                          <>
-                            <Play size={16} className="mr-2" />
-                            Test Connection
-                          </>
-                        )}
-                      </Button>
-                      
-                      {dbStatus.connected ? (
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={handleDisconnectDb}
-                          className="w-full border-red-500/50 text-red-400 hover:bg-red-500/10"
-                        >
-                          <Stop size={16} className="mr-2" />
-                          Disconnect
-                        </Button>
-                      ) : (
-                        <Button
-                          size="sm"
-                          onClick={handleConnectDb}
-                          className="w-full bg-accent hover:bg-accent/90"
-                        >
-                          <Play size={16} className="mr-2" />
-                          Connect
-                        </Button>
-                      )}
-                      
-                      <Button
-                        onClick={saveDatabaseSettings}
-                        variant="secondary"
+                        variant="outline"
                         size="sm"
                         className="w-full"
                       >
-                        Save Configuration
+                        <SettingsIcon size={14} className="mr-2" />
+                        Manage Apps
+                      </Button>
+                      
+                      <Button
+                        onClick={() => {
+                          handleTestDbConnection();
+                          toast.success('Status refreshed');
+                        }}
+                        variant="outline"
+                        size="sm"
+                        className="w-full"
+                      >
+                        <RefreshCw size={14} className="mr-2" />
+                        Refresh Status
                       </Button>
                     </div>
 
-                    {/* Compact Status Display */}
-                    {dbStatus.connected && (
-                      <div className="mt-4 p-3 bg-green-500/10 border border-green-500/20 rounded text-sm">
-                        <div className="flex items-center gap-2 text-green-400 mb-2">
-                          <CheckCircle size={14} />
-                          <span className="font-medium">Connected & Validated</span>
-                        </div>
-                        <div className="grid grid-cols-2 gap-2 text-xs">
-                          <div>
-                            <span className="text-muted-foreground">Connections:</span> {dbStatus.connectionCount}
-                          </div>
-                          <div>
-                            <span className="text-muted-foreground">Queries:</span> {dbStatus.queryCount}
-                          </div>
-                        </div>
-                      </div>
-                    )}
-
-                    {!dbStatus.connected && dbStatus.lastError && (
-                      <div className="mt-4 p-3 bg-red-500/10 border border-red-500/20 rounded text-sm">
-                        <div className="flex items-center gap-2 text-red-400 mb-1">
-                          <X size={14} />
-                          <span className="font-medium">Connection Failed</span>
-                        </div>
-                        <p className="text-xs text-red-300 break-words">
-                          {dbStatus.lastError}
-                        </p>
-                      </div>
-                    )}
-                  </div>
-
-                  {/* Remote Connection Status */}
-                  {databaseSettings.host && databaseSettings.host !== 'localhost' && databaseSettings.host !== '127.0.0.1' && (
-                    <div className="border border-border rounded-lg p-4">
-                      <div className="flex items-center gap-2 mb-4">
-                        <div className={`w-2 h-2 rounded-full ${dbStatus.connected ? 'bg-green-500' : 'bg-orange-500'}`} />
-                        <h4 className="font-medium">Remote Access</h4>
+                    {/* Configuration Dropdowns */}
+                    <div className="border-t border-border pt-4 space-y-3 mb-4">
+                      <div>
+                        <Label className="text-xs text-muted-foreground">Schema Source</Label>
+                        <Select value="default" onValueChange={() => {}}>
+                          <SelectTrigger className="h-8 text-xs">
+                            <SelectValue placeholder="Select schema source" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="default">Default Schema</SelectItem>
+                            <SelectItem value="custom">Custom File</SelectItem>
+                          </SelectContent>
+                        </Select>
                       </div>
                       
-                      <div className="space-y-3">
-                        <p className="text-xs text-muted-foreground">
-                          Remote connection status is managed by the database connection test above.
-                        </p>
+                      <div>
+                        <Label className="text-xs text-muted-foreground">SDE Source</Label>
+                        <Select value="latest" onValueChange={() => {}}>
+                          <SelectTrigger className="h-8 text-xs">
+                            <SelectValue placeholder="Select SDE source" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="latest">Latest SDE</SelectItem>
+                            <SelectItem value="custom">Custom File</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      
+                      <div className="flex items-center justify-between text-xs">
+                        <span className="text-muted-foreground">SDE Version:</span>
+                        <span className="text-foreground">Unknown</span>
                       </div>
                     </div>
-                  )}
-                </div>
 
-                {/* Connection Logs Column - Collapsible */}
-                <div className="space-y-4">
-                  
-                  {/* Connection Logs */}
-                  <div className="border border-border rounded-lg p-4">
-                    <div className="flex items-center justify-between mb-4">
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        className="p-0 h-auto hover:bg-transparent"
-                        onClick={() => setShowConnectionLogs(!showConnectionLogs)}
-                      >
-                        <div className="flex items-center gap-2">
-                          {showConnectionLogs ? (
-                            <CaretDown size={16} className="text-muted-foreground" />
-                          ) : (
-                            <CaretRight size={16} className="text-muted-foreground" />
-                          )}
-                          <h4 className="font-medium">Connection Logs</h4>
-                          <Badge variant="outline" className="text-xs">
-                            {connectionLogs.length} entries
-                          </Badge>
-                        </div>
-                      </Button>
-                      {showConnectionLogs && (
+                    {/* Compact Debug Logs */}
+                    <div className="border-t border-border pt-4">
+                      <div className="flex items-center justify-between mb-2">
+                        <Label className="text-xs text-muted-foreground">Debug Logs</Label>
                         <Button
                           variant="outline"
                           size="sm"
                           onClick={clearConnectionLogs}
                           disabled={connectionLogs.length === 0}
+                          className="h-6 px-2 text-xs"
                         >
-                          <X size={16} className="mr-2" />
+                          <X size={12} className="mr-1" />
                           Clear
                         </Button>
-                      )}
-                    </div>
-
-                    {showConnectionLogs && (
-                      <div className="bg-muted/30 border border-border rounded-lg p-3 h-64 overflow-y-auto font-mono text-xs">
+                      </div>
+                      <div className="bg-muted/30 border border-border rounded p-3 h-48 overflow-y-auto font-mono text-xs">
                         {connectionLogs.length === 0 ? (
                           <div className="flex items-center justify-center h-full text-muted-foreground">
-                            No connection logs yet. Run a connection test to see detailed logs.
+                            No logs available
                           </div>
                         ) : (
                           <div className="space-y-1">
@@ -1896,16 +1944,7 @@ export function Settings({ activeTab, onTabChange }: SettingsProps) {
                           </div>
                         )}
                       </div>
-                    )}
-
-                    {showConnectionLogs && (
-                      <div className="flex items-center gap-2 text-xs text-muted-foreground mt-2">
-                        <Info size={12} />
-                        <span>
-                          Logs show detailed database connection validation steps.
-                        </span>
-                      </div>
-                    )}
+                    </div>
                   </div>
                 </div>
               </div>
