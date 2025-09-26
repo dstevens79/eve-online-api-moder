@@ -39,6 +39,10 @@ export interface DatabaseSettings {
   sudoUsername: string;
   sudoPassword: string;
   sudoSsl?: boolean;
+  // SSH connection settings for remote database setup
+  sshUsername?: string;
+  sshPassword?: string;
+  sshPort?: number;
 }
 
 export interface ESISettings {
@@ -246,6 +250,9 @@ export const defaultDatabaseSettings: DatabaseSettings = {
   sudoPort: 3306,
   sudoUsername: 'root',
   sudoPassword: '',
+  sshUsername: 'root',
+  sshPassword: '',
+  sshPort: 22,
 };
 
 export const defaultESISettings: ESISettings = {

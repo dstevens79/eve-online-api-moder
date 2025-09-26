@@ -314,6 +314,7 @@ export function Settings({ activeTab, onTabChange, isMobileView }: SettingsProps
   // UI state management for modals and forms
   const [showDbPassword, setShowDbPassword] = useState(false);
   const [showSudoPassword, setShowSudoPassword] = useState(false);
+  const [showSshPassword, setShowSshPassword] = useState(false);
   const [testingConnection, setTestingConnection] = useState(false);
   const [connectionLogs, setConnectionLogs] = useState<string[]>([]);
   const [showConnectionLogs, setShowConnectionLogs] = useState(true);
@@ -802,6 +803,12 @@ export function Settings({ activeTab, onTabChange, isMobileView }: SettingsProps
       return;
     }
 
+    // Check if SSH credentials are provided
+    if (!databaseSettings.sshUsername) {
+      toast.error('SSH username is required for remote connections');
+      return;
+    }
+
     try {
       // Clear existing logs and start fresh
       setConnectionLogs([]);
@@ -821,8 +828,8 @@ export function Settings({ activeTab, onTabChange, isMobileView }: SettingsProps
       toast.info('Setting up SSH connection...');
       
       const host = databaseSettings.host;
-      const sshPort = 22;
-      const sshUser = 'root'; // Admin user with sudo privileges
+      const sshPort = databaseSettings.sshPort || 22;
+      const sshUser = databaseSettings.sshUsername;
       
       addLog(`🔌 Attempting SSH connection to ${sshUser}@${host}:${sshPort}`);
       
@@ -840,10 +847,14 @@ export function Settings({ activeTab, onTabChange, isMobileView }: SettingsProps
       
       // Step 2: Attempt SSH connection
       addLog('🔐 Initiating SSH connection...');
-      addLog('⚠️ Manual approval required on remote machine');
-      addLog('  └─ Answer "yes" when prompted to accept the host key');
+      if (!databaseSettings.sshPassword) {
+        addLog('⚠️ Manual approval required on remote machine');
+        addLog('  └─ Answer "yes" when prompted to accept the host key');
+      } else {
+        addLog('🔑 Using provided SSH password for authentication');
+      }
       
-      const sshResult = await establishSSHConnection(host, sshUser, sshPort, addLog);
+      const sshResult = await establishSSHConnection(host, sshUser, sshPort, addLog, databaseSettings.sshPassword);
       
       if (!sshResult.success) {
         addLog(`❌ SSH connection failed: ${sshResult.message}`);
@@ -988,7 +999,8 @@ export function Settings({ activeTab, onTabChange, isMobileView }: SettingsProps
     host: string, 
     user: string, 
     port: number,
-    addLog: (message: string) => void
+    addLog: (message: string) => void,
+    password?: string
   ): Promise<{ success: boolean; message: string }> => {
     
     addLog('📡 Attempting SSH handshake...');
@@ -999,7 +1011,11 @@ export function Settings({ activeTab, onTabChange, isMobileView }: SettingsProps
     await new Promise(resolve => setTimeout(resolve, 2000)); // Simulate connection time
     
     addLog('🔑 SSH authentication in progress...');
-    addLog('⏳ Waiting for host key verification...');
+    if (password) {
+      addLog('🔐 Using password authentication...');
+    } else {
+      addLog('⏳ Waiting for host key verification...');
+    }
     
     await new Promise(resolve => setTimeout(resolve, 1500));
     
@@ -3072,13 +3088,13 @@ echo "See README.md for detailed setup instructions"
               </div>
 
               {/* Compact Database Connection Configuration */}
-              <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
+              <div className="grid grid-cols-1 lg:grid-cols-5 gap-4">
                 {/* Database Connection - Compact */}
                 <div className="lg:col-span-1 space-y-4">
                   <div className="border border-border rounded-lg p-3">
                     <div className="flex items-center gap-2 mb-3">
                       <div className={`w-2 h-2 rounded-full ${dbStatus.connected ? 'bg-green-500' : 'bg-red-500'}`} />
-                      <h4 className="text-sm font-medium">Database Connection</h4>
+                      <h4 className="text-sm font-medium">Database</h4>
                     </div>
                     
                     <div className="space-y-3">
@@ -3129,7 +3145,7 @@ echo "See README.md for detailed setup instructions"
                   <div className="border border-border rounded-lg p-3">
                     <div className="flex items-center gap-2 mb-3">
                       <div className={`w-2 h-2 rounded-full ${databaseSettings.sudoUsername && databaseSettings.sudoPassword ? 'bg-green-500' : 'bg-red-500'}`} />
-                      <h4 className="text-sm font-medium">Database Users</h4>
+                      <h4 className="text-sm font-medium">DB Users</h4>
                     </div>
                     
                     <div className="space-y-3">
@@ -3194,6 +3210,77 @@ echo "See README.md for detailed setup instructions"
                   </div>
                 </div>
 
+                {/* SSH Connection - New Section */}
+                <div className="lg:col-span-1 space-y-4">
+                  <div className="border border-border rounded-lg p-3">
+                    <div className="flex items-center gap-2 mb-3">
+                      <div className={`w-2 h-2 rounded-full ${
+                        databaseSettings.sshUsername && databaseSettings.sshPassword 
+                          ? 'bg-green-500' 
+                          : (databaseSettings.host && 
+                             databaseSettings.host !== 'localhost' && 
+                             databaseSettings.host !== '127.0.0.1') 
+                          ? 'bg-red-500' 
+                          : 'bg-gray-400'
+                      }`} />
+                      <h4 className="text-sm font-medium">SSH Access</h4>
+                    </div>
+                    
+                    {(databaseSettings.host && 
+                      databaseSettings.host !== 'localhost' && 
+                      databaseSettings.host !== '127.0.0.1') ? (
+                      <div className="space-y-3">
+                        <div className="space-y-2">
+                          <Label className="text-xs text-muted-foreground">SSH User</Label>
+                          <Input
+                            value={databaseSettings.sshUsername || ''}
+                            onChange={(e) => updateDatabaseSetting('sshUsername', e.target.value)}
+                            placeholder="root"
+                            className="h-8 text-sm"
+                          />
+                        </div>
+                        
+                        <div className="space-y-2">
+                          <Label className="text-xs text-muted-foreground">SSH Password</Label>
+                          <div className="relative">
+                            <Input
+                              type={showSshPassword ? "text" : "password"}
+                              value={databaseSettings.sshPassword || ''}
+                              onChange={(e) => updateDatabaseSetting('sshPassword', e.target.value)}
+                              placeholder="SSH password"
+                              className="h-8 text-sm pr-8"
+                            />
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="sm"
+                              className="absolute right-0 top-0 h-8 w-8 p-0"
+                              onClick={() => setShowSshPassword(!showSshPassword)}
+                            >
+                              {showSshPassword ? <EyeSlash size={12} /> : <Eye size={12} />}
+                            </Button>
+                          </div>
+                        </div>
+                        
+                        <div className="space-y-2">
+                          <Label className="text-xs text-muted-foreground">SSH Port</Label>
+                          <Input
+                            type="number"
+                            value={databaseSettings.sshPort || ''}
+                            onChange={(e) => updateDatabaseSetting('sshPort', parseInt(e.target.value) || 22)}
+                            placeholder="22"
+                            className="h-8 text-sm"
+                          />
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="text-xs text-muted-foreground py-2">
+                        SSH not required for localhost connections
+                      </div>
+                    )}
+                  </div>
+                </div>
+
                 {/* Configuration and Control Pad */}
                 <div className="lg:col-span-1 space-y-4">
                   <div className="border border-border rounded-lg p-3">
@@ -3235,14 +3322,15 @@ echo "See README.md for detailed setup instructions"
                       {(!remoteAccess.sshConnected && 
                         databaseSettings.host && 
                         databaseSettings.host !== 'localhost' && 
-                        databaseSettings.host !== '127.0.0.1') && (
+                        databaseSettings.host !== '127.0.0.1' && 
+                        (!databaseSettings.sshUsername || !databaseSettings.sshPassword)) && (
                         <div className="flex items-center gap-1">
                           <span className="text-xs text-yellow-400">Requires Config</span>
                           <Button
                             variant="ghost"
                             size="sm"
                             className="h-5 w-5 p-0 hover:bg-muted"
-                            onClick={() => toast.info('SSH Connection Help:\n\n1. Setup SSH Connection - Establishes secure connection to remote database host\n2. Deploy Scripts - Copies database setup scripts to remote machine\n3. Run Remote Setup - Executes scripts to create databases and users\n\nNote: You need to manually approve the SSH connection on the remote machine when prompted.')}
+                            onClick={() => toast.info('SSH Connection Help:\n\n1. Fill in SSH username and password in the SSH Access section\n2. Setup SSH Connection - Establishes secure connection to remote database host\n3. Deploy Scripts - Copies database setup scripts to remote machine\n4. Run Remote Setup - Executes scripts to create databases and users\n\nNote: You need to manually approve the SSH connection on the remote machine when prompted.')}
                           >
                             <Question size={12} className="text-muted-foreground" />
                           </Button>
@@ -3258,7 +3346,8 @@ echo "See README.md for detailed setup instructions"
                         disabled={
                           !databaseSettings.host || 
                           databaseSettings.host === 'localhost' || 
-                          databaseSettings.host === '127.0.0.1'
+                          databaseSettings.host === '127.0.0.1' ||
+                          !databaseSettings.sshUsername
                         }
                       >
                         <Terminal size={12} className="mr-1" />
@@ -3401,7 +3490,9 @@ echo "See README.md for detailed setup instructions"
                           databaseSettings.host && 
                           databaseSettings.host !== 'localhost' && 
                           databaseSettings.host !== '127.0.0.1'
-                            ? remoteAccess.sshStatus === 'online' 
+                            ? (!databaseSettings.sshUsername || !databaseSettings.sshPassword)
+                              ? 'offline'  // red - missing credentials
+                              : remoteAccess.sshStatus === 'online' 
                               ? 'online' 
                               : remoteAccess.sshStatus === 'offline' 
                               ? 'warning'  // yellow - working but offline
