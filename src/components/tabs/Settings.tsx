@@ -3548,77 +3548,415 @@ export function Settings({ activeTab, onTabChange }: SettingsProps) {
                 </div>
 
                 {notificationSettings.discord?.enabled && (
-                  <div className="space-y-4 pl-6 border-l-2 border-[#5865F2]/20">
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      <div className="space-y-2">
-                        <Label htmlFor="discordWebhookUrl">Webhook URL</Label>
-                        <Input
-                          id="discordWebhookUrl"
-                          type="url"
-                          value={notificationSettings.discord?.webhookUrl || ''}
-                          onChange={(e) => setNotificationSettings(prev => ({
-                            ...prev,
-                            discord: { ...prev.discord, webhookUrl: e.target.value }
-                          }))}
-                          placeholder="https://discord.com/api/webhooks/..."
-                        />
-                        <p className="text-xs text-muted-foreground">
-                          Create a webhook in your Discord server settings
-                        </p>
+                  <div className="space-y-6 pl-6 border-l-2 border-[#5865F2]/20">
+                    {/* Primary Webhook Configuration */}
+                    <div className="space-y-4">
+                      <h5 className="font-medium text-sm">Webhook Configuration</h5>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div className="space-y-2">
+                          <Label htmlFor="discordWebhookUrl">Webhook URL</Label>
+                          <Input
+                            id="discordWebhookUrl"
+                            type="url"
+                            value={notificationSettings.discord?.webhookUrl || ''}
+                            onChange={(e) => setNotificationSettings(prev => ({
+                              ...prev,
+                              discord: { ...prev.discord, webhookUrl: e.target.value }
+                            }))}
+                            placeholder="https://discord.com/api/webhooks/..."
+                          />
+                          <p className="text-xs text-muted-foreground">
+                            Create a webhook in your Discord server settings
+                          </p>
+                        </div>
+                        
+                        <div className="space-y-2">
+                          <Label htmlFor="discordBotName">Bot Display Name</Label>
+                          <Input
+                            id="discordBotName"
+                            value={notificationSettings.discord?.botName || ''}
+                            onChange={(e) => setNotificationSettings(prev => ({
+                              ...prev,
+                              discord: { ...prev.discord, botName: e.target.value }
+                            }))}
+                            placeholder="LMeve Notifications"
+                          />
+                          <p className="text-xs text-muted-foreground">
+                            Name shown for the notification bot
+                          </p>
+                        </div>
                       </div>
-                      
+
                       <div className="space-y-2">
-                        <Label htmlFor="discordChannel">Channel Name (Optional)</Label>
+                        <Label htmlFor="discordAvatarUrl">Bot Avatar URL (Optional)</Label>
                         <Input
-                          id="discordChannel"
-                          value={notificationSettings.discord?.channelName || ''}
+                          id="discordAvatarUrl"
+                          type="url"
+                          value={notificationSettings.discord?.avatarUrl || ''}
                           onChange={(e) => setNotificationSettings(prev => ({
                             ...prev,
-                            discord: { ...prev.discord, channelName: e.target.value }
+                            discord: { ...prev.discord, avatarUrl: e.target.value }
                           }))}
-                          placeholder="#lmeve-notifications"
+                          placeholder="https://images.evetech.net/corporations/..."
                         />
                         <p className="text-xs text-muted-foreground">
-                          Display name for the notifications
+                          Custom avatar for the notification bot (corp logo recommended)
                         </p>
                       </div>
                     </div>
 
-                    <div className="space-y-2">
-                      <Label>Notification Types</Label>
-                      <div className="grid grid-cols-2 gap-3">
-                        {['manufacturing', 'mining', 'killmails', 'markets'].map((type) => (
-                          <div key={type} className="flex items-center space-x-2">
+                    {/* Channel and Role Configuration */}
+                    <div className="space-y-4">
+                      <h5 className="font-medium text-sm">Target Configuration</h5>
+                      
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div className="space-y-2">
+                          <Label htmlFor="discordChannels">Channel Mentions</Label>
+                          <Textarea
+                            id="discordChannels"
+                            rows={3}
+                            value={notificationSettings.discord?.channels?.join('\n') || ''}
+                            onChange={(e) => setNotificationSettings(prev => ({
+                              ...prev,
+                              discord: {
+                                ...prev.discord,
+                                channels: e.target.value.split('\n').map(c => c.trim()).filter(c => c)
+                              }
+                            }))}
+                            placeholder="#general&#10;#industry&#10;#alerts"
+                            className="font-mono text-sm"
+                          />
+                          <p className="text-xs text-muted-foreground">
+                            Channels to mention in notifications (one per line)
+                          </p>
+                        </div>
+
+                        <div className="space-y-2">
+                          <Label htmlFor="discordRoles">Role Mentions</Label>
+                          <Textarea
+                            id="discordRoles"
+                            rows={3}
+                            value={notificationSettings.discord?.roles?.join('\n') || ''}
+                            onChange={(e) => setNotificationSettings(prev => ({
+                              ...prev,
+                              discord: {
+                                ...prev.discord,
+                                roles: e.target.value.split('\n').map(r => r.trim()).filter(r => r)
+                              }
+                            }))}
+                            placeholder="@lmeve_admin&#10;@industry_team&#10;@pilots"
+                            className="font-mono text-sm"
+                          />
+                          <p className="text-xs text-muted-foreground">
+                            Roles to ping in notifications (one per line, with @)
+                          </p>
+                        </div>
+                      </div>
+
+                      <div className="space-y-2">
+                        <Label htmlFor="discordUserMentions">User Mentions (Character IDs)</Label>
+                        <Textarea
+                          id="discordUserMentions"
+                          rows={2}
+                          value={notificationSettings.discord?.userMentions?.join('\n') || ''}
+                          onChange={(e) => setNotificationSettings(prev => ({
+                            ...prev,
+                            discord: {
+                              ...prev.discord,
+                              userMentions: e.target.value.split('\n').map(u => u.trim()).filter(u => u)
+                            }
+                          }))}
+                          placeholder="91316135&#10;498125261"
+                          className="font-mono text-sm"
+                        />
+                        <p className="text-xs text-muted-foreground">
+                          EVE character IDs to mention in notifications (one per line)
+                        </p>
+                      </div>
+                    </div>
+
+                    {/* Message Templates */}
+                    <div className="space-y-4">
+                      <h5 className="font-medium text-sm">Message Templates</h5>
+                      <div className="space-y-4">
+                        {/* Manufacturing Template */}
+                        <div className="border border-border rounded-lg p-3">
+                          <div className="flex items-center justify-between mb-2">
+                            <Label className="font-medium">Manufacturing Completion</Label>
                             <Switch
-                              checked={notificationSettings.discord?.types?.[type] || false}
+                              checked={notificationSettings.discord?.templates?.manufacturing?.enabled || false}
                               onCheckedChange={(checked) => setNotificationSettings(prev => ({
                                 ...prev,
                                 discord: {
                                   ...prev.discord,
-                                  types: { ...prev.discord?.types, [type]: checked }
+                                  templates: {
+                                    ...prev.discord?.templates,
+                                    manufacturing: {
+                                      ...prev.discord?.templates?.manufacturing,
+                                      enabled: checked
+                                    }
+                                  }
                                 }
                               }))}
                             />
-                            <Label className="text-sm capitalize">{type.replace('_', ' ')}</Label>
                           </div>
-                        ))}
+                          {notificationSettings.discord?.templates?.manufacturing?.enabled && (
+                            <div className="space-y-2">
+                              <Textarea
+                                rows={3}
+                                value={notificationSettings.discord?.templates?.manufacturing?.message || 'Hey {pilot} - your LMeve industry task of {item} x{count} is complete at {time}!'}
+                                onChange={(e) => setNotificationSettings(prev => ({
+                                  ...prev,
+                                  discord: {
+                                    ...prev.discord,
+                                    templates: {
+                                      ...prev.discord?.templates,
+                                      manufacturing: {
+                                        ...prev.discord?.templates?.manufacturing,
+                                        message: e.target.value
+                                      }
+                                    }
+                                  }
+                                }))}
+                                placeholder="Enter custom message template..."
+                                className="text-sm"
+                              />
+                              <p className="text-xs text-muted-foreground">
+                                Variables: {'{pilot}'}, {'{item}'}, {'{count}'}, {'{time}'}, {'{location}'}, {'{corporation}'}
+                              </p>
+                            </div>
+                          )}
+                        </div>
+
+                        {/* Queue Alert Template */}
+                        <div className="border border-border rounded-lg p-3">
+                          <div className="flex items-center justify-between mb-2">
+                            <Label className="font-medium">Queue Alerts</Label>
+                            <Switch
+                              checked={notificationSettings.discord?.templates?.queues?.enabled || false}
+                              onCheckedChange={(checked) => setNotificationSettings(prev => ({
+                                ...prev,
+                                discord: {
+                                  ...prev.discord,
+                                  templates: {
+                                    ...prev.discord?.templates,
+                                    queues: {
+                                      ...prev.discord?.templates?.queues,
+                                      enabled: checked
+                                    }
+                                  }
+                                }
+                              }))}
+                            />
+                          </div>
+                          {notificationSettings.discord?.templates?.queues?.enabled && (
+                            <div className="space-y-2">
+                              <Textarea
+                                rows={3}
+                                value={notificationSettings.discord?.templates?.queues?.message || 'Hey @lmeve_admin_role - queues are running low! You need to setup additional industry tasking!!'}
+                                onChange={(e) => setNotificationSettings(prev => ({
+                                  ...prev,
+                                  discord: {
+                                    ...prev.discord,
+                                    templates: {
+                                      ...prev.discord?.templates,
+                                      queues: {
+                                        ...prev.discord?.templates?.queues,
+                                        message: e.target.value
+                                      }
+                                    }
+                                  }
+                                }))}
+                                placeholder="Enter custom message template..."
+                                className="text-sm"
+                              />
+                              <p className="text-xs text-muted-foreground">
+                                Variables: {'{role}'}, {'{queue_type}'}, {'{remaining_jobs}'}, {'{time}'}, {'{corporation}'}
+                              </p>
+                            </div>
+                          )}
+                        </div>
+
+                        {/* Killmail Template */}
+                        <div className="border border-border rounded-lg p-3">
+                          <div className="flex items-center justify-between mb-2">
+                            <Label className="font-medium">Killmail Notifications</Label>
+                            <Switch
+                              checked={notificationSettings.discord?.templates?.killmails?.enabled || false}
+                              onCheckedChange={(checked) => setNotificationSettings(prev => ({
+                                ...prev,
+                                discord: {
+                                  ...prev.discord,
+                                  templates: {
+                                    ...prev.discord?.templates,
+                                    killmails: {
+                                      ...prev.discord?.templates?.killmails,
+                                      enabled: checked
+                                    }
+                                  }
+                                }
+                              }))}
+                            />
+                          </div>
+                          {notificationSettings.discord?.templates?.killmails?.enabled && (
+                            <div className="space-y-2">
+                              <Textarea
+                                rows={3}
+                                value={notificationSettings.discord?.templates?.killmails?.message || '{pilot} just scored a {ship_type} kill worth {isk_value} ISK! o7'}
+                                onChange={(e) => setNotificationSettings(prev => ({
+                                  ...prev,
+                                  discord: {
+                                    ...prev.discord,
+                                    templates: {
+                                      ...prev.discord?.templates,
+                                      killmails: {
+                                        ...prev.discord?.templates?.killmails,
+                                        message: e.target.value
+                                      }
+                                    }
+                                  }
+                                }))}
+                                placeholder="Enter custom message template..."
+                                className="text-sm"
+                              />
+                              <p className="text-xs text-muted-foreground">
+                                Variables: {'{pilot}'}, {'{ship_type}'}, {'{isk_value}'}, {'{system}'}, {'{time}'}, {'{zkillboard_link}'}
+                              </p>
+                            </div>
+                          )}
+                        </div>
+
+                        {/* Market Alert Template */}
+                        <div className="border border-border rounded-lg p-3">
+                          <div className="flex items-center justify-between mb-2">
+                            <Label className="font-medium">Market Alerts</Label>
+                            <Switch
+                              checked={notificationSettings.discord?.templates?.markets?.enabled || false}
+                              onCheckedChange={(checked) => setNotificationSettings(prev => ({
+                                ...prev,
+                                discord: {
+                                  ...prev.discord,
+                                  templates: {
+                                    ...prev.discord?.templates,
+                                    markets: {
+                                      ...prev.discord?.templates?.markets,
+                                      enabled: checked
+                                    }
+                                  }
+                                }
+                              }))}
+                            />
+                          </div>
+                          {notificationSettings.discord?.templates?.markets?.enabled && (
+                            <div className="space-y-2">
+                              <Textarea
+                                rows={3}
+                                value={notificationSettings.discord?.templates?.markets?.message || 'Market Alert: {item} price reached {price} ISK ({change}% change) - consider {action}!'}
+                                onChange={(e) => setNotificationSettings(prev => ({
+                                  ...prev,
+                                  discord: {
+                                    ...prev.discord,
+                                    templates: {
+                                      ...prev.discord?.templates,
+                                      markets: {
+                                        ...prev.discord?.templates?.markets,
+                                        message: e.target.value
+                                      }
+                                    }
+                                  }
+                                }))}
+                                placeholder="Enter custom message template..."
+                                className="text-sm"
+                              />
+                              <p className="text-xs text-muted-foreground">
+                                Variables: {'{item}'}, {'{price}'}, {'{change}'}, {'{action}'}, {'{system}'}, {'{time}'}
+                              </p>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Advanced Settings */}
+                    <div className="space-y-4">
+                      <h5 className="font-medium text-sm">Advanced Settings</h5>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div className="flex items-center space-x-2">
+                          <Switch
+                            checked={notificationSettings.discord?.embedFormat || false}
+                            onCheckedChange={(checked) => setNotificationSettings(prev => ({
+                              ...prev,
+                              discord: { ...prev.discord, embedFormat: checked }
+                            }))}
+                          />
+                          <Label className="text-sm">Use rich embeds</Label>
+                          <p className="text-xs text-muted-foreground">(Prettier formatting)</p>
+                        </div>
+
+                        <div className="flex items-center space-x-2">
+                          <Switch
+                            checked={notificationSettings.discord?.includeThumbnails || false}
+                            onCheckedChange={(checked) => setNotificationSettings(prev => ({
+                              ...prev,
+                              discord: { ...prev.discord, includeThumbnails: checked }
+                            }))}
+                          />
+                          <Label className="text-sm">Include EVE thumbnails</Label>
+                          <p className="text-xs text-muted-foreground">(Ship/item images)</p>
+                        </div>
+                      </div>
+                      
+                      <div className="space-y-2">
+                        <Label htmlFor="discordThrottleMinutes">Throttle Minutes</Label>
+                        <Input
+                          id="discordThrottleMinutes"
+                          type="number"
+                          min="0"
+                          max="1440"
+                          value={notificationSettings.discord?.throttleMinutes || 5}
+                          onChange={(e) => setNotificationSettings(prev => ({
+                            ...prev,
+                            discord: { ...prev.discord, throttleMinutes: parseInt(e.target.value) || 5 }
+                          }))}
+                          className="w-32"
+                        />
+                        <p className="text-xs text-muted-foreground">
+                          Minimum minutes between similar notifications (prevents spam)
+                        </p>
                       </div>
                     </div>
 
                     <Button
                       variant="outline"
                       size="sm"
-                      onClick={() => {
+                      onClick={async () => {
                         if (notificationSettings.discord?.webhookUrl) {
                           toast.info('Sending test message to Discord...');
-                          // Simulate test webhook
-                          setTimeout(() => {
-                            toast.success('Test message sent successfully!');
-                          }, 1500);
+                          
+                          try {
+                            // Import notification services
+                            const { notificationManager } = await import('@/lib/notification-manager');
+                            
+                            // Test Discord integration
+                            const result = await notificationManager.testNotifications({
+                              ...notificationSettings,
+                              events: { manufacturing: true, mining: true, killmails: true, markets: true }
+                            });
+                            
+                            if (result.discord) {
+                              toast.success('Test message sent to Discord successfully!');
+                            } else {
+                              toast.error('Discord test failed: ' + (result.errors.find(e => e.includes('Discord')) || 'Unknown error'));
+                            }
+                          } catch (error) {
+                            console.error('Discord test error:', error);
+                            toast.error('Failed to test Discord integration');
+                          }
                         } else {
                           toast.error('Please enter a webhook URL first');
                         }
                       }}
+                      disabled={!notificationSettings.discord?.webhookUrl}
                     >
                       <Bell size={16} className="mr-2" />
                       Test Discord Integration
@@ -3653,113 +3991,530 @@ export function Settings({ activeTab, onTabChange }: SettingsProps) {
                 </div>
 
                 {notificationSettings.eveMail?.enabled && (
-                  <div className="space-y-4 pl-6 border-l-2 border-orange-500/20">
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      <div className="space-y-2">
-                        <Label htmlFor="eveMailSenderCharacter">Sender Character ID</Label>
-                        <Input
-                          id="eveMailSenderCharacter"
-                          type="number"
-                          value={notificationSettings.eveMail?.senderCharacterId || ''}
-                          onChange={(e) => setNotificationSettings(prev => ({
-                            ...prev,
-                            eveMail: { ...prev.eveMail, senderCharacterId: parseInt(e.target.value) || 0 }
-                          }))}
-                          placeholder="Character ID with mail sending permissions"
-                        />
-                        <p className="text-xs text-muted-foreground">
-                          Character that will send notifications (requires ESI mail scope)
-                        </p>
-                      </div>
-                      
-                      <div className="space-y-2">
-                        <Label htmlFor="eveMailSubjectPrefix">Subject Prefix</Label>
-                        <Input
-                          id="eveMailSubjectPrefix"
-                          value={notificationSettings.eveMail?.subjectPrefix || ''}
-                          onChange={(e) => setNotificationSettings(prev => ({
-                            ...prev,
-                            eveMail: { ...prev.eveMail, subjectPrefix: e.target.value }
-                          }))}
-                          placeholder="[LMeve Alert]"
-                        />
-                        <p className="text-xs text-muted-foreground">
-                          Prefix for notification mail subjects
-                        </p>
+                  <div className="space-y-6 pl-6 border-l-2 border-orange-500/20">
+                    {/* Sender Configuration */}
+                    <div className="space-y-4">
+                      <h5 className="font-medium text-sm">Sender Configuration</h5>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div className="space-y-2">
+                          <Label htmlFor="eveMailSenderCharacter">Sender Character ID</Label>
+                          <Input
+                            id="eveMailSenderCharacter"
+                            type="number"
+                            value={notificationSettings.eveMail?.senderCharacterId || ''}
+                            onChange={(e) => setNotificationSettings(prev => ({
+                              ...prev,
+                              eveMail: { ...prev.eveMail, senderCharacterId: parseInt(e.target.value) || 0 }
+                            }))}
+                            placeholder="Character ID with mail sending permissions"
+                          />
+                          <p className="text-xs text-muted-foreground">
+                            Character that will send notifications (requires ESI mail scope)
+                          </p>
+                        </div>
+                        
+                        <div className="space-y-2">
+                          <Label htmlFor="eveMailSubjectPrefix">Subject Prefix</Label>
+                          <Input
+                            id="eveMailSubjectPrefix"
+                            value={notificationSettings.eveMail?.subjectPrefix || ''}
+                            onChange={(e) => setNotificationSettings(prev => ({
+                              ...prev,
+                              eveMail: { ...prev.eveMail, subjectPrefix: e.target.value }
+                            }))}
+                            placeholder="[LMeve Alert]"
+                          />
+                          <p className="text-xs text-muted-foreground">
+                            Prefix for notification mail subjects
+                          </p>
+                        </div>
                       </div>
                     </div>
 
-                    <div className="space-y-2">
-                      <Label htmlFor="eveMailRecipients">Recipient Character IDs</Label>
-                      <Textarea
-                        id="eveMailRecipients"
-                        rows={3}
-                        value={notificationSettings.eveMail?.recipientIds?.join('\n') || ''}
-                        onChange={(e) => setNotificationSettings(prev => ({
-                          ...prev,
-                          eveMail: {
-                            ...prev.eveMail,
-                            recipientIds: e.target.value.split('\n').map(id => parseInt(id.trim())).filter(id => id > 0)
-                          }
-                        }))}
-                        placeholder="Enter character IDs, one per line&#10;91316135&#10;498125261"
-                        className="font-mono text-sm"
-                      />
-                      <p className="text-xs text-muted-foreground">
-                        Enter one character ID per line. These characters will receive notifications.
-                      </p>
+                    {/* Recipients Configuration */}
+                    <div className="space-y-4">
+                      <h5 className="font-medium text-sm">Recipients</h5>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div className="space-y-2">
+                          <Label htmlFor="eveMailRecipients">Pilot Character IDs</Label>
+                          <Textarea
+                            id="eveMailRecipients"
+                            rows={4}
+                            value={notificationSettings.eveMail?.recipientIds?.join('\n') || ''}
+                            onChange={(e) => setNotificationSettings(prev => ({
+                              ...prev,
+                              eveMail: {
+                                ...prev.eveMail,
+                                recipientIds: e.target.value.split('\n').map(id => parseInt(id.trim())).filter(id => id > 0)
+                              }
+                            }))}
+                            placeholder="Enter character IDs, one per line&#10;91316135&#10;498125261&#10;12345678"
+                            className="font-mono text-sm"
+                          />
+                          <p className="text-xs text-muted-foreground">
+                            Individual pilots to receive notifications
+                          </p>
+                        </div>
+
+                        <div className="space-y-2">
+                          <Label htmlFor="eveMailingLists">Mailing Lists</Label>
+                          <Textarea
+                            id="eveMailingLists"
+                            rows={4}
+                            value={notificationSettings.eveMail?.mailingLists?.map(ml => `${ml.name}:${ml.id}`).join('\n') || ''}
+                            onChange={(e) => {
+                              const lists = e.target.value.split('\n')
+                                .map(line => line.trim())
+                                .filter(line => line && line.includes(':'))
+                                .map(line => {
+                                  const [name, id] = line.split(':');
+                                  return {
+                                    name: name.trim(),
+                                    id: parseInt(id.trim())
+                                  };
+                                })
+                                .filter(ml => ml.id > 0);
+                              
+                              setNotificationSettings(prev => ({
+                                ...prev,
+                                eveMail: {
+                                  ...prev.eveMail,
+                                  mailingLists: lists
+                                }
+                              }));
+                            }}
+                            placeholder="name:id format, one per line&#10;Corp Leadership:123456&#10;Industry Team:789012&#10;All Members:345678"
+                            className="font-mono text-sm"
+                          />
+                          <p className="text-xs text-muted-foreground">
+                            Format: ListName:MailingListID (one per line)
+                          </p>
+                        </div>
+                      </div>
+
+                      <div className="space-y-2">
+                        <div className="flex items-center space-x-2">
+                          <Switch
+                            checked={notificationSettings.eveMail?.sendToCorporation || false}
+                            onCheckedChange={(checked) => setNotificationSettings(prev => ({
+                              ...prev,
+                              eveMail: { ...prev.eveMail, sendToCorporation: checked }
+                            }))}
+                          />
+                          <Label className="text-sm">Send to entire corporation</Label>
+                          <p className="text-xs text-muted-foreground">
+                            (Broadcasts to all corp members)
+                          </p>
+                        </div>
+
+                        <div className="flex items-center space-x-2">
+                          <Switch
+                            checked={notificationSettings.eveMail?.sendToAlliance || false}
+                            onCheckedChange={(checked) => setNotificationSettings(prev => ({
+                              ...prev,
+                              eveMail: { ...prev.eveMail, sendToAlliance: checked }
+                            }))}
+                          />
+                          <Label className="text-sm">Send to alliance</Label>
+                          <p className="text-xs text-muted-foreground">
+                            (Requires alliance membership)
+                          </p>
+                        </div>
+                      </div>
                     </div>
 
-                    <div className="space-y-2">
-                      <Label>Mail Types</Label>
-                      <div className="grid grid-cols-2 gap-3">
-                        {['manufacturing', 'mining', 'killmails', 'markets'].map((type) => (
-                          <div key={type} className="flex items-center space-x-2">
+                    {/* Message Templates */}
+                    <div className="space-y-4">
+                      <h5 className="font-medium text-sm">Message Templates</h5>
+                      <div className="space-y-4">
+                        {/* Manufacturing Template */}
+                        <div className="border border-border rounded-lg p-3">
+                          <div className="flex items-center justify-between mb-2">
+                            <Label className="font-medium">Manufacturing Completion</Label>
                             <Switch
-                              checked={notificationSettings.eveMail?.types?.[type] || false}
+                              checked={notificationSettings.eveMail?.templates?.manufacturing?.enabled || false}
                               onCheckedChange={(checked) => setNotificationSettings(prev => ({
                                 ...prev,
                                 eveMail: {
                                   ...prev.eveMail,
-                                  types: { ...prev.eveMail?.types, [type]: checked }
+                                  templates: {
+                                    ...prev.eveMail?.templates,
+                                    manufacturing: {
+                                      ...prev.eveMail?.templates?.manufacturing,
+                                      enabled: checked
+                                    }
+                                  }
                                 }
                               }))}
                             />
-                            <Label className="text-sm capitalize">{type.replace('_', ' ')}</Label>
                           </div>
-                        ))}
+                          {notificationSettings.eveMail?.templates?.manufacturing?.enabled && (
+                            <div className="space-y-3">
+                              <div className="space-y-2">
+                                <Label>Subject Line</Label>
+                                <Input
+                                  value={notificationSettings.eveMail?.templates?.manufacturing?.subject || 'Manufacturing Job Complete - {item}'}
+                                  onChange={(e) => setNotificationSettings(prev => ({
+                                    ...prev,
+                                    eveMail: {
+                                      ...prev.eveMail,
+                                      templates: {
+                                        ...prev.eveMail?.templates,
+                                        manufacturing: {
+                                          ...prev.eveMail?.templates?.manufacturing,
+                                          subject: e.target.value
+                                        }
+                                      }
+                                    }
+                                  }))}
+                                  placeholder="Subject line template..."
+                                  className="text-sm"
+                                />
+                              </div>
+                              
+                              <div className="space-y-2">
+                                <Label>Message Body</Label>
+                                <Textarea
+                                  rows={4}
+                                  value={notificationSettings.eveMail?.templates?.manufacturing?.message || 'Greetings {pilot},\n\nYour manufacturing job for {item} x{count} has completed successfully at {location} on {time}.\n\nPlease collect your items at your earliest convenience.\n\nFly safe!\n{corporation} LMeve System'}
+                                  onChange={(e) => setNotificationSettings(prev => ({
+                                    ...prev,
+                                    eveMail: {
+                                      ...prev.eveMail,
+                                      templates: {
+                                        ...prev.eveMail?.templates,
+                                        manufacturing: {
+                                          ...prev.eveMail?.templates?.manufacturing,
+                                          message: e.target.value
+                                        }
+                                      }
+                                    }
+                                  }))}
+                                  placeholder="Enter message body template..."
+                                  className="text-sm"
+                                />
+                              </div>
+                              
+                              <p className="text-xs text-muted-foreground">
+                                Variables: {'{pilot}'}, {'{item}'}, {'{count}'}, {'{time}'}, {'{location}'}, {'{corporation}'}, {'{alliance}'}
+                              </p>
+                            </div>
+                          )}
+                        </div>
+
+                        {/* Queue Alert Template */}
+                        <div className="border border-border rounded-lg p-3">
+                          <div className="flex items-center justify-between mb-2">
+                            <Label className="font-medium">Queue Management Alerts</Label>
+                            <Switch
+                              checked={notificationSettings.eveMail?.templates?.queues?.enabled || false}
+                              onCheckedChange={(checked) => setNotificationSettings(prev => ({
+                                ...prev,
+                                eveMail: {
+                                  ...prev.eveMail,
+                                  templates: {
+                                    ...prev.eveMail?.templates,
+                                    queues: {
+                                      ...prev.eveMail?.templates?.queues,
+                                      enabled: checked
+                                    }
+                                  }
+                                }
+                              }))}
+                            />
+                          </div>
+                          {notificationSettings.eveMail?.templates?.queues?.enabled && (
+                            <div className="space-y-3">
+                              <div className="space-y-2">
+                                <Label>Subject Line</Label>
+                                <Input
+                                  value={notificationSettings.eveMail?.templates?.queues?.subject || 'LMeve Alert: {queue_type} Queue Running Low'}
+                                  onChange={(e) => setNotificationSettings(prev => ({
+                                    ...prev,
+                                    eveMail: {
+                                      ...prev.eveMail,
+                                      templates: {
+                                        ...prev.eveMail?.templates,
+                                        queues: {
+                                          ...prev.eveMail?.templates?.queues,
+                                          subject: e.target.value
+                                        }
+                                      }
+                                    }
+                                  }))}
+                                  placeholder="Subject line template..."
+                                  className="text-sm"
+                                />
+                              </div>
+                              
+                              <div className="space-y-2">
+                                <Label>Message Body</Label>
+                                <Textarea
+                                  rows={4}
+                                  value={notificationSettings.eveMail?.templates?.queues?.message || 'Attention Corp Leadership,\n\nThe {queue_type} queues are running critically low with only {remaining_jobs} jobs remaining.\n\nImmediate action required to setup additional industry tasking to maintain production efficiency.\n\nAlert generated at: {time}\n\nLMeve Management System'}
+                                  onChange={(e) => setNotificationSettings(prev => ({
+                                    ...prev,
+                                    eveMail: {
+                                      ...prev.eveMail,
+                                      templates: {
+                                        ...prev.eveMail?.templates,
+                                        queues: {
+                                          ...prev.eveMail?.templates?.queues,
+                                          message: e.target.value
+                                        }
+                                      }
+                                    }
+                                  }))}
+                                  placeholder="Enter message body template..."
+                                  className="text-sm"
+                                />
+                              </div>
+                              
+                              <p className="text-xs text-muted-foreground">
+                                Variables: {'{queue_type}'}, {'{remaining_jobs}'}, {'{time}'}, {'{corporation}'}, {'{estimated_depletion}'}
+                              </p>
+                            </div>
+                          )}
+                        </div>
+
+                        {/* Market Alert Template */}
+                        <div className="border border-border rounded-lg p-3">
+                          <div className="flex items-center justify-between mb-2">
+                            <Label className="font-medium">Market Alerts</Label>
+                            <Switch
+                              checked={notificationSettings.eveMail?.templates?.markets?.enabled || false}
+                              onCheckedChange={(checked) => setNotificationSettings(prev => ({
+                                ...prev,
+                                eveMail: {
+                                  ...prev.eveMail,
+                                  templates: {
+                                    ...prev.eveMail?.templates,
+                                    markets: {
+                                      ...prev.eveMail?.templates?.markets,
+                                      enabled: checked
+                                    }
+                                  }
+                                }
+                              }))}
+                            />
+                          </div>
+                          {notificationSettings.eveMail?.templates?.markets?.enabled && (
+                            <div className="space-y-3">
+                              <div className="space-y-2">
+                                <Label>Subject Line</Label>
+                                <Input
+                                  value={notificationSettings.eveMail?.templates?.markets?.subject || 'Market Alert: {item} Price Change ({change}%)'}
+                                  onChange={(e) => setNotificationSettings(prev => ({
+                                    ...prev,
+                                    eveMail: {
+                                      ...prev.eveMail,
+                                      templates: {
+                                        ...prev.eveMail?.templates,
+                                        markets: {
+                                          ...prev.eveMail?.templates?.markets,
+                                          subject: e.target.value
+                                        }
+                                      }
+                                    }
+                                  }))}
+                                  placeholder="Subject line template..."
+                                  className="text-sm"
+                                />
+                              </div>
+                              
+                              <div className="space-y-2">
+                                <Label>Message Body</Label>
+                                <Textarea
+                                  rows={4}
+                                  value={notificationSettings.eveMail?.templates?.markets?.message || 'Market Update:\n\n{item} has reached {price} ISK in {system} (a {change}% change from previous price).\n\nRecommendation: Consider {action} based on current market conditions.\n\nThis alert was generated at {time}.\n\nLMeve Market Monitoring'}
+                                  onChange={(e) => setNotificationSettings(prev => ({
+                                    ...prev,
+                                    eveMail: {
+                                      ...prev.eveMail,
+                                      templates: {
+                                        ...prev.eveMail?.templates,
+                                        markets: {
+                                          ...prev.eveMail?.templates?.markets,
+                                          message: e.target.value
+                                        }
+                                      }
+                                    }
+                                  }))}
+                                  placeholder="Enter message body template..."
+                                  className="text-sm"
+                                />
+                              </div>
+                              
+                              <p className="text-xs text-muted-foreground">
+                                Variables: {'{item}'}, {'{price}'}, {'{change}'}, {'{action}'}, {'{system}'}, {'{time}'}, {'{volume}'}
+                              </p>
+                            </div>
+                          )}
+                        </div>
+
+                        {/* Killmail Template */}
+                        <div className="border border-border rounded-lg p-3">
+                          <div className="flex items-center justify-between mb-2">
+                            <Label className="font-medium">Killmail Notifications</Label>
+                            <Switch
+                              checked={notificationSettings.eveMail?.templates?.killmails?.enabled || false}
+                              onCheckedChange={(checked) => setNotificationSettings(prev => ({
+                                ...prev,
+                                eveMail: {
+                                  ...prev.eveMail,
+                                  templates: {
+                                    ...prev.eveMail?.templates,
+                                    killmails: {
+                                      ...prev.eveMail?.templates?.killmails,
+                                      enabled: checked
+                                    }
+                                  }
+                                }
+                              }))}
+                            />
+                          </div>
+                          {notificationSettings.eveMail?.templates?.killmails?.enabled && (
+                            <div className="space-y-3">
+                              <div className="space-y-2">
+                                <Label>Subject Line</Label>
+                                <Input
+                                  value={notificationSettings.eveMail?.templates?.killmails?.subject || 'Killmail Report: {pilot} - {ship_type}'}
+                                  onChange={(e) => setNotificationSettings(prev => ({
+                                    ...prev,
+                                    eveMail: {
+                                      ...prev.eveMail,
+                                      templates: {
+                                        ...prev.eveMail?.templates,
+                                        killmails: {
+                                          ...prev.eveMail?.templates?.killmails,
+                                          subject: e.target.value
+                                        }
+                                      }
+                                    }
+                                  }))}
+                                  placeholder="Subject line template..."
+                                  className="text-sm"
+                                />
+                              </div>
+                              
+                              <div className="space-y-2">
+                                <Label>Message Body</Label>
+                                <Textarea
+                                  rows={4}
+                                  value={notificationSettings.eveMail?.templates?.killmails?.message || 'Combat Report:\n\n{pilot} has achieved a kill in {system}!\n\nTarget: {ship_type}\nEstimated Value: {isk_value} ISK\nTime: {time}\n\nGreat work pilot! o7\n\nView details: {zkillboard_link}'}
+                                  onChange={(e) => setNotificationSettings(prev => ({
+                                    ...prev,
+                                    eveMail: {
+                                      ...prev.eveMail,
+                                      templates: {
+                                        ...prev.eveMail?.templates,
+                                        killmails: {
+                                          ...prev.eveMail?.templates?.killmails,
+                                          message: e.target.value
+                                        }
+                                      }
+                                    }
+                                  }))}
+                                  placeholder="Enter message body template..."
+                                  className="text-sm"
+                                />
+                              </div>
+                              
+                              <p className="text-xs text-muted-foreground">
+                                Variables: {'{pilot}'}, {'{ship_type}'}, {'{isk_value}'}, {'{system}'}, {'{time}'}, {'{zkillboard_link}'}
+                              </p>
+                            </div>
+                          )}
+                        </div>
                       </div>
                     </div>
 
-                    <div className="flex items-center space-x-2">
-                      <Switch
-                        checked={notificationSettings.eveMail?.onlyToOnlineCharacters || false}
-                        onCheckedChange={(checked) => setNotificationSettings(prev => ({
-                          ...prev,
-                          eveMail: { ...prev.eveMail, onlyToOnlineCharacters: checked }
-                        }))}
-                      />
-                      <Label className="text-sm">Only send to online characters</Label>
-                      <p className="text-xs text-muted-foreground">
-                        (Prevents mail spam when characters are offline for extended periods)
-                      </p>
+                    {/* Advanced Settings */}
+                    <div className="space-y-4">
+                      <h5 className="font-medium text-sm">Delivery Options</h5>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div className="flex items-center space-x-2">
+                          <Switch
+                            checked={notificationSettings.eveMail?.onlyToOnlineCharacters || false}
+                            onCheckedChange={(checked) => setNotificationSettings(prev => ({
+                              ...prev,
+                              eveMail: { ...prev.eveMail, onlyToOnlineCharacters: checked }
+                            }))}
+                          />
+                          <Label className="text-sm">Only send to online characters</Label>
+                        </div>
+
+                        <div className="flex items-center space-x-2">
+                          <Switch
+                            checked={notificationSettings.eveMail?.cspaChargeCheck || true}
+                            onCheckedChange={(checked) => setNotificationSettings(prev => ({
+                              ...prev,
+                              eveMail: { ...prev.eveMail, cspaChargeCheck: checked }
+                            }))}
+                          />
+                          <Label className="text-sm">Skip high CSPA charge recipients</Label>
+                        </div>
+                      </div>
+                      
+                      <div className="space-y-2">
+                        <Label htmlFor="eveMailThrottleMinutes">Throttle Minutes</Label>
+                        <Input
+                          id="eveMailThrottleMinutes"
+                          type="number"
+                          min="1"
+                          max="1440"
+                          value={notificationSettings.eveMail?.throttleMinutes || 15}
+                          onChange={(e) => setNotificationSettings(prev => ({
+                            ...prev,
+                            eveMail: { ...prev.eveMail, throttleMinutes: parseInt(e.target.value) || 15 }
+                          }))}
+                          className="w-32"
+                        />
+                        <p className="text-xs text-muted-foreground">
+                          Minimum minutes between EVE mail notifications (EVE has strict rate limits)
+                        </p>
+                      </div>
                     </div>
 
                     <Button
                       variant="outline"
                       size="sm"
-                      onClick={() => {
-                        if (notificationSettings.eveMail?.senderCharacterId && notificationSettings.eveMail?.recipientIds?.length > 0) {
+                      onClick={async () => {
+                        if (notificationSettings.eveMail?.senderCharacterId && 
+                            (notificationSettings.eveMail?.recipientIds?.length > 0 || 
+                             notificationSettings.eveMail?.mailingLists?.length > 0 ||
+                             notificationSettings.eveMail?.sendToCorporation ||
+                             notificationSettings.eveMail?.sendToAlliance)) {
                           toast.info('Sending test EVE mail...');
-                          // Simulate test mail
-                          setTimeout(() => {
-                            toast.success('Test EVE mail sent successfully!');
-                          }, 2000);
+                          
+                          try {
+                            // Import notification services
+                            const { notificationManager } = await import('@/lib/notification-manager');
+                            
+                            // Test EVE mail integration
+                            const result = await notificationManager.testNotifications({
+                              ...notificationSettings,
+                              events: { manufacturing: true, mining: true, killmails: true, markets: true }
+                            });
+                            
+                            if (result.eveMail) {
+                              toast.success('Test EVE mail sent successfully!');
+                            } else {
+                              toast.error('EVE mail test failed: ' + (result.errors.find(e => e.includes('EVE')) || 'Unknown error'));
+                            }
+                          } catch (error) {
+                            console.error('EVE mail test error:', error);
+                            toast.error('Failed to test EVE mail integration');
+                          }
                         } else {
-                          toast.error('Please configure sender and recipients first');
+                          toast.error('Please configure sender and at least one recipient first');
                         }
                       }}
-                      disabled={!notificationSettings.eveMail?.senderCharacterId || !notificationSettings.eveMail?.recipientIds?.length}
+                      disabled={!notificationSettings.eveMail?.senderCharacterId || 
+                        (!notificationSettings.eveMail?.recipientIds?.length && 
+                         !notificationSettings.eveMail?.mailingLists?.length &&
+                         !notificationSettings.eveMail?.sendToCorporation &&
+                         !notificationSettings.eveMail?.sendToAlliance)}
                     >
                       <Rocket size={16} className="mr-2" />
                       Test EVE Mail Integration

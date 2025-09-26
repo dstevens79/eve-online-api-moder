@@ -230,6 +230,66 @@ export interface IncomeAnalytics {
   }>;
 }
 
+// Comprehensive notification system types
+export interface NotificationTemplate {
+  enabled: boolean;
+  subject?: string;  // For EVE mail
+  message: string;
+}
+
+export interface NotificationSettings {
+  // Event notification toggles
+  events: {
+    manufacturing: boolean;
+    mining: boolean;
+    killmails: boolean;
+    markets: boolean;
+  };
+  
+  // Discord integration
+  discord?: {
+    enabled: boolean;
+    webhookUrl?: string;
+    botName?: string;
+    avatarUrl?: string;
+    channels?: string[];  // Channel names/IDs to mention
+    roles?: string[];     // Role names to ping (with @)
+    userMentions?: string[]; // EVE character IDs to mention
+    embedFormat?: boolean;
+    includeThumbnails?: boolean;
+    throttleMinutes?: number;
+    templates?: {
+      manufacturing?: NotificationTemplate;
+      queues?: NotificationTemplate;
+      killmails?: NotificationTemplate;
+      markets?: NotificationTemplate;
+    };
+  };
+  
+  // EVE Online in-game mail
+  eveMail?: {
+    enabled: boolean;
+    senderCharacterId?: number;
+    subjectPrefix?: string;
+    recipientIds?: number[];  // Individual character IDs
+    mailingLists?: Array<{   // Mailing list configurations
+      name: string;
+      id: number;
+    }>;
+    sendToCorporation?: boolean;
+    sendToAlliance?: boolean;
+    onlyToOnlineCharacters?: boolean;
+    cspaChargeCheck?: boolean;  // Skip high CSPA charge recipients
+    throttleMinutes?: number;
+    templates?: {
+      manufacturing?: NotificationTemplate;
+      queues?: NotificationTemplate;
+      killmails?: NotificationTemplate;
+      markets?: NotificationTemplate;
+    };
+  };
+}
+
 // Corporation settings types
 export interface CorpSettings {
   corpName: string;
@@ -238,12 +298,7 @@ export interface CorpSettings {
   timezone: string;
   language: string;
   sessionTimeout: boolean;
-  notifications: {
-    manufacturing: boolean;
-    mining: boolean;
-    killmails: boolean;
-    markets: boolean;
-  };
+  notifications: NotificationSettings;
   eveOnlineSync: {
     enabled: boolean;
     autoSync: boolean;
