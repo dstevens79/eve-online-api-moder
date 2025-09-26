@@ -1754,6 +1754,9 @@ export function Settings({ activeTab, onTabChange }: SettingsProps) {
                       Save
                     </Button>
                   </div>
+                </div>
+              </div>
+
               {/* Connection Controls and Status - Full Width */}
               <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
                 {/* Connection Controls - Left */}
@@ -1952,7 +1955,6 @@ export function Settings({ activeTab, onTabChange }: SettingsProps) {
                       </div>
                     </div>
                   </div>
-                </div>
                 </div>
               </div>
 
