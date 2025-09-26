@@ -2102,8 +2102,31 @@ export function Settings({ activeTab, onTabChange }: SettingsProps) {
                   </div>
                 </div>
 
-                {/* Status Overview Panel */}
+                {/* Quick Actions Above System Status */}
                 <div className="lg:col-span-1 space-y-4">
+                  <div className="flex gap-2 mb-4">
+                    <Button
+                      onClick={handleRefreshStatus}
+                      variant="outline"
+                      size="sm"
+                      className="flex-1 text-xs h-8"
+                    >
+                      <RefreshCw size={12} className="mr-1" />
+                      Refresh Status
+                    </Button>
+                    
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => toast.info('Version check coming soon')}
+                      className="flex-1 text-xs h-8"
+                    >
+                      <CloudArrowDown size={12} className="mr-1" />
+                      Check SDE
+                    </Button>
+                  </div>
+                
+                  {/* Status Overview Panel */}
                   <div className="border border-border rounded-lg p-3">
                     <div className="flex items-center gap-2 mb-3">
                       <Activity size={16} />
@@ -2194,28 +2217,6 @@ export function Settings({ activeTab, onTabChange }: SettingsProps) {
                             : 'offline'
                         } 
                       />
-                    </div>
-
-                    <div className="space-y-2">
-                      <Button
-                        onClick={handleRefreshStatus}
-                        variant="outline"
-                        size="sm"
-                        className="w-full text-xs h-8"
-                      >
-                        <RefreshCw size={12} className="mr-1" />
-                        Refresh Status
-                      </Button>
-                      
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => toast.info('Version check coming soon')}
-                        className="w-full text-xs h-8"
-                      >
-                        <CloudArrowDown size={12} className="mr-1" />
-                        Check SDE
-                      </Button>
                     </div>
                   </div>
                 </div>
