@@ -1790,6 +1790,60 @@ export function Settings({ activeTab, onTabChange }: SettingsProps) {
                       </div>
                     </div>
                   </div>
+                  
+                  {/* SSH/Remote Setup Buttons */}
+                  <div className="border border-border rounded-lg p-3">
+                    <h4 className="text-sm font-medium mb-3">Remote Database Setup</h4>
+                    <div className="space-y-2">
+                      <Button
+                        onClick={() => {
+                          toast.info('SSH connection manager coming soon');
+                        }}
+                        variant="outline"
+                        size="sm"
+                        className="w-full text-xs h-8"
+                      >
+                        <Terminal size={12} className="mr-1" />
+                        Setup SSH Connection
+                      </Button>
+                      
+                      <Button
+                        onClick={() => {
+                          toast.info('Script deployment coming soon');
+                        }}
+                        variant="outline"
+                        size="sm"
+                        className="w-full text-xs h-8"
+                      >
+                        <Upload size={12} className="mr-1" />
+                        Deploy Scripts
+                      </Button>
+                      
+                      <Button
+                        onClick={() => {
+                          toast.info('Remote execution coming soon');
+                        }}
+                        variant="outline"
+                        size="sm"
+                        className="w-full text-xs h-8"
+                      >
+                        <Play size={12} className="mr-1" />
+                        Run Remote Setup
+                      </Button>
+                      
+                      <Button
+                        onClick={() => {
+                          toast.info('Application management coming soon');
+                        }}
+                        variant="outline"
+                        size="sm"
+                        className="w-full text-xs h-8"
+                      >
+                        <SettingsIcon size={12} className="mr-1" />
+                        Manage Apps
+                      </Button>
+                    </div>
+                  </div>
                 </div>
 
                 {/* Status Overview Panel */}
@@ -1829,18 +1883,6 @@ export function Settings({ activeTab, onTabChange }: SettingsProps) {
                     </div>
 
                     <div className="space-y-2">
-                      <Button
-                        onClick={() => {
-                          toast.info('Application management coming soon');
-                        }}
-                        variant="outline"
-                        size="sm"
-                        className="w-full text-xs h-8"
-                      >
-                        <SettingsIcon size={12} className="mr-1" />
-                        Manage Apps
-                      </Button>
-                      
                       <Button
                         onClick={() => {
                           handleTestDbConnection();
