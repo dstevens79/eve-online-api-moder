@@ -200,7 +200,10 @@ export function TaskManagementView({
   // Filter tasks
   const filteredTasks = tasks.filter(task => {
     if (filterStatus !== 'all' && task.status !== filterStatus) return false;
-    if (filterAssignee !== 'all' && task.assignedTo !== filterAssignee) return false;
+    if (filterAssignee !== 'all') {
+      if (filterAssignee === 'unassigned' && task.assignedTo) return false;
+      if (filterAssignee !== 'unassigned' && task.assignedTo !== filterAssignee) return false;
+    }
     return true;
   });
 
@@ -369,7 +372,7 @@ export function TaskManagementView({
           </SelectTrigger>
           <SelectContent>
             <SelectItem value="all">All Assignees</SelectItem>
-            <SelectItem value="">Unassigned</SelectItem>
+            <SelectItem value="unassigned">Unassigned</SelectItem>
             {members
               .filter(member => member.isActive)
               .map((member) => (

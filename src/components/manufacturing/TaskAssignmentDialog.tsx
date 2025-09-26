@@ -367,17 +367,18 @@ export function TaskAssignmentDialog({
               <div>
                 <Label htmlFor="assignedTo">Assign To</Label>
                 <Select 
-                  value={formData.assignedTo || ''} 
+                  value={formData.assignedTo || 'unassigned'} 
                   onValueChange={(value) => {
+                    const isAssigning = value !== 'unassigned';
                     const member = members.find(m => m.characterId.toString() === value);
                     setFormData(prev => ({ 
                       ...prev, 
-                      assignedTo: value || undefined,
-                      assignedToName: member?.characterName || member?.name || undefined,
-                      assignedDate: value ? new Date().toISOString() : undefined,
+                      assignedTo: isAssigning ? value : undefined,
+                      assignedToName: isAssigning ? (member?.characterName || member?.name) : undefined,
+                      assignedDate: isAssigning ? new Date().toISOString() : undefined,
                       assignedBy: user?.characterId?.toString() || user?.characterName || 'unknown',
                       assignedByName: user?.characterName || 'Unknown User',
-                      status: value ? 'assigned' : 'pending'
+                      status: isAssigning ? 'assigned' : 'pending'
                     }));
                   }}
                 >
@@ -385,7 +386,7 @@ export function TaskAssignmentDialog({
                     <SelectValue placeholder="Select a pilot or leave unassigned..." />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="">Leave Unassigned</SelectItem>
+                    <SelectItem value="unassigned">Leave Unassigned</SelectItem>
                     {members
                       .filter(member => member.isActive)
                       .map((member) => (
