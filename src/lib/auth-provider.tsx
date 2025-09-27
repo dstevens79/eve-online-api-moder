@@ -6,6 +6,15 @@ import { createUserWithRole, isSessionValid, refreshUserSession } from './roles'
 import { getESIAuthService, initializeESIAuth } from './esi-auth';
 import { createDefaultCorporationConfig } from './corp-validation';
 
+interface CharacterInfo {
+  characterId?: number;
+  characterName?: string;
+  corporationId?: number;
+  corporationName?: string;
+  allianceId?: number;
+  allianceName?: string;
+}
+
 interface AuthContextType {
   // Current user state
   user: LMeveUser | null;
@@ -23,7 +32,7 @@ interface AuthContextType {
   isTokenExpired: () => boolean;
   
   // User management
-  createManualUser: (username: string, password: string, role: UserRole) => Promise<LMeveUser>;
+  createManualUser: (username: string, password: string, role: UserRole, characterInfo?: CharacterInfo) => Promise<LMeveUser>;
   updateUserRole: (userId: string, newRole: UserRole) => Promise<void>;
   deleteUser: (userId: string) => Promise<void>;
   getAllUsers: () => LMeveUser[];
@@ -315,8 +324,8 @@ export function AuthProvider({ children }: AuthProviderProps) {
   }, [currentUser]);
 
   // Create manual user
-  const createManualUser = useCallback(async (username: string, password: string, role: UserRole): Promise<LMeveUser> => {
-    console.log('👤 Creating manual user:', username);
+  const createManualUser = useCallback(async (username: string, password: string, role: UserRole, characterInfo?: CharacterInfo): Promise<LMeveUser> => {
+    console.log('👤 Creating manual user:', username, characterInfo ? 'with character info' : 'without character info');
     
     // Check if username already exists
     if (users.some(u => u.username === username)) {
@@ -329,15 +338,20 @@ export function AuthProvider({ children }: AuthProviderProps) {
     
     const user = createUserWithRole({
       username,
-      characterName: username,
+      characterName: characterInfo?.characterName || username,
       authMethod: 'manual',
-      createdBy: currentUser?.id
+      createdBy: currentUser?.id,
+      characterId: characterInfo?.characterId,
+      corporationId: characterInfo?.corporationId,
+      corporationName: characterInfo?.corporationName,
+      allianceId: characterInfo?.allianceId,
+      allianceName: characterInfo?.allianceName
     }, role);
     
     setUsers(prev => [...prev, user]);
     setUserCredentials(prev => ({ ...prev, [username]: password }));
     
-    console.log('✅ Manual user created:', username);
+    console.log('✅ Manual user created:', username, characterInfo ? `linked to ${characterInfo.characterName}` : 'no character link');
     return user;
   }, [users, userCredentials, currentUser, setUsers, setUserCredentials]);
 
