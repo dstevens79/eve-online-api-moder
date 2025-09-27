@@ -42,7 +42,7 @@ const ROLE_DESCRIPTIONS: Record<UserRole, string> = {
   guest: 'Limited guest access'
 };
 
-export function UserManagement() {
+export function UserManagement({ isMobileView }: { isMobileView?: boolean }) {
   const { user: currentUser, getAllUsers, createManualUser, updateUserRole, deleteUser } = useAuth();
   const [users, setUsers] = useState<LMeveUser[]>(getAllUsers());
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
@@ -195,17 +195,17 @@ export function UserManagement() {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className={`${isMobileView ? 'space-y-4' : 'flex items-center justify-between'}`}>
         <div>
-          <h2 className="text-2xl font-bold tracking-tight">User Management</h2>
-          <p className="text-muted-foreground">
+          <h2 className={`${isMobileView ? 'text-xl' : 'text-2xl'} font-bold tracking-tight`}>User Management</h2>
+          <p className="text-muted-foreground text-sm">
             Manage user accounts and permissions for your corporation
           </p>
         </div>
         
         <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
           <DialogTrigger asChild>
-            <Button>
+            <Button className={isMobileView ? "w-full mobile-touch-target" : ""}>
               <UserPlus size={16} className="mr-2" />
               Create User
             </Button>
@@ -299,36 +299,28 @@ export function UserManagement() {
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>User</TableHead>
-                <TableHead>Authentication</TableHead>
-                <TableHead>Role</TableHead>
-                <TableHead>Corporation</TableHead>
-                <TableHead>Last Login</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead>Actions</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
+          {isMobileView ? (
+            /* Mobile card layout */
+            <div className="space-y-3">
               {users.map((user) => (
-                <TableRow key={user.id}>
-                  <TableCell>
-                    <div className="flex flex-col">
-                      <span className="font-medium">
+                <div key={user.id} className="mobile-card">
+                  <div className="mobile-card-header">
+                    <div>
+                      <div className="font-medium">
                         {user.characterName || user.username || 'Unknown'}
-                      </span>
+                      </div>
                       {user.username && user.characterName && (
-                        <span className="text-xs text-muted-foreground">
-                          @{user.username}
-                        </span>
+                        <div className="text-xs text-muted-foreground">@{user.username}</div>
                       )}
                     </div>
-                  </TableCell>
+                    <Badge variant={getRoleBadgeVariant(user.role)} className="text-xs">
+                      {ROLE_LABELS[user.role]}
+                    </Badge>
+                  </div>
                   
-                  <TableCell>
-                    <div className="flex items-center gap-2">
+                  <div className="mobile-card-content">
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs text-muted-foreground">Authentication:</span>
                       {user.authMethod === 'esi' ? (
                         <Badge variant="secondary" className="text-xs">
                           <Key size={12} className="mr-1" />
@@ -341,71 +333,172 @@ export function UserManagement() {
                         </Badge>
                       )}
                     </div>
-                  </TableCell>
-                  
-                  <TableCell>
-                    <Badge variant={getRoleBadgeVariant(user.role)} className="text-xs">
-                      {ROLE_LABELS[user.role]}
-                    </Badge>
-                  </TableCell>
-                  
-                  <TableCell>
-                    <span className="text-sm">
-                      {user.corporationName || 'No Corporation'}
-                    </span>
-                  </TableCell>
-                  
-                  <TableCell>
-                    <div className="flex items-center gap-2 text-sm">
-                      <Clock size={14} className="text-muted-foreground" />
-                      {formatLastLogin(user.lastLogin)}
+                    
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs text-muted-foreground">Corporation:</span>
+                      <span className="text-sm">{user.corporationName || 'No Corporation'}</span>
                     </div>
-                  </TableCell>
-                  
-                  <TableCell>
-                    {user.isActive ? (
-                      <div className="flex items-center gap-2 text-green-600">
-                        <CheckCircle size={14} />
-                        <span className="text-xs">Active</span>
+                    
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs text-muted-foreground">Last Login:</span>
+                      <div className="flex items-center gap-2 text-sm">
+                        <Clock size={14} className="text-muted-foreground" />
+                        {formatLastLogin(user.lastLogin)}
                       </div>
-                    ) : (
-                      <div className="flex items-center gap-2 text-red-600">
-                        <Warning size={14} />
-                        <span className="text-xs">Inactive</span>
-                      </div>
-                    )}
-                  </TableCell>
-                  
-                  <TableCell>
-                    <div className="flex items-center gap-1">
-                      {/* Can't edit current user or super admin (unless current user is super admin) */}
+                    </div>
+                    
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs text-muted-foreground">Status:</span>
+                      {user.isActive ? (
+                        <div className="flex items-center gap-2 text-green-600">
+                          <CheckCircle size={14} />
+                          <span className="text-xs">Active</span>
+                        </div>
+                      ) : (
+                        <div className="flex items-center gap-2 text-red-600">
+                          <Warning size={14} />
+                          <span className="text-xs">Inactive</span>
+                        </div>
+                      )}
+                    </div>
+                    
+                    <div className="pt-2 flex justify-end gap-1">
                       {user.id !== currentUser?.id && (user.role !== 'super_admin' || canManageSystem) && (
                         <Button 
                           variant="ghost" 
                           size="sm"
                           onClick={() => openEditDialog(user)}
+                          className="mobile-touch-target"
                         >
                           <PencilSimple size={14} />
                         </Button>
                       )}
                       
-                      {/* Can't delete current user or super admin (unless current user is super admin) */}
                       {user.id !== currentUser?.id && (user.role !== 'super_admin' || canManageSystem) && (
                         <Button 
                           variant="ghost" 
                           size="sm"
                           onClick={() => openDeleteDialog(user)}
-                          className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                          className="text-red-600 hover:text-red-700 hover:bg-red-50 mobile-touch-target"
                         >
                           <Trash size={14} />
                         </Button>
                       )}
                     </div>
-                  </TableCell>
-                </TableRow>
+                  </div>
+                </div>
               ))}
-            </TableBody>
-          </Table>
+            </div>
+          ) : (
+            /* Desktop table layout */
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>User</TableHead>
+                  <TableHead>Authentication</TableHead>
+                  <TableHead>Role</TableHead>
+                  <TableHead>Corporation</TableHead>
+                  <TableHead>Last Login</TableHead>
+                  <TableHead>Status</TableHead>
+                  <TableHead>Actions</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {users.map((user) => (
+                  <TableRow key={user.id}>
+                    <TableCell>
+                      <div className="flex flex-col">
+                        <span className="font-medium">
+                          {user.characterName || user.username || 'Unknown'}
+                        </span>
+                        {user.username && user.characterName && (
+                          <span className="text-xs text-muted-foreground">
+                            @{user.username}
+                          </span>
+                        )}
+                      </div>
+                    </TableCell>
+                    
+                    <TableCell>
+                      <div className="flex items-center gap-2">
+                        {user.authMethod === 'esi' ? (
+                          <Badge variant="secondary" className="text-xs">
+                            <Key size={12} className="mr-1" />
+                            ESI
+                          </Badge>
+                        ) : (
+                          <Badge variant="outline" className="text-xs">
+                            <Shield size={12} className="mr-1" />
+                            Manual
+                          </Badge>
+                        )}
+                      </div>
+                    </TableCell>
+                    
+                    <TableCell>
+                      <Badge variant={getRoleBadgeVariant(user.role)} className="text-xs">
+                        {ROLE_LABELS[user.role]}
+                      </Badge>
+                    </TableCell>
+                    
+                    <TableCell>
+                      <span className="text-sm">
+                        {user.corporationName || 'No Corporation'}
+                      </span>
+                    </TableCell>
+                    
+                    <TableCell>
+                      <div className="flex items-center gap-2 text-sm">
+                        <Clock size={14} className="text-muted-foreground" />
+                        {formatLastLogin(user.lastLogin)}
+                      </div>
+                    </TableCell>
+                    
+                    <TableCell>
+                      {user.isActive ? (
+                        <div className="flex items-center gap-2 text-green-600">
+                          <CheckCircle size={14} />
+                          <span className="text-xs">Active</span>
+                        </div>
+                      ) : (
+                        <div className="flex items-center gap-2 text-red-600">
+                          <Warning size={14} />
+                          <span className="text-xs">Inactive</span>
+                        </div>
+                      )}
+                    </TableCell>
+                    
+                    <TableCell>
+                      <div className="flex items-center gap-1">
+                        {/* Can't edit current user or super admin (unless current user is super admin) */}
+                        {user.id !== currentUser?.id && (user.role !== 'super_admin' || canManageSystem) && (
+                          <Button 
+                            variant="ghost" 
+                            size="sm"
+                            onClick={() => openEditDialog(user)}
+                          >
+                            <PencilSimple size={14} />
+                          </Button>
+                        )}
+                        
+                        {/* Can't delete current user or super admin (unless current user is super admin) */}
+                        {user.id !== currentUser?.id && (user.role !== 'super_admin' || canManageSystem) && (
+                          <Button 
+                            variant="ghost" 
+                            size="sm"
+                            onClick={() => openDeleteDialog(user)}
+                            className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                          >
+                            <Trash size={14} />
+                          </Button>
+                        )}
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          )}
           
           {users.length === 0 && (
             <div className="text-center py-8 text-muted-foreground">
