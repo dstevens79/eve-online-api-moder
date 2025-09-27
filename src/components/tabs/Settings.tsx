@@ -36,6 +36,10 @@ export function Settings({ activeTab, onTabChange, isMobileView = false }: Setti
     { id: 'debug', label: 'Debug', icon: UserCheck, component: DebugSettings },
   ];
 
+  // Find the current component based on activeTab
+  const currentTab = settingsTabs.find(tab => tab.id === activeTab);
+  const Component = currentTab?.component || GeneralSettings;
+
   return (
     <div className="space-y-6">
       <div className="flex items-center gap-3">
@@ -54,71 +58,8 @@ export function Settings({ activeTab, onTabChange, isMobileView = false }: Setti
         </div>
       </div>
 
-      {!isMobileView ? (
-        // Desktop Layout - Vertical tabs
-        <Tabs value={activeTab} onValueChange={onTabChange} orientation="vertical">
-          <div className="grid grid-cols-12 gap-6">
-            <div className="col-span-3">
-              <TabsList className="flex flex-col h-fit w-full">
-                {settingsTabs.map((tab) => {
-                  const IconComponent = tab.icon;
-                  return (
-                    <TabsTrigger
-                      key={tab.id}
-                      value={tab.id}
-                      className="w-full justify-start gap-2 py-3"
-                    >
-                      <IconComponent size={16} />
-                      <span>{tab.label}</span>
-                    </TabsTrigger>
-                  );
-                })}
-              </TabsList>
-            </div>
-            
-            <div className="col-span-9">
-              {settingsTabs.map((tab) => {
-                const Component = tab.component;
-                return (
-                  <TabsContent key={tab.id} value={tab.id} className="mt-0">
-                    <Component isMobileView={isMobileView} />
-                  </TabsContent>
-                );
-              })}
-            </div>
-          </div>
-        </Tabs>
-      ) : (
-        // Mobile Layout - Horizontal tabs
-        <Tabs value={activeTab} onValueChange={onTabChange}>
-          <TabsList className="grid w-full grid-cols-4 lg:grid-cols-7">
-            {settingsTabs.map((tab) => {
-              const IconComponent = tab.icon;
-              return (
-                <TabsTrigger
-                  key={tab.id}
-                  value={tab.id}
-                  className="flex flex-col gap-1 py-2 text-xs"
-                >
-                  <IconComponent size={14} />
-                  <span className="hidden sm:inline">{tab.label}</span>
-                </TabsTrigger>
-              );
-            })}
-          </TabsList>
-          
-          <div className="mt-6">
-            {settingsTabs.map((tab) => {
-              const Component = tab.component;
-              return (
-                <TabsContent key={tab.id} value={tab.id} className="mt-0">
-                  <Component isMobileView={isMobileView} />
-                </TabsContent>
-              );
-            })}
-          </div>
-        </Tabs>
-      )}
+      {/* Simply render the active component without nested tabs */}
+      <Component isMobileView={isMobileView} />
     </div>
   );
 }

@@ -455,14 +455,9 @@ export function DatabaseSettings({ isMobileView = false }: DatabaseSettingsProps
           <Database size={20} />
           Database Configuration
         </h3>
-        <Button
-          variant="outline"
-          size="sm"
-          className="text-accent border-accent/30"
-        >
-          <Gear size={16} className="mr-2" />
+        <Badge variant="destructive" className="text-xs">
           Setup Requirements
-        </Button>
+        </Badge>
       </div>
 
       <div className="p-3 bg-muted/50 rounded-lg text-sm text-muted-foreground">
@@ -528,10 +523,11 @@ export function DatabaseSettings({ isMobileView = false }: DatabaseSettingsProps
           </p>
         </div>
       </div>
-
-      {/* Two Column Layout: Left = Connection Settings, Right = Controls & Logs */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         
+      {/* Two Column Layout: Left = Connection Settings, Right = Controls & Logs */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+
         {/* Left Column: Connection Configuration */}
         <div className="space-y-4">
           
@@ -1004,6 +1000,7 @@ export function DatabaseSettings({ isMobileView = false }: DatabaseSettingsProps
         <DatabaseSchemaManager />
       </div>
 
+      </div> {/* End of two column layout */}
 
     </div>
   );
