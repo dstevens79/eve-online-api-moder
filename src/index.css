@@ -8,6 +8,7 @@
   
   body {
     font-feature-settings: "rlig" 1, "calt" 1;
+    font-family: var(--font-family, Inter, system-ui, sans-serif);
   }
 }
 
@@ -37,9 +38,35 @@
   --input: oklch(0.16 0.02 220);
   --ring: oklch(0.65 0.2 35);
 
+  /* Theme system variables */
   --radius: 0.75rem;
+  --size-scale: 1;
+  --radius-factor: 1;
+  --font-family: Inter, system-ui, sans-serif;
 
+  /* Computed spacing values */
   --spacing: 0.20rem;
+}
+
+/* Light mode overrides when light theme is active */
+.light-theme {
+  --background: oklch(1 0 0);
+  --foreground: oklch(0.05 0 0);
+  --card: oklch(1 0 0);
+  --card-foreground: oklch(0.05 0 0);
+  --popover: oklch(1 0 0);
+  --popover-foreground: oklch(0.05 0 0);
+  --muted: oklch(0.95 0.02 240);
+  --muted-foreground: oklch(0.4 0.02 240);
+  --border: oklch(0.85 0.02 240);
+  --input: oklch(0.95 0.02 240);
+}
+
+/* Dark theme class for theme manager */
+.dark-theme {
+  /* Already default, but kept for clarity */
+  --background: oklch(0.08 0.02 220);
+  --foreground: oklch(0.98 0.01 220);
 }
 
 @theme {
@@ -70,7 +97,7 @@
   --radius-2xl: calc(var(--radius) * 3);
   --radius-full: 9999px;
 
-  --font-sans: Inter, system-ui, sans-serif;
+  --font-sans: var(--font-family);
   --font-mono: 'JetBrains Mono', monospace;
 }
 

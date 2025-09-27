@@ -33,7 +33,8 @@ import {
   EyeSlash,
   DeviceMobile,
   Monitor,
-  List
+  List,
+  Palette
 } from '@phosphor-icons/react';
 import { useKV } from '@github/spark/hooks';
 import { TabType } from '@/lib/types';
@@ -43,6 +44,7 @@ import { useAuth, AuthProvider } from '@/lib/auth-provider';
 import { ESICallback } from '@/components/ESICallback';
 import { canAccessTab, canAccessSettingsTab } from '@/lib/roles';
 import { EVELoginButton } from '@/components/EVELoginButton';
+import { useThemeManager } from '@/lib/themeManager';
 
 // Tab Components (will be implemented)
 import { Dashboard } from '@/components/tabs/Dashboard';
@@ -58,6 +60,7 @@ import { Settings } from '@/components/tabs/Settings';
 import { Debug } from '@/components/tabs/Debug';
 import { Notifications } from '@/components/tabs/Notifications';
 import { Corporations } from '@/components/Corporations';
+import { Theme } from '@/components/tabs/Theme';
 
 function AppContent() {
   const [activeTab, setActiveTab] = useKV<TabType>('active-tab', 'dashboard');
@@ -80,6 +83,9 @@ function AppContent() {
   } = useAuth();
   const [isESICallback, setIsESICallback] = useState(false);
   const [forceRender, setForceRender] = useState(0);
+  
+  // Initialize theme system
+  const { currentTheme } = useThemeManager();
   
   // Simple login form state
   const [showQuickLogin, setShowQuickLogin] = useState(false);
@@ -317,6 +323,7 @@ function AppContent() {
     { id: 'income', label: 'Income', icon: CurrencyDollar, component: Income },
     { id: 'notifications', label: 'Notifications', icon: Bell, component: Notifications },
     { id: 'corporations', label: 'Corporations', icon: Building, component: Corporations },
+    { id: 'theme', label: 'Theme', icon: Palette, component: Theme },
     { id: 'debug', label: 'Debug', icon: UserCheck, component: Debug },
   ];
 

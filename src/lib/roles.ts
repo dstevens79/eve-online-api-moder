@@ -215,6 +215,9 @@ export function canAccessTab(user: LMeveUser | null, tab: string): boolean {
     case 'corporations':
       return hasPermission(user, 'canManageSystem') || hasPermission(user, 'canConfigureESI');
       
+    case 'theme':
+      return true; // Theme customization available to all authenticated users
+      
     case 'debug':
       return hasPermission(user, 'canManageSystem');
       
