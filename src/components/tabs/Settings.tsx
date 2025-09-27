@@ -58,8 +58,6 @@ export function Settings({ activeTab, onTabChange, isMobileView = false }: Setti
         </div>
       </div>
 
-      {/* Simply render the active component without nested tabs */}
-      <Component isMobileView={isMobileView} />
-    </div>
+}    </div>
   );
 }

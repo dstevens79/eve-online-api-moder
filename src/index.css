@@ -5,41 +5,33 @@
   * {
     @apply border-border
   }
-  
-  body {
-    font-feature-settings: "rlig" 1, "calt" 1;
-  }
 }
 
 :root {
-  /* LMeve - EVE Online Corporation Management Theme */
-  /* Dark space theme with EVE Online aesthetic */
-  --background: oklch(0.08 0.02 220);
-  --foreground: oklch(0.98 0.01 220);
+  --background: oklch(0.98 0.002 247.858);
+  --foreground: oklch(0.078 0.021 285.75);
 
-  --card: oklch(0.12 0.02 220);
-  --card-foreground: oklch(0.9 0.01 220);
-  --popover: oklch(0.12 0.02 220);
-  --popover-foreground: oklch(0.9 0.01 220);
+  --card: oklch(1 0 0);
+  --card-foreground: oklch(0.078 0.021 285.75);
+  --popover: oklch(1 0 0);
+  --popover-foreground: oklch(0.078 0.021 285.75);
 
-  --primary: oklch(0.35 0.1 220);
-  --primary-foreground: oklch(0.98 0.01 220);
-  --secondary: oklch(96.8% 0.007 247.896);
-  --secondary-foreground: oklch(0.85 0.01 220);
-  --accent: oklch(27.1% 0.105 12.094);
-  --accent-foreground: oklch(0.98 0.01 220);
-  --destructive: oklch(0.6 0.25 15);
-  --destructive-foreground: oklch(0.98 0.01 220);
+  --primary: oklch(0.078 0.021 285.75);
+  --primary-foreground: oklch(0.98 0.002 247.858);
+  --secondary: oklch(0.961 0.006 247.858);
+  --secondary-foreground: oklch(0.078 0.021 285.75);
+  --accent: oklch(0.506 0.162 252.555);
+  --accent-foreground: oklch(0.98 0.002 247.858);
+  --destructive: oklch(0.576 0.244 27.325);
+  --destructive-foreground: oklch(0.98 0.002 247.858);
 
-  --muted: oklch(0.16 0.02 220);
-  --muted-foreground: oklch(0.7 0.02 220);
-  --border: oklch(0.2 0.02 220);
-  --input: oklch(0.16 0.02 220);
-  --ring: oklch(0.65 0.2 35);
+  --muted: oklch(0.961 0.006 247.858);
+  --muted-foreground: oklch(0.454 0.008 285.75);
+  --border: oklch(0.922 0.003 247.858);
+  --input: oklch(0.922 0.003 247.858);
+  --ring: oklch(0.506 0.162 252.555);
 
-  --radius: 0.75rem;
-
-  --spacing: 0.20rem;
+  --radius: 0.5rem;
 }
 
 @theme {
@@ -69,105 +61,4 @@
   --radius-xl: calc(var(--radius) * 2);
   --radius-2xl: calc(var(--radius) * 3);
   --radius-full: 9999px;
-
-  --font-sans: Inter, system-ui, sans-serif;
-  --font-mono: 'JetBrains Mono', monospace;
-}
-
-/* Custom styles for professional data tables */
-.data-table {
-  @apply text-sm;
-}
-
-.data-table th {
-  @apply bg-muted/50 font-medium text-muted-foreground border-b border-border;
-}
-
-.data-table td {
-  @apply border-b border-border/50;
-}
-
-.data-table tr:hover {
-  @apply bg-muted/30;
-}
-
-/* Enhanced input field visibility */
-input[type="text"], input[type="number"], input[type="password"], textarea, select {
-  background-color: oklch(0.20 0.02 220) !important;
-  border-color: oklch(0.3 0.02 220) !important;
-  color: oklch(0.98 0.01 220) !important;
-}
-
-input[type="text"]:focus, input[type="number"]:focus, input[type="password"]:focus, textarea:focus, select:focus {
-  background-color: oklch(0.24 0.02 220) !important;
-  border-color: oklch(0.65 0.2 35) !important;
-}
-
-input[readonly], textarea[readonly] {
-  background-color: oklch(0.16 0.02 220) !important;
-  color: oklch(0.7 0.02 220) !important;
-  cursor: not-allowed;
-}
-
-/* Professional scrollbars */
-* {
-  scrollbar-width: thin;
-  scrollbar-color: oklch(0.3 0.02 220) oklch(0.16 0.02 220);
-}
-
-*::-webkit-scrollbar {
-  width: 8px;
-  height: 8px;
-}
-
-*::-webkit-scrollbar-track {
-  background: oklch(0.16 0.02 220);
-}
-
-*::-webkit-scrollbar-thumb {
-  background: oklch(0.3 0.02 220);
-  border-radius: 4px;
-}
-
-*::-webkit-scrollbar-thumb:hover {
-  background: oklch(0.4 0.02 220);
-}
-
-/* Mobile optimizations */
-@media (max-width: 640px) {
-  .container {
-    padding-left: 1rem;
-    padding-right: 1rem;
-  }
-  
-  .data-table {
-    font-size: 0.75rem;
-  }
-  
-  .data-table th {
-    padding: 0.5rem 0.25rem;
-  }
-  
-  .data-table td {
-    padding: 0.5rem 0.25rem;
-  }
-}
-
-/* Mobile-friendly cards */
-.mobile-card {
-  @apply bg-card border border-border rounded-lg p-3 space-y-2;
-}
-
-.mobile-card-header {
-  @apply flex items-center justify-between;
-}
-
-.mobile-card-content {
-  @apply space-y-2 text-sm;
-}
-
-/* Mobile touch-friendly buttons */
-.mobile-touch-target {
-  min-height: 44px;
-  min-width: 44px;
 }
