@@ -44,10 +44,8 @@ import {
   List,
   Play,
   Stop,
-  Info,
   CloudArrowDown,
   Archive,
-  UserCheck,
   Building,
   Wrench,
   Terminal,
@@ -67,8 +65,6 @@ import { CorpSettings } from '@/lib/types';
 import { toast } from 'sonner';
 import { eveApi, type CharacterInfo, type CorporationInfo } from '@/lib/eveApi';
 import { useSDEManager, type SDEDatabaseStats } from '@/lib/sdeService';
-import { AdminLoginTest } from '@/components/AdminLoginTest';
-import { SimpleLoginTest } from '@/components/SimpleLoginTest';
 import { runDatabaseValidationTests } from '@/lib/databaseTestCases';
 import { EnhancedDatabaseSetupManager, validateSetupConfig, type DatabaseSetupConfig } from '@/lib/database-setup-scripts';
 import { DatabaseManager } from '@/lib/database';
@@ -89,7 +85,6 @@ import {
   resetAllSettings,
   validateSettings
 } from '@/lib/persistenceService';
-import { UserManagement } from '@/components/UserManagement';
 
 // Status Indicator Component
 const StatusIndicator: React.FC<{
@@ -2692,12 +2687,10 @@ echo "See README.md for detailed setup instructions"
           <TabsList>
             <TabsTrigger value="general">General</TabsTrigger>
             <TabsTrigger value="database">Database</TabsTrigger>
-            <TabsTrigger value="eve">EVE Online</TabsTrigger>
-            <TabsTrigger value="sde">EVE SDE</TabsTrigger>
             <TabsTrigger value="esi">Corporations</TabsTrigger>
             <TabsTrigger value="sync">Data Sync</TabsTrigger>
             <TabsTrigger value="notifications">Notifications</TabsTrigger>
-            <TabsTrigger value="security">Security</TabsTrigger>
+            <TabsTrigger value="users">Users</TabsTrigger>
           </TabsList>
         </div>
 
@@ -6681,208 +6674,7 @@ echo "See README.md for detailed setup instructions"
           </Card>
         </TabsContent>
 
-        <TabsContent value="debug" className="space-y-6">
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-3">
-                <UserCheck size={20} />
-                Authentication Debug
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <AdminLoginTest />
-            </CardContent>
-          </Card>
-          
-          <Card>
-            <CardHeader>
-              <CardTitle>Simple Auth Service Test</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <SimpleLoginTest />
-            </CardContent>
-          </Card>
-          
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-3">
-                <Database size={20} />
-                Database Connection Test
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <p className="text-sm text-muted-foreground">
-                Test database connectivity using the current configuration settings.
-              </p>
-              <Button
-                onClick={() => {
-                  console.log('🧪 Debug test connection button clicked');
-                  handleTestDbConnection();
-                }}
-                disabled={testingConnection}
-                className="w-full hover:bg-accent/10 active:bg-accent/20 transition-colors"
-              >
-                {testingConnection ? (
-                  <>
-                    <ArrowClockwise size={16} className="mr-2 animate-spin" />
-                    Testing Connection...
-                  </>
-                ) : (
-                  <>
-                    <Play size={16} className="mr-2" />
-                    Test Database Connection
-                  </>
-                )}
-              </Button>
-              
-              {connectionLogs.length > 0 && (
-                <div className="border border-border rounded-lg p-3 bg-muted/30">
-                  <div className="font-mono text-xs space-y-1 max-h-32 overflow-y-auto">
-                    {connectionLogs.map((log, index) => (
-                      <div key={index} className="text-foreground">{log}</div>
-                    ))}
-                  </div>
-                </div>
-              )}
-            </CardContent>
-          </Card>
-          
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-3">
-                <Info size={20} />
-                System Debug Information
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label>Current User</Label>
-                  <div className="p-3 border border-border rounded bg-muted/50 font-mono text-sm">
-                    {user ? (
-                      <div>
-                        <div>Name: {user.characterName}</div>
-                        <div>Corp: {user.corporationName}</div>
-                        <div>ID: {user.characterId}</div>
-                        <div>Admin: {user.isAdmin ? 'Yes' : 'No'}</div>
-                        <div>Auth: {user.authMethod}</div>
-                        <div>ESI Access: {user.canManageESI ? 'Yes' : 'No'}</div>
-                      </div>
-                    ) : (
-                      'No user logged in'
-                    )}
-                  </div>
-                </div>
-                
-                <div className="space-y-2">
-                  <Label>Corporation Registry</Label>
-                  <div className="p-3 border border-border rounded bg-muted/50 font-mono text-sm max-h-32 overflow-y-auto">
-                    {registeredCorps && Object.keys(registeredCorps).length > 0 ? (
-                      Object.entries(registeredCorps).map(([corpId, corp]) => (
-                        <div key={corpId} className="text-xs">
-                          {corp.corporationName} ({corpId})
-                        </div>
-                      ))
-                    ) : (
-                      'No corporations registered'
-                    )}
-                  </div>
-                </div>
-                
-                <div className="space-y-2">
-                  <Label>Admin Configuration</Label>
-                  <div className="p-3 border border-border rounded bg-muted/50 font-mono text-sm">
-                    <div>Username: {adminConfig.username}</div>
-                    <div>Password Set: {adminConfig.password ? 'Yes' : 'No'}</div>
-                  </div>
-                </div>
-                
-                <div className="space-y-2">
-                  <Label>ESI Configuration Status</Label>
-                  <div className="p-3 border border-border rounded bg-muted/50 font-mono text-sm">
-                    <div>Client ID: {esiConfig.clientId ? 'Configured' : 'Not Set'}</div>
-                    <div>Secret: {esiConfig.secretKey ? 'Configured' : 'Not Set'}</div>
-                    <div>Base URL: {esiConfig.baseUrl || 'https://login.eveonline.com'}</div>
-                    <div>User Agent: {esiConfig.userAgent || 'Not Set'}</div>
-                  </div>
-                </div>
-              </div>
-              
-              <Separator />
-              
-              <div className="space-y-3">
-                <h4 className="font-medium">Database Validation Tests</h4>
-                <p className="text-sm text-muted-foreground">
-                  Run comprehensive tests to verify database connection validation is working properly.
-                  This will test both invalid configurations (should fail) and valid ones (might pass with real MySQL).
-                </p>
-                <Button
-                  onClick={() => {
-                    toast.info('Running database validation tests - check browser console for detailed results');
-                    runDatabaseValidationTests();
-                  }}
-                  variant="outline"
-                  className="w-full"
-                >
-                  <Database size={16} className="mr-2" />
-                  Run Database Validation Test Suite
-                </Button>
-              </div>
-              
-              <Separator />
-              
-              {/* Data Management */}
-              <div className="space-y-4">
-                <h4 className="font-medium">Data Management</h4>
-                <p className="text-sm text-muted-foreground">
-                  Export and import all LMeve configuration data including settings, users, and corporation data.
-                </p>
-                
-                <div className="grid grid-cols-3 gap-4">
-                  <Button
-                    variant="outline"
-                    onClick={handleExportSettings}
-                    className="flex items-center justify-center"
-                  >
-                    <Download size={16} className="mr-2" />
-                    Export All Data
-                  </Button>
-                  
-                  <div className="relative">
-                    <input
-                      type="file"
-                      accept=".json"
-                      onChange={handleImportSettings}
-                      className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
-                    />
-                    <Button
-                      variant="outline"
-                      className="w-full flex items-center justify-center"
-                    >
-                      <Upload size={16} className="mr-2" />
-                      Import Data
-                    </Button>
-                  </div>
-                  
-                  <Button
-                    variant="destructive"
-                    onClick={handleResetSettings}
-                    className="flex items-center justify-center"
-                  >
-                    <ArrowClockwise size={16} className="mr-2" />
-                    Reset All
-                  </Button>
-                </div>
-                
-                <div className="text-xs text-muted-foreground space-y-1">
-                  <p>• Export creates a downloadable backup file with all settings</p>
-                  <p>• Import restores settings from a previously exported file</p>
-                  <p>• Reset restores all settings to default values (requires confirmation)</p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        </TabsContent>
+
         
         </Tabs>
     </div>
