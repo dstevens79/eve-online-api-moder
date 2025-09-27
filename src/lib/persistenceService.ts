@@ -8,10 +8,11 @@
 import { useKV } from '@github/spark/hooks';
 
 export interface GeneralSettings {
+  applicationName: string;
   corpId: number;
   corpName: string;
   corpTicker: string;
-  sessionTimeout: boolean;
+  sessionTimeout: number;
   sessionTimeoutMinutes: number;
   maxLogRetentionDays: number;
   theme: 'dark' | 'light' | 'system';
@@ -20,6 +21,8 @@ export interface GeneralSettings {
   maintenanceMode: boolean;
   debugMode: boolean;
   logLevel: 'error' | 'warn' | 'info' | 'debug';
+  enableLogging: boolean;
+  enableAutoBackup: boolean;
 }
 
 export interface DatabaseSettings {
@@ -221,10 +224,11 @@ export interface ApplicationData {
 
 // Default values for all settings
 export const defaultGeneralSettings: GeneralSettings = {
+  applicationName: 'LMeve',
   corpId: 0,
   corpName: '',
   corpTicker: '',
-  sessionTimeout: true,
+  sessionTimeout: 120,
   sessionTimeoutMinutes: 60,
   maxLogRetentionDays: 30,
   theme: 'dark',
@@ -233,6 +237,8 @@ export const defaultGeneralSettings: GeneralSettings = {
   maintenanceMode: false,
   debugMode: false,
   logLevel: 'info',
+  enableLogging: true,
+  enableAutoBackup: true,
 };
 
 export const defaultDatabaseSettings: DatabaseSettings = {

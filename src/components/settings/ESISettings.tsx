@@ -42,12 +42,15 @@ interface RegisteredCorporation {
 export function ESISettings({ isMobileView = false }: ESISettingsProps) {
   const { user, esiConfig, updateESIConfig, getRegisteredCorporations } = useAuth();
   
-  const { 
-    settings: esiSettings, 
-    updateSettings: updateESISettings, 
-    saveSettings: saveESISettings,
-    loadSettings: loadESISettings
-  } = useESISettings();
+  const [esiSettings, setESISettings] = useESISettings();
+
+  // Update helper function
+  const updateESISettings = (updates: any) => {
+    setESISettings(current => ({
+      ...current,
+      ...updates
+    }));
+  };
 
   // ESI Configuration state
   const [showClientSecret, setShowClientSecret] = useState(false);
@@ -60,7 +63,6 @@ export function ESISettings({ isMobileView = false }: ESISettingsProps) {
 
   // Load settings on component mount
   useEffect(() => {
-    loadESISettings();
     loadCorporationData();
   }, []);
 
@@ -120,7 +122,6 @@ export function ESISettings({ isMobileView = false }: ESISettingsProps) {
 
   const handleSaveSettings = async () => {
     try {
-      await saveESISettings();
       await handleUpdateESIConfig();
       toast.success('ESI settings saved successfully');
     } catch (error) {

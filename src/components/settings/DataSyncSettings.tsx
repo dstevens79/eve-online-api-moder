@@ -53,12 +53,15 @@ interface SyncProcess {
 }
 
 export function DataSyncSettings({ isMobileView = false }: DataSyncSettingsProps) {
-  const { 
-    settings: syncSettings, 
-    updateSettings: updateSyncSettings, 
-    saveSettings: saveSyncSettings,
-    loadSettings: loadSyncSettings
-  } = useSyncSettings();
+  const [syncSettings, setSyncSettings] = useSyncSettings();
+
+  // Update helper function
+  const updateSyncSettings = (updates: any) => {
+    setSyncSettings(current => ({
+      ...current,
+      ...updates
+    }));
+  };
 
   const esiRoutes = useESIRoutes();
   
@@ -177,15 +180,14 @@ export function DataSyncSettings({ isMobileView = false }: DataSyncSettingsProps
 
   // Load settings on component mount
   useEffect(() => {
-    loadSyncSettings();
   }, []);
 
   // Update sync processes when settings change
   useEffect(() => {
     setSyncProcesses(prev => prev.map(process => ({
       ...process,
-      enabled: syncSettings[process.id as keyof typeof syncSettings]?.enabled ?? process.enabled,
-      interval: syncSettings[process.id as keyof typeof syncSettings]?.interval ?? process.interval
+      enabled: (syncSettings as any)?.[process.id as keyof typeof syncSettings]?.enabled ?? process.enabled,
+      interval: (syncSettings as any)?.[process.id as keyof typeof syncSettings]?.interval ?? process.interval
     })));
   }, [syncSettings]);
 
@@ -273,7 +275,6 @@ export function DataSyncSettings({ isMobileView = false }: DataSyncSettingsProps
 
   const handleSaveSettings = async () => {
     try {
-      await saveSyncSettings();
       toast.success('Data sync settings saved successfully');
     } catch (error) {
       toast.error('Failed to save data sync settings');

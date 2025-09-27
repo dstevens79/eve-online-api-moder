@@ -60,12 +60,12 @@ interface ESICharacter {
 export function UserSettings({ isMobileView = false }: UserSettingsProps) {
   const { user: currentUser, getRegisteredCorporations } = useAuth();
   
-  const { 
-    settings: manualUsers, 
-    updateSettings: updateManualUsers, 
-    saveSettings: saveManualUsers,
-    loadSettings: loadManualUsers
-  } = useManualUsers();
+  const [manualUsers, setManualUsers] = useManualUsers();
+
+  // Update helper function
+  const updateManualUsers = (updates: any) => {
+    setManualUsers(updates);
+  };
 
   // User management state
   const [users, setUsers] = useState<ManualUser[]>([]);
@@ -86,13 +86,12 @@ export function UserSettings({ isMobileView = false }: UserSettingsProps) {
 
   // Load settings and data on component mount
   useEffect(() => {
-    loadManualUsers();
     loadUsers();
     loadESICharacters();
   }, []);
 
   const loadUsers = () => {
-    const userList = manualUsers.users || [];
+    const userList = manualUsers?.users || [];
     // Add default admin if not exists
     if (!userList.find(u => u.username === 'admin')) {
       userList.push({
@@ -242,7 +241,6 @@ export function UserSettings({ isMobileView = false }: UserSettingsProps) {
 
   const handleSaveSettings = async () => {
     try {
-      await saveManualUsers();
       toast.success('User settings saved successfully');
     } catch (error) {
       toast.error('Failed to save user settings');

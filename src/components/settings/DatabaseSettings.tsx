@@ -39,18 +39,8 @@ interface DatabaseSettingsProps {
 }
 
 export function DatabaseSettings({ isMobileView = false }: DatabaseSettingsProps) {
-  const { 
-    settings: databaseSettings, 
-    updateSettings: updateDatabaseSettings, 
-    saveSettings: saveDatabaseSettings,
-    loadSettings: loadDatabaseSettings
-  } = useDatabaseSettings();
-
-  const { 
-    settings: sdeSettings, 
-    updateSettings: updateSDESettings, 
-    saveSettings: saveSDESettings 
-  } = useSDESettings();
+  const [databaseSettings, setDatabaseSettings] = useDatabaseSettings();
+  const [sdeSettings, setSDESettings] = useSDESettings();
 
   const { 
     stats, 
@@ -59,6 +49,21 @@ export function DatabaseSettings({ isMobileView = false }: DatabaseSettingsProps
     downloadAndInstallSDE,
     isCurrentVersion 
   } = useSDEManager();
+
+  // Update helper functions
+  const updateDatabaseSettings = (updates: any) => {
+    setDatabaseSettings(current => ({
+      ...current,
+      ...updates
+    }));
+  };
+
+  const updateSDESettings = (updates: any) => {
+    setSDESettings(current => ({
+      ...current,
+      ...updates
+    }));
+  };
 
   // Database connection state
   const [isConnected, setIsConnected] = useState(false);
@@ -90,7 +95,6 @@ export function DatabaseSettings({ isMobileView = false }: DatabaseSettingsProps
 
   // Load settings on component mount
   useEffect(() => {
-    loadDatabaseSettings();
     checkSDEStatus();
   }, []);
 
@@ -101,8 +105,8 @@ export function DatabaseSettings({ isMobileView = false }: DatabaseSettingsProps
   };
 
   const handleTestConnection = async () => {
-    if (!databaseSettings.host || !databaseSettings.port || 
-        !databaseSettings.username || !databaseSettings.password) {
+    if (!databaseSettings?.host || !databaseSettings?.port || 
+        !databaseSettings?.username || !databaseSettings?.password) {
       toast.error('Please fill in all database connection fields');
       return;
     }
@@ -113,7 +117,7 @@ export function DatabaseSettings({ isMobileView = false }: DatabaseSettingsProps
     try {
       const result = await databaseManager.testConnection({
         host: databaseSettings.host,
-        port: parseInt(databaseSettings.port),
+        port: parseInt(String(databaseSettings.port)),
         username: databaseSettings.username,
         password: databaseSettings.password,
         database: databaseSettings.database || 'mysql'
@@ -123,12 +127,12 @@ export function DatabaseSettings({ isMobileView = false }: DatabaseSettingsProps
         setIsConnected(true);
         setSystemStatus(prev => ({ ...prev, databaseConnection: 'online' }));
         addConnectionLog('✅ Database connection successful');
-        addConnectionLog(`Connected to: ${databaseSettings.host}:${databaseSettings.port}`);
+        addConnectionLog(`Connected to: ${databaseSettings?.host}:${databaseSettings?.port}`);
         
         if (result.userExists) {
-          addConnectionLog(`✅ User '${databaseSettings.username}' exists and authenticated`);
+          addConnectionLog(`✅ User '${databaseSettings?.username}' exists and authenticated`);
         } else {
-          addConnectionLog(`⚠️ User '${databaseSettings.username}' authenticated but may need setup`);
+          addConnectionLog(`⚠️ User '${databaseSettings?.username}' authenticated but may need setup`);
         }
         
         toast.success('Database connection test successful');
@@ -150,7 +154,7 @@ export function DatabaseSettings({ isMobileView = false }: DatabaseSettingsProps
   };
 
   const handleSetupSSHConnection = async () => {
-    if (!databaseSettings.sshHost || !databaseSettings.sshUsername) {
+    if (!databaseSettings?.sshHost || !databaseSettings?.sshUsername) {
       toast.error('Please fill in SSH connection details');
       return;
     }
@@ -169,7 +173,7 @@ export function DatabaseSettings({ isMobileView = false }: DatabaseSettingsProps
       }));
       setSystemStatus(prev => ({ ...prev, sshConnection: 'online' }));
       
-      addConnectionLog(`✅ SSH connection established to ${databaseSettings.sshHost}`);
+      addConnectionLog(`✅ SSH connection established to ${databaseSettings?.sshHost}`);
       addConnectionLog('⏳ Please approve the connection on the remote machine');
       toast.success('SSH connection initiated - approve on remote machine');
     } catch (error) {
@@ -244,8 +248,6 @@ export function DatabaseSettings({ isMobileView = false }: DatabaseSettingsProps
 
   const handleSaveSettings = async () => {
     try {
-      await saveDatabaseSettings();
-      await saveSDESettings();
       toast.success('Database settings saved successfully');
     } catch (error) {
       toast.error('Failed to save database settings');
@@ -324,7 +326,7 @@ export function DatabaseSettings({ isMobileView = false }: DatabaseSettingsProps
                   <Label htmlFor="dbHost">Host</Label>
                   <Input
                     id="dbHost"
-                    value={databaseSettings.host || ''}
+                    value={databaseSettings?.host || ''}
                     onChange={(e) => updateDatabaseSettings({ host: e.target.value })}
                     placeholder="localhost or IP address"
                   />
@@ -333,7 +335,7 @@ export function DatabaseSettings({ isMobileView = false }: DatabaseSettingsProps
                   <Label htmlFor="dbPort">Port</Label>
                   <Input
                     id="dbPort"
-                    value={databaseSettings.port || '3306'}
+                    value={databaseSettings?.port || '3306'}
                     onChange={(e) => updateDatabaseSettings({ port: e.target.value })}
                     placeholder="3306"
                   />
@@ -344,7 +346,7 @@ export function DatabaseSettings({ isMobileView = false }: DatabaseSettingsProps
                 <Label htmlFor="dbName">Database Name</Label>
                 <Input
                   id="dbName"
-                  value={databaseSettings.database || 'lmeve'}
+                  value={databaseSettings?.database || 'lmeve'}
                   onChange={(e) => updateDatabaseSettings({ database: e.target.value })}
                   placeholder="lmeve"
                 />
@@ -363,13 +365,13 @@ export function DatabaseSettings({ isMobileView = false }: DatabaseSettingsProps
                   <div className="grid grid-cols-2 gap-4 mt-2">
                     <Input
                       placeholder="root"
-                      value={databaseSettings.sudoUsername || ''}
+                      value={databaseSettings?.sudoUsername || ''}
                       onChange={(e) => updateDatabaseSettings({ sudoUsername: e.target.value })}
                     />
                     <Input
                       type="password"
                       placeholder="sudo password"
-                      value={databaseSettings.sudoPassword || ''}
+                      value={databaseSettings?.sudoPassword || ''}
                       onChange={(e) => updateDatabaseSettings({ sudoPassword: e.target.value })}
                     />
                   </div>
@@ -380,13 +382,13 @@ export function DatabaseSettings({ isMobileView = false }: DatabaseSettingsProps
                   <div className="grid grid-cols-2 gap-4 mt-2">
                     <Input
                       placeholder="lmeve"
-                      value={databaseSettings.username || ''}
+                      value={databaseSettings?.username || ''}
                       onChange={(e) => updateDatabaseSettings({ username: e.target.value })}
                     />
                     <Input
                       type="password"
                       placeholder="application password"
-                      value={databaseSettings.password || ''}
+                      value={databaseSettings?.password || ''}
                       onChange={(e) => updateDatabaseSettings({ password: e.target.value })}
                     />
                   </div>
@@ -406,7 +408,7 @@ export function DatabaseSettings({ isMobileView = false }: DatabaseSettingsProps
                   <Label htmlFor="sshHost">SSH Host</Label>
                   <Input
                     id="sshHost"
-                    value={databaseSettings.sshHost || ''}
+                    value={databaseSettings?.sshHost || ''}
                     onChange={(e) => updateDatabaseSettings({ sshHost: e.target.value })}
                     placeholder="Same as database host"
                   />
@@ -415,7 +417,7 @@ export function DatabaseSettings({ isMobileView = false }: DatabaseSettingsProps
                   <Label htmlFor="sshPort">SSH Port</Label>
                   <Input
                     id="sshPort"
-                    value={databaseSettings.sshPort || '22'}
+                    value={databaseSettings?.sshPort || '22'}
                     onChange={(e) => updateDatabaseSettings({ sshPort: e.target.value })}
                     placeholder="22"
                   />
@@ -427,7 +429,7 @@ export function DatabaseSettings({ isMobileView = false }: DatabaseSettingsProps
                   <Label htmlFor="sshUsername">SSH Username</Label>
                   <Input
                     id="sshUsername"
-                    value={databaseSettings.sshUsername || ''}
+                    value={databaseSettings?.sshUsername || ''}
                     onChange={(e) => updateDatabaseSettings({ sshUsername: e.target.value })}
                     placeholder="opsuser"
                   />
@@ -437,7 +439,7 @@ export function DatabaseSettings({ isMobileView = false }: DatabaseSettingsProps
                   <Input
                     id="sshPassword"
                     type="password"
-                    value={databaseSettings.sshPassword || ''}
+                    value={databaseSettings?.sshPassword || ''}
                     onChange={(e) => updateDatabaseSettings({ sshPassword: e.target.value })}
                     placeholder="ssh password"
                   />
@@ -467,7 +469,7 @@ export function DatabaseSettings({ isMobileView = false }: DatabaseSettingsProps
               <div className="space-y-2">
                 <Label>Schema Source</Label>
                 <Select 
-                  value={databaseSettings.schemaSource || 'default'} 
+                  value={databaseSettings?.schemaSource || 'default'} 
                   onValueChange={(value) => updateDatabaseSettings({ schemaSource: value })}
                 >
                   <SelectTrigger>
@@ -483,7 +485,7 @@ export function DatabaseSettings({ isMobileView = false }: DatabaseSettingsProps
               <div className="space-y-2">
                 <Label>SDE Source</Label>
                 <Select 
-                  value={sdeSettings.sdeSource || 'fuzzwork'} 
+                  value={sdeSettings?.sdeSource || 'fuzzwork'} 
                   onValueChange={(value) => updateSDESettings({ sdeSource: value })}
                 >
                   <SelectTrigger>
