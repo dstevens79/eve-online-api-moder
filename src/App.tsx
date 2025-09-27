@@ -56,6 +56,7 @@ import { Market } from '@/components/tabs/Market';
 import { Income } from '@/components/tabs/Income';
 import { Settings } from '@/components/tabs/Settings';
 import { Debug } from '@/components/tabs/Debug';
+import { Corporations } from '@/components/Corporations';
 
 function AppContent() {
   const [activeTab, setActiveTab] = useKV<TabType>('active-tab', 'dashboard');
@@ -313,6 +314,7 @@ function AppContent() {
     { id: 'killmails', label: 'Killmails', icon: Crosshair, component: Killmails },
     { id: 'market', label: 'Market', icon: TrendUp, component: Market },
     { id: 'income', label: 'Income', icon: CurrencyDollar, component: Income },
+    { id: 'corporations', label: 'Corporations', icon: Building, component: Corporations },
     { id: 'debug', label: 'Debug', icon: UserCheck, component: Debug },
   ];
 
