@@ -56,6 +56,7 @@ import { Market } from '@/components/tabs/Market';
 import { Income } from '@/components/tabs/Income';
 import { Settings } from '@/components/tabs/Settings';
 import { Debug } from '@/components/tabs/Debug';
+import { Notifications } from '@/components/tabs/Notifications';
 import { Corporations } from '@/components/Corporations';
 
 function AppContent() {
@@ -314,6 +315,7 @@ function AppContent() {
     { id: 'killmails', label: 'Killmails', icon: Crosshair, component: Killmails },
     { id: 'market', label: 'Market', icon: TrendUp, component: Market },
     { id: 'income', label: 'Income', icon: CurrencyDollar, component: Income },
+    { id: 'notifications', label: 'Notifications', icon: Bell, component: Notifications },
     { id: 'corporations', label: 'Corporations', icon: Building, component: Corporations },
     { id: 'debug', label: 'Debug', icon: UserCheck, component: Debug },
   ];
