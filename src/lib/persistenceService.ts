@@ -8,10 +8,11 @@
 import { useKV } from '@github/spark/hooks';
 
 export interface GeneralSettings {
+  applicationName: string;
   corpId: number;
   corpName: string;
   corpTicker: string;
-  sessionTimeout: boolean;
+  sessionTimeout: number;
   sessionTimeoutMinutes: number;
   maxLogRetentionDays: number;
   theme: 'dark' | 'light' | 'system';
@@ -20,6 +21,8 @@ export interface GeneralSettings {
   maintenanceMode: boolean;
   debugMode: boolean;
   logLevel: 'error' | 'warn' | 'info' | 'debug';
+  enableLogging: boolean;
+  enableAutoBackup: boolean;
 }
 
 export interface DatabaseSettings {
@@ -40,9 +43,12 @@ export interface DatabaseSettings {
   sudoPassword: string;
   sudoSsl?: boolean;
   // SSH connection settings for remote database setup
+  sshHost?: string;
   sshUsername?: string;
   sshPassword?: string;
   sshPort?: number;
+  // Schema configuration
+  schemaSource?: string;
 }
 
 export interface ESISettings {
@@ -65,6 +71,7 @@ export interface SDESettings {
   downloadUrl: string;
   backupBeforeUpdate: boolean;
   cleanupAfterUpdate: boolean;
+  sdeSource?: string;
 }
 
 export interface SyncSettings {
@@ -134,6 +141,8 @@ export interface NotificationSettings {
     fromEmail: string;
   };
   webhookUrl: string;
+  discordWebhooks?: any[];
+  eveMailConfigs?: any[];
   quietHours: {
     enabled: boolean;
     startTime: string;
@@ -221,10 +230,11 @@ export interface ApplicationData {
 
 // Default values for all settings
 export const defaultGeneralSettings: GeneralSettings = {
+  applicationName: 'LMeve',
   corpId: 0,
   corpName: '',
   corpTicker: '',
-  sessionTimeout: true,
+  sessionTimeout: 120,
   sessionTimeoutMinutes: 60,
   maxLogRetentionDays: 30,
   theme: 'dark',
@@ -233,6 +243,8 @@ export const defaultGeneralSettings: GeneralSettings = {
   maintenanceMode: false,
   debugMode: false,
   logLevel: 'info',
+  enableLogging: true,
+  enableAutoBackup: true,
 };
 
 export const defaultDatabaseSettings: DatabaseSettings = {
@@ -250,9 +262,11 @@ export const defaultDatabaseSettings: DatabaseSettings = {
   sudoPort: 3306,
   sudoUsername: 'root',
   sudoPassword: '',
+  sshHost: '',
   sshUsername: 'root',
   sshPassword: '',
   sshPort: 22,
+  schemaSource: 'builtin',
 };
 
 export const defaultESISettings: ESISettings = {
@@ -280,6 +294,7 @@ export const defaultSDESettings: SDESettings = {
   downloadUrl: 'https://www.fuzzwork.co.uk/dump/mysql-latest.tar.bz2',
   backupBeforeUpdate: true,
   cleanupAfterUpdate: true,
+  sdeSource: 'remote',
 };
 
 export const defaultSyncSettings: SyncSettings = {
@@ -349,6 +364,8 @@ export const defaultNotificationSettings: NotificationSettings = {
     fromEmail: '',
   },
   webhookUrl: '',
+  discordWebhooks: [],
+  eveMailConfigs: [],
   quietHours: {
     enabled: false,
     startTime: '22:00',
