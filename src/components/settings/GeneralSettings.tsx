@@ -29,12 +29,7 @@ interface GeneralSettingsProps {
 
 export function GeneralSettings({ isMobileView = false }: GeneralSettingsProps) {
   const { user } = useAuth();
-  const { 
-    settings: generalSettings, 
-    updateSettings: updateGeneralSettings, 
-    saveSettings: saveGeneralSettings,
-    loadSettings: loadGeneralSettings
-  } = useGeneralSettings();
+  const [generalSettings, setGeneralSettings] = useGeneralSettings();
 
   // Overall system status state
   const [systemStatus, setSystemStatus] = useState<{
@@ -55,18 +50,19 @@ export function GeneralSettings({ isMobileView = false }: GeneralSettingsProps) 
     overall: 'offline'
   });
 
-  // Load settings on component mount
-  useEffect(() => {
-    loadGeneralSettings();
-  }, []);
-
   const handleSaveSettings = async () => {
     try {
-      await saveGeneralSettings();
       toast.success('General settings saved successfully');
     } catch (error) {
       toast.error('Failed to save general settings');
     }
+  };
+
+  const updateGeneralSettings = (updates: Partial<GeneralSettings>) => {
+    setGeneralSettings(current => ({
+      ...current,
+      ...updates
+    }));
   };
 
   const handleRefreshStatus = async () => {
@@ -178,7 +174,7 @@ export function GeneralSettings({ isMobileView = false }: GeneralSettingsProps) 
               <Label htmlFor="appName">Application Name</Label>
               <Input
                 id="appName"
-                value={generalSettings.applicationName || 'LMeve'}
+                value={generalSettings?.applicationName || 'LMeve'}
                 onChange={(e) => updateGeneralSettings({ applicationName: e.target.value })}
               />
             </div>
@@ -186,7 +182,7 @@ export function GeneralSettings({ isMobileView = false }: GeneralSettingsProps) 
             <div className="space-y-2">
               <Label htmlFor="timezone">Timezone</Label>
               <Select 
-                value={generalSettings.timezone || 'UTC'} 
+                value={generalSettings?.timezone || 'UTC'} 
                 onValueChange={(value) => updateGeneralSettings({ timezone: value })}
               >
                 <SelectTrigger>
@@ -211,7 +207,7 @@ export function GeneralSettings({ isMobileView = false }: GeneralSettingsProps) 
               type="number"
               min="5"
               max="1440"
-              value={generalSettings.sessionTimeout || 120}
+              value={generalSettings?.sessionTimeout || 120}
               onChange={(e) => updateGeneralSettings({ sessionTimeout: parseInt(e.target.value) || 120 })}
             />
             <p className="text-xs text-muted-foreground">
@@ -231,7 +227,7 @@ export function GeneralSettings({ isMobileView = false }: GeneralSettingsProps) 
               </div>
               <Switch
                 id="enableLogging"
-                checked={generalSettings.enableLogging || false}
+                checked={generalSettings?.enableLogging || false}
                 onCheckedChange={(checked) => updateGeneralSettings({ enableLogging: checked })}
               />
             </div>
@@ -245,7 +241,7 @@ export function GeneralSettings({ isMobileView = false }: GeneralSettingsProps) 
               </div>
               <Switch
                 id="enableAutoBackup"
-                checked={generalSettings.enableAutoBackup || false}
+                checked={generalSettings?.enableAutoBackup || false}
                 onCheckedChange={(checked) => updateGeneralSettings({ enableAutoBackup: checked })}
               />
             </div>
