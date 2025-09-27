@@ -27,9 +27,7 @@ import {
   CloudArrowDown,
   Archive,
   Building,
-  Clock,
   Bell,
-  Users,
   UserCheck
 } from '@phosphor-icons/react';
 import { useKV } from '@github/spark/hooks';
