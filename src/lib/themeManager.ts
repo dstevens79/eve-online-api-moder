@@ -22,7 +22,7 @@ export interface ThemeSettings {
 export const defaultThemes: Record<string, ThemeSettings> = {
   'eve-dark': {
     name: 'EVE Dark',
-    accentColor: 'blue',
+    accentColor: 'amber',
     neutralColor: 'slate',
     backgroundMode: 'dark',
     borderRadius: 0.75,
@@ -30,9 +30,9 @@ export const defaultThemes: Record<string, ThemeSettings> = {
     radiusFactor: 1,
     fontFamily: 'inter',
     customColors: {
-      primary: 'oklch(0.35 0.1 220)',
-      secondary: 'oklch(96.8% 0.007 247.896)',
-      accent: 'oklch(27.1% 0.105 12.094)',
+      primary: 'oklch(0.45 0.15 240)',
+      secondary: 'oklch(0.16 0.02 220)',
+      accent: 'oklch(0.65 0.2 35)',
       destructive: 'oklch(0.6 0.25 15)',
       muted: 'oklch(0.16 0.02 220)',
       border: 'oklch(0.2 0.02 220)',
@@ -43,17 +43,17 @@ export const defaultThemes: Record<string, ThemeSettings> = {
     accentColor: 'blue',
     neutralColor: 'slate',
     backgroundMode: 'dark',
-    borderRadius: 0.5,
+    borderRadius: 0.75,
     sizeScale: 1,
     radiusFactor: 1,
     fontFamily: 'inter',
     customColors: {
       primary: 'oklch(0.45 0.2 240)',
-      secondary: 'oklch(0.85 0.05 240)',
+      secondary: 'oklch(0.16 0.02 220)',
       accent: 'oklch(0.6 0.25 240)',
       destructive: 'oklch(0.6 0.25 15)',
-      muted: 'oklch(0.18 0.05 240)',
-      border: 'oklch(0.25 0.05 240)',
+      muted: 'oklch(0.16 0.02 220)',
+      border: 'oklch(0.2 0.02 220)',
     }
   },
   'eve-amber': {
@@ -61,17 +61,17 @@ export const defaultThemes: Record<string, ThemeSettings> = {
     accentColor: 'amber',
     neutralColor: 'slate',
     backgroundMode: 'dark',
-    borderRadius: 0.5,
+    borderRadius: 0.75,
     sizeScale: 1,
     radiusFactor: 1,
     fontFamily: 'inter',
     customColors: {
       primary: 'oklch(0.45 0.15 45)',
-      secondary: 'oklch(0.85 0.05 45)',
+      secondary: 'oklch(0.16 0.02 220)',
       accent: 'oklch(0.7 0.2 45)',
       destructive: 'oklch(0.6 0.25 15)',
-      muted: 'oklch(0.18 0.02 45)',
-      border: 'oklch(0.25 0.05 45)',
+      muted: 'oklch(0.16 0.02 220)',
+      border: 'oklch(0.2 0.02 220)',
     }
   },
   'corp-green': {
@@ -79,17 +79,17 @@ export const defaultThemes: Record<string, ThemeSettings> = {
     accentColor: 'green',
     neutralColor: 'slate',
     backgroundMode: 'dark',
-    borderRadius: 0.5,
+    borderRadius: 0.75,
     sizeScale: 1,
     radiusFactor: 1,
     fontFamily: 'inter',
     customColors: {
       primary: 'oklch(0.4 0.2 140)',
-      secondary: 'oklch(0.85 0.05 140)',
+      secondary: 'oklch(0.16 0.02 220)',
       accent: 'oklch(0.6 0.25 140)',
       destructive: 'oklch(0.6 0.25 15)',
-      muted: 'oklch(0.18 0.02 140)',
-      border: 'oklch(0.25 0.05 140)',
+      muted: 'oklch(0.16 0.02 220)',
+      border: 'oklch(0.2 0.02 220)',
     }
   },
   'light-mode': {
@@ -97,17 +97,17 @@ export const defaultThemes: Record<string, ThemeSettings> = {
     accentColor: 'blue',
     neutralColor: 'gray',
     backgroundMode: 'light',
-    borderRadius: 0.5,
+    borderRadius: 0.75,
     sizeScale: 1,
     radiusFactor: 1,
     fontFamily: 'inter',
     customColors: {
       primary: 'oklch(0.4 0.15 240)',
-      secondary: 'oklch(0.95 0.02 240)',
+      secondary: 'oklch(0.96 0.01 220)',
       accent: 'oklch(0.5 0.2 240)',
       destructive: 'oklch(0.55 0.25 15)',
-      muted: 'oklch(0.95 0.02 240)',
-      border: 'oklch(0.85 0.02 240)',
+      muted: 'oklch(0.96 0.01 220)',
+      border: 'oklch(0.88 0.01 220)',
     }
   }
 };
@@ -158,6 +158,7 @@ export class ThemeManager {
     root.style.setProperty('--size-scale', theme.sizeScale.toString());
     root.style.setProperty('--radius-factor', theme.radiusFactor.toString());
     root.style.setProperty('--radius', `${theme.borderRadius}rem`);
+    root.style.setProperty('--font-family', fontOptions.find(f => f.value === theme.fontFamily)?.family || 'Inter, system-ui, sans-serif');
 
     // Apply custom colors to existing CSS variables
     root.style.setProperty('--primary', theme.customColors.primary);
@@ -168,19 +169,44 @@ export class ThemeManager {
     root.style.setProperty('--border', theme.customColors.border);
     root.style.setProperty('--input', theme.customColors.muted);
 
-    // Apply background mode
+    // Apply background/foreground based on mode
     if (theme.backgroundMode === 'dark') {
       document.documentElement.classList.add('dark');
       document.body.classList.add('dark-theme');
+      document.body.classList.remove('light-theme');
+      
+      // Apply enhanced dark theme colors
+      root.style.setProperty('--background', 'oklch(0.08 0.02 220)');
+      root.style.setProperty('--foreground', 'oklch(0.98 0.01 220)');
+      root.style.setProperty('--card', 'oklch(0.12 0.02 220)');
+      root.style.setProperty('--card-foreground', 'oklch(0.98 0.01 220)');
+      root.style.setProperty('--popover', 'oklch(0.12 0.02 220)');
+      root.style.setProperty('--popover-foreground', 'oklch(0.98 0.01 220)');
+      root.style.setProperty('--muted-foreground', 'oklch(0.7 0.02 220)');
     } else {
       document.documentElement.classList.remove('dark');
       document.body.classList.remove('dark-theme');
+      document.body.classList.add('light-theme');
+      
       // Apply light mode colors
-      root.style.setProperty('--background', 'oklch(1 0 0)');
-      root.style.setProperty('--foreground', 'oklch(0.05 0 0)');
+      root.style.setProperty('--background', 'oklch(0.98 0.01 220)');
+      root.style.setProperty('--foreground', 'oklch(0.05 0.01 220)');
       root.style.setProperty('--card', 'oklch(1 0 0)');
-      root.style.setProperty('--card-foreground', 'oklch(0.05 0 0)');
+      root.style.setProperty('--card-foreground', 'oklch(0.05 0.01 220)');
+      root.style.setProperty('--popover', 'oklch(1 0 0)');
+      root.style.setProperty('--popover-foreground', 'oklch(0.05 0.01 220)');
+      root.style.setProperty('--muted-foreground', 'oklch(0.45 0.01 220)');
     }
+
+    // Apply accent color derived values
+    const accentForegroundColor = theme.backgroundMode === 'dark' ? 'oklch(0.05 0.01 220)' : 'oklch(0.98 0.01 220)';
+    root.style.setProperty('--accent-foreground', accentForegroundColor);
+    root.style.setProperty('--primary-foreground', 'oklch(0.98 0.01 220)');
+    root.style.setProperty('--secondary-foreground', theme.backgroundMode === 'dark' ? 'oklch(0.8 0.02 220)' : 'oklch(0.45 0.01 220)');
+    root.style.setProperty('--destructive-foreground', 'oklch(0.98 0.01 220)');
+
+    // Update ring color to match accent
+    root.style.setProperty('--ring', theme.customColors.accent);
 
     // Apply font family to body
     const fontConfig = fontOptions.find(f => f.value === theme.fontFamily);
@@ -188,7 +214,12 @@ export class ThemeManager {
       document.body.style.fontFamily = fontConfig.family;
     }
     
-    console.log('Theme applied:', theme.name);
+    console.log('✨ Theme applied:', theme.name, {
+      colors: theme.customColors,
+      mode: theme.backgroundMode,
+      font: theme.fontFamily,
+      radius: theme.borderRadius
+    });
   }
 
   createCustomTheme(name: string, baseTheme: ThemeSettings, overrides: Partial<ThemeSettings>): ThemeSettings {

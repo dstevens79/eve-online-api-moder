@@ -14,81 +14,91 @@
 
 :root {
   /* LMeve - EVE Online Corporation Management Theme */
-  /* Dark space theme with EVE Online aesthetic */
-  --background: oklch(28.4% 0.109 3.907);
-  --foreground: oklch(0.10 0.005 240);
+  /* Professional dark space theme optimized for readability */
+  --background: oklch(0.08 0.02 220);
+  --foreground: oklch(0.98 0.01 220);
 
-  --card: oklch(1.00 0 0);
-  --card-foreground: oklch(0.10 0.005 240);
-  --popover: oklch(1.00 0 0);
-  --popover-foreground: oklch(0.10 0.005 240);
+  --card: oklch(0.12 0.02 220);
+  --card-foreground: oklch(0.98 0.01 220);
+  --popover: oklch(0.12 0.02 220);
+  --popover-foreground: oklch(0.98 0.01 220);
 
-  --primary: oklch(0.45 0.15 260);
-  --primary-foreground: oklch(1.00 0 0);
-  --secondary: oklch(0.98 0.002 240);
-  --secondary-foreground: oklch(0.35 0.008 240);
-  --accent: oklch(0.10 0.005 240);
-  --accent-foreground: oklch(1.00 0 0);
-  --destructive: oklch(0.55 0.22 25);
-  --destructive-foreground: oklch(1.00 0 0);
+  --primary: oklch(0.45 0.15 240);
+  --primary-foreground: oklch(0.98 0.01 220);
+  --secondary: oklch(0.16 0.02 220);
+  --secondary-foreground: oklch(0.8 0.02 220);
+  --accent: oklch(0.65 0.2 35);
+  --accent-foreground: oklch(0.05 0.01 220);
+  --destructive: oklch(0.6 0.25 15);
+  --destructive-foreground: oklch(0.98 0.01 220);
 
-  --muted: oklch(0.96 0.005 240);
-  --muted-foreground: oklch(0.45 0.01 240);
-  --border: oklch(0.88 0.01 240);
-  --input: oklch(1.00 0 0);
-  --ring: oklch(0.45 0.15 260);
+  --muted: oklch(0.16 0.02 220);
+  --muted-foreground: oklch(0.7 0.02 220);
+  --border: oklch(0.2 0.02 220);
+  --input: oklch(0.12 0.02 220);
+  --ring: oklch(0.65 0.2 35);
 
   /* Theme system variables */
-  --radius: 0.5rem;
+  --radius: 0.75rem;
   --size-scale: 1;
   --radius-factor: 1;
   --font-family: Inter, system-ui, sans-serif;
 
-  /* Computed spacing values */
-  --spacing: 0.20rem;
-  --chart-1: oklch(0.45 0.15 260);
-  --chart-2: oklch(0.10 0.005 240);
-  --chart-3: oklch(0.45 0.01 240);
-  --chart-4: oklch(0.35 0.008 240);
-  --chart-5: oklch(0.55 0.22 25);
-  --sidebar: oklch(0.96 0.005 240);
-  --sidebar-foreground: oklch(0.10 0.005 240);
-  --sidebar-primary: oklch(0.45 0.15 260);
-  --sidebar-primary-foreground: oklch(1.00 0 0);
-  --sidebar-accent: oklch(0.10 0.005 240);
-  --sidebar-accent-foreground: oklch(1.00 0 0);
-  --sidebar-border: oklch(0.88 0.01 240);
-  --sidebar-ring: oklch(0.45 0.15 260);
-  --shadow-color: oklch(0.10 0.005 240);
-  --shadow-opacity: 0.05;
-  --shadow-blur: 10px;
-  --shadow-spread: 0px;
+  /* Enhanced theme variables for professional appearance */
+  --spacing: 0.25rem;
+  --chart-1: oklch(0.65 0.2 35);
+  --chart-2: oklch(0.45 0.15 240);
+  --chart-3: oklch(0.5 0.2 140);
+  --chart-4: oklch(0.55 0.25 300);
+  --chart-5: oklch(0.6 0.25 15);
+  
+  /* Sidebar theming */
+  --sidebar: oklch(0.1 0.02 220);
+  --sidebar-foreground: oklch(0.9 0.01 220);
+  --sidebar-primary: oklch(0.65 0.2 35);
+  --sidebar-primary-foreground: oklch(0.05 0.01 220);
+  --sidebar-accent: oklch(0.65 0.2 35);
+  --sidebar-accent-foreground: oklch(0.05 0.01 220);
+  --sidebar-border: oklch(0.2 0.02 220);
+  --sidebar-ring: oklch(0.65 0.2 35);
+  
+  /* Enhanced shadow system */
+  --shadow-color: oklch(0.02 0.01 220);
+  --shadow-opacity: 0.3;
+  --shadow-blur: 16px;
+  --shadow-spread: -4px;
   --shadow-offset-x: 0px;
-  --shadow-offset-y: 4px;
+  --shadow-offset-y: 8px;
+  
+  /* Typography */
   --font-sans: Inter;
   --font-serif: Noto Serif;
   --font-mono: JetBrains Mono;
 }
 
-/* Light mode overrides when light theme is active */
+/* Light theme class for theme manager */
 .light-theme {
-  --background: oklch(28.4% 0.109 3.907);
-  --foreground: oklch(0.10 0.005 240);
-  --card: oklch(1.00 0 0);
-  --card-foreground: oklch(0.10 0.005 240);
-  --popover: oklch(1.00 0 0);
-  --popover-foreground: oklch(0.10 0.005 240);
-  --muted: oklch(0.96 0.005 240);
-  --muted-foreground: oklch(0.45 0.01 240);
-  --border: oklch(0.88 0.01 240);
-  --input: oklch(1.00 0 0);
+  --background: oklch(0.98 0.01 220);
+  --foreground: oklch(0.05 0.01 220);
+  --card: oklch(1 0 0);
+  --card-foreground: oklch(0.05 0.01 220);
+  --popover: oklch(1 0 0);
+  --popover-foreground: oklch(0.05 0.01 220);
+  --muted: oklch(0.96 0.01 220);
+  --muted-foreground: oklch(0.45 0.01 220);
+  --border: oklch(0.88 0.01 220);
+  --input: oklch(1 0 0);
+  --sidebar: oklch(0.96 0.01 220);
+  --sidebar-foreground: oklch(0.05 0.01 220);
 }
 
 /* Dark theme class for theme manager */
 .dark-theme {
-  /* Already default, but kept for clarity */
-  --background: oklch(28.4% 0.109 3.907);
-  --foreground: oklch(0.10 0.005 240);
+  /* Enhanced dark theme colors for better contrast and readability */
+  --background: oklch(0.08 0.02 220);
+  --foreground: oklch(0.98 0.01 220);
+  --card: oklch(0.12 0.02 220);
+  --card-foreground: oklch(0.98 0.01 220);
 }
 
 @theme {
@@ -141,21 +151,41 @@
 }
 
 /* Enhanced input field visibility */
-input[type="text"], input[type="number"], input[type="password"], textarea, select {
-  background-color: oklch(0.20 0.02 220) !important;
-  border-color: oklch(0.3 0.02 220) !important;
+input[type="text"], input[type="number"], input[type="password"], input[type="email"], textarea, select {
+  background-color: oklch(0.12 0.02 220) !important;
+  border-color: oklch(0.2 0.02 220) !important;
   color: oklch(0.98 0.01 220) !important;
 }
 
-input[type="text"]:focus, input[type="number"]:focus, input[type="password"]:focus, textarea:focus, select:focus {
-  background-color: oklch(0.24 0.02 220) !important;
+input[type="text"]:focus, input[type="number"]:focus, input[type="password"]:focus, input[type="email"]:focus, textarea:focus, select:focus {
+  background-color: oklch(0.16 0.02 220) !important;
   border-color: oklch(0.65 0.2 35) !important;
+  box-shadow: 0 0 0 2px oklch(0.65 0.2 35 / 0.2) !important;
 }
 
 input[readonly], textarea[readonly] {
-  background-color: oklch(0.16 0.02 220) !important;
+  background-color: oklch(0.08 0.02 220) !important;
   color: oklch(0.7 0.02 220) !important;
   cursor: not-allowed;
+}
+
+/* Enhanced dropdowns and selects */
+.select-trigger, .combobox-trigger {
+  background-color: oklch(0.12 0.02 220) !important;
+  border-color: oklch(0.2 0.02 220) !important;
+  color: oklch(0.98 0.01 220) !important;
+}
+
+.select-trigger:focus, .combobox-trigger:focus {
+  background-color: oklch(0.16 0.02 220) !important;
+  border-color: oklch(0.65 0.2 35) !important;
+}
+
+/* Checkbox and radio button improvements */
+input[type="checkbox"], input[type="radio"] {
+  accent-color: oklch(0.65 0.2 35);
+  background-color: oklch(0.12 0.02 220);
+  border-color: oklch(0.2 0.02 220);
 }
 
 /* Professional scrollbars */
@@ -204,7 +234,7 @@ input[readonly], textarea[readonly] {
 
 /* Mobile-friendly cards */
 .mobile-card {
-  @apply bg-card border border-border rounded-lg p-3 space-y-2;
+  @apply bg-card border border-border rounded-lg p-3 space-y-2 shadow-sm;
 }
 
 .mobile-card-header {
@@ -219,4 +249,83 @@ input[readonly], textarea[readonly] {
 .mobile-touch-target {
   min-height: 44px;
   min-width: 44px;
+}
+
+/* Enhanced card styling with subtle shadows and hover effects */
+.card, .ui-card {
+  box-shadow: 0 1px 3px oklch(0.02 0.01 220 / 0.1), 0 1px 2px oklch(0.02 0.01 220 / 0.06);
+  transition: box-shadow 0.2s ease-in-out, transform 0.1s ease-in-out;
+}
+
+.card:hover, .ui-card:hover {
+  box-shadow: 0 4px 6px oklch(0.02 0.01 220 / 0.1), 0 2px 4px oklch(0.02 0.01 220 / 0.06);
+}
+
+/* Enhanced button styles */
+.btn-primary, .button-primary {
+  background: linear-gradient(135deg, var(--accent), oklch(from var(--accent) calc(l - 0.05) c h));
+  transition: all 0.2s ease-in-out;
+}
+
+.btn-primary:hover, .button-primary:hover {
+  background: linear-gradient(135deg, oklch(from var(--accent) calc(l + 0.05) c h), var(--accent));
+  transform: translateY(-1px);
+}
+
+/* Glassmorphism effects for special cards */
+.glass-card {
+  background: oklch(from var(--card) calc(l + 0.02) calc(c * 0.5) h / 0.8);
+  backdrop-filter: blur(12px);
+  border: 1px solid oklch(from var(--border) calc(l + 0.1) c h / 0.3);
+}
+
+/* Enhanced scrollbar styling */
+.scrollbar-thin {
+  scrollbar-width: thin;
+  scrollbar-color: oklch(0.3 0.02 220) oklch(0.16 0.02 220);
+}
+
+/* Subtle animations for interactive elements */
+.interactive-hover {
+  transition: all 0.15s ease-in-out;
+}
+
+.interactive-hover:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px oklch(0.02 0.01 220 / 0.15);
+}
+
+/* Professional gradient backgrounds */
+.gradient-bg-primary {
+  background: linear-gradient(135deg, var(--background), oklch(from var(--background) calc(l + 0.02) c h));
+}
+
+.gradient-bg-card {
+  background: linear-gradient(135deg, var(--card), oklch(from var(--card) calc(l + 0.01) c h));
+}
+
+/* Status indicator improvements */
+.status-indicator {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  display: inline-block;
+  animation: pulse 2s infinite;
+}
+
+.status-online {
+  background-color: oklch(0.6 0.25 140);
+}
+
+.status-offline {
+  background-color: oklch(0.6 0.25 15);
+}
+
+.status-warning {
+  background-color: oklch(0.7 0.2 45);
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.7; }
 }
