@@ -9,6 +9,30 @@ import {
   Users,
   UserCheck
 } from '@phosphor-icons/react';
+import { useKV } from '@github/spark/hooks';
+import { useAuth } from '@/lib/auth-provider';
+import { CorpSettings } from '@/lib/types';
+import { toast } from 'sonner';
+import { eveApi, type CharacterInfo, type CorporationInfo } from '@/lib/eveApi';
+import { useSDEManager, type SDEDatabaseStats } from '@/lib/sdeService';
+import { DatabaseManager } from '@/lib/database';
+import { 
+  useGeneralSettings, 
+  useDatabaseSettings, 
+  useESISettings, 
+  useSDESettings, 
+  useSyncSettings, 
+  useNotificationSettings, 
+  useIncomeSettings, 
+  useApplicationData,
+  useManualUsers,
+  useCorporationData,
+  backupSettings,
+  exportAllSettings,
+  importAllSettings,
+  resetAllSettings,
+  validateSettings
+} from '@/lib/persistenceService';
 
 // Import the new modular settings components
 import { GeneralSettings } from '@/components/settings/GeneralSettings';
