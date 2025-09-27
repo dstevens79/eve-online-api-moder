@@ -239,23 +239,8 @@ export function canAccessSettingsTab(user: LMeveUser | null, settingsTab: string
     case 'database':
       return hasPermission(user, 'canManageDatabase');
       
-    case 'sde':
-      return hasPermission(user, 'canManageSystem') || hasPermission(user, 'canManageDatabase');
-      
-    case 'esi':
-      return hasPermission(user, 'canConfigureESI');
-      
     case 'sync':
       return hasPermission(user, 'canManageCorp') || hasPermission(user, 'canManageSystem');
-      
-    case 'notifications':
-      return hasPermission(user, 'canManageCorp');
-      
-    case 'users':
-      return hasPermission(user, 'canManageUsers');
-      
-    case 'debug':
-      return hasPermission(user, 'canManageSystem');
       
     default:
       return false;

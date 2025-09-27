@@ -323,11 +323,7 @@ function AppContent() {
   const settingsTabs = [
     { id: 'general', label: 'General', icon: Globe },
     { id: 'database', label: 'Database', icon: Database },
-    { id: 'esi', label: 'ESI Config', icon: Building },
     { id: 'sync', label: 'Data Sync', icon: Clock },
-    { id: 'notifications', label: 'Notifications', icon: Bell },
-    { id: 'users', label: 'Users', icon: Users },
-    { id: 'debug', label: 'Debug', icon: UserCheck },
   ];
 
   const handleTabChange = (value: string) => {
