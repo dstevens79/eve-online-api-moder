@@ -59,14 +59,12 @@ interface NotificationEvent {
 }
 
 export function NotificationSettings({ isMobileView = false }: NotificationSettingsProps) {
-  const [notificationSettings, setNotificationSettings] = useNotificationSettings();
-
-  // Update function
-  const updateNotificationSettings = (updates: Partial<typeof notificationSettings>) => {
-    if (notificationSettings) {
-      setNotificationSettings(prev => ({ ...prev, ...updates }));
-    }
-  };
+  const { 
+    settings: notificationSettings, 
+    updateSettings: updateNotificationSettings, 
+    saveSettings: saveNotificationSettings,
+    loadSettings: loadNotificationSettings
+  } = useNotificationSettings();
 
   // Discord webhook management
   const [discordWebhooks, setDiscordWebhooks] = useState<DiscordWebhook[]>([]);
@@ -149,18 +147,18 @@ export function NotificationSettings({ isMobileView = false }: NotificationSetti
 
   // Load settings on component mount
   useEffect(() => {
-    // Settings are loaded automatically by useKV
+    loadNotificationSettings();
     loadWebhooks();
     loadEVEMailConfigs();
   }, []);
 
   const loadWebhooks = () => {
-    const webhooks = notificationSettings?.discordWebhooks || [];
+    const webhooks = notificationSettings.discordWebhooks || [];
     setDiscordWebhooks(webhooks);
   };
 
   const loadEVEMailConfigs = () => {
-    const configs = notificationSettings?.eveMailConfigs || [];
+    const configs = notificationSettings.eveMailConfigs || [];
     setEVEMailConfigs(configs);
   };
 
@@ -254,11 +252,12 @@ export function NotificationSettings({ isMobileView = false }: NotificationSetti
 
   const handleSaveSettings = async () => {
     try {
-      updateNotificationSettings({
+      await updateNotificationSettings({
         discordWebhooks,
         eveMailConfigs,
         notificationEvents
       });
+      await saveNotificationSettings();
       toast.success('Notification settings saved successfully');
     } catch (error) {
       toast.error('Failed to save notification settings');

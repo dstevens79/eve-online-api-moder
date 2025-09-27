@@ -59,12 +59,13 @@ interface ESICharacter {
 
 export function UserSettings({ isMobileView = false }: UserSettingsProps) {
   const { user: currentUser, getRegisteredCorporations } = useAuth();
-  const [manualUsers, setManualUsers] = useManualUsers();
-
-  // Update function
-  const updateManualUsers = (updates: { users: any[] }) => {
-    setManualUsers(updates.users);
-  };
+  
+  const { 
+    settings: manualUsers, 
+    updateSettings: updateManualUsers, 
+    saveSettings: saveManualUsers,
+    loadSettings: loadManualUsers
+  } = useManualUsers();
 
   // User management state
   const [users, setUsers] = useState<ManualUser[]>([]);
@@ -85,7 +86,7 @@ export function UserSettings({ isMobileView = false }: UserSettingsProps) {
 
   // Load settings and data on component mount
   useEffect(() => {
-    // Settings are loaded automatically by useKV
+    loadManualUsers();
     loadUsers();
     loadESICharacters();
   }, []);
@@ -239,8 +240,13 @@ export function UserSettings({ isMobileView = false }: UserSettingsProps) {
     toast.success('Password copied to clipboard');
   };
 
-  const handleSaveSettings = () => {
-    toast.success('User settings saved successfully');
+  const handleSaveSettings = async () => {
+    try {
+      await saveManualUsers();
+      toast.success('User settings saved successfully');
+    } catch (error) {
+      toast.error('Failed to save user settings');
+    }
   };
 
   const getRoleBadgeVariant = (role: string) => {

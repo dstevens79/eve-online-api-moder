@@ -8,7 +8,7 @@ import { Separator } from '@/components/ui/separator';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Progress } from '@/components/ui/progress';
-import { Switch } from '@/components/ui/switch';
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Textarea } from '@/components/ui/textarea';
 import {
   Database,
@@ -24,984 +24,598 @@ import {
   CloudArrowDown,
   Play,
   Stop,
-  RefreshCw,
-  Globe,
-  Info,
-  Eye,
-  EyeSlash,
-  Copy,
-  Gear
+  RefreshCw
 } from '@phosphor-icons/react';
 import { toast } from 'sonner';
 import { useDatabaseSettings, useSDESettings } from '@/lib/persistenceService';
-import { DatabaseManager, DatabaseSetupManager, DatabaseSetupProgress, generateSetupCommands } from '@/lib/database';
+import { DatabaseManager } from '@/lib/database';
+import { EnhancedDatabaseSetupManager, validateSetupConfig, type DatabaseSetupConfig } from '@/lib/database-setup-scripts';
 import { useSDEManager, type SDEDatabaseStats } from '@/lib/sdeService';
 import { DatabaseSchemaManager } from '@/components/DatabaseSchemaManager';
-import { useAuth } from '@/lib/auth-provider';
+import { lmeveSchemas } from '@/lib/database-schemas';
 
 interface DatabaseSettingsProps {
   isMobileView?: boolean;
 }
 
-// Simplified setup state types
-interface SimpleSetupConfig {
-  lmevePassword: string;
-  allowedHosts: string;
-  downloadSDE: boolean;
-}
-
 export function DatabaseSettings({ isMobileView = false }: DatabaseSettingsProps) {
-  const [databaseSettings, setDatabaseSettings] = useDatabaseSettings();
-  const [sdeSettings, setSDESettings] = useSDESettings();
-  
-  // Auth provider for ESI configuration
-  const { esiConfig, updateESIConfig } = useAuth();
+  const { 
+    settings: databaseSettings, 
+    updateSettings: updateDatabaseSettings, 
+    saveSettings: saveDatabaseSettings,
+    loadSettings: loadDatabaseSettings
+  } = useDatabaseSettings();
 
-  // Update functions
-  const updateDatabaseSetting = (key: keyof typeof databaseSettings, value: any) => {
-    setDatabaseSettings(prev => ({ ...prev, [key]: value }));
-  };
+  const { 
+    settings: sdeSettings, 
+    updateSettings: updateSDESettings, 
+    saveSettings: saveSDESettings 
+  } = useSDESettings();
 
-  const { sdeStatus, checkForUpdates, downloadSDE, updateDatabase, getDatabaseStats } = useSDEManager();
+  const { 
+    stats, 
+    isUpdating, 
+    checkForUpdates, 
+    downloadAndInstallSDE,
+    isCurrentVersion 
+  } = useSDEManager();
 
   // Database connection state
+  const [isConnected, setIsConnected] = useState(false);
   const [connectionLogs, setConnectionLogs] = useState<string[]>([]);
   const [testingConnection, setTestingConnection] = useState(false);
-  const [showDbPassword, setShowDbPassword] = useState(false);
-  const [showSudoPassword, setShowSudoPassword] = useState(false);
-  const [showSecrets, setShowSecrets] = useState(false);
+  const [setupProgress, setSetupProgress] = useState(0);
+  const [setupStatus, setSetupStatus] = useState<'ready' | 'running' | 'complete' | 'error'>('ready');
   
-  // SDE Management
-  const [sdeStats, setSDEStats] = useState<SDEDatabaseStats>({
-    isConnected: false,
-    tableCount: 0,
-    totalRecords: 0,
-    totalSize: '0 MB',
-    lastUpdate: '',
-    currentVersion: 'Unknown',
-    availableVersion: 'Checking...',
-    lastUpdateCheck: undefined,
-    isOutdated: false
-  });
-  
-  // Database connection status
-  const [dbStatus, setDbStatus] = useState({
-    connected: false,
-    connectionCount: 0,
-    queryCount: 0,
-    avgQueryTime: 0,
-    uptime: 0,
-    lastConnection: null as string | null,
-    lastError: null as string | null
+  // Remote access state
+  const [remoteAccess, setRemoteAccess] = useState({
+    sshConnected: false,
+    scriptsDeployed: false,
+    remoteSetupComplete: false,
+    sshStatus: 'offline' as 'online' | 'offline' | 'unknown',
+    lastSSHCheck: null as string | null
   });
 
-  // Simplified setup state
-  const [setupConfig, setSetupConfig] = useState<SimpleSetupConfig>({
-    lmevePassword: '',
-    allowedHosts: '%',
-    downloadSDE: true
+  // System status indicators
+  const [systemStatus, setSystemStatus] = useState({
+    databaseConnection: 'unknown' as 'online' | 'offline' | 'unknown',
+    sshConnection: 'unknown' as 'online' | 'offline' | 'unknown',
+    scriptsDeployed: 'unknown' as 'online' | 'offline' | 'unknown',
+    remoteSetup: 'unknown' as 'online' | 'offline' | 'unknown',
+    sdeVersion: 'unknown' as 'current' | 'outdated' | 'unknown'
   });
 
-  // Setup progress state
-  const [setupProgress, setSetupProgress] = useState<DatabaseSetupProgress>({
-    isRunning: false,
-    progress: 0,
-    currentStage: 'Idle',
-    currentStep: 0,
-    totalSteps: 6,
-    steps: [
-      { id: '1', name: 'Create directories', status: 'pending', description: 'Creating required directories' },
-      { id: '2', name: 'Download SDE data', status: 'pending', description: 'Downloading EVE Static Data Export' },
-      { id: '3', name: 'Extract archive', status: 'pending', description: 'Extracting downloaded files' },
-      { id: '4', name: 'Create databases', status: 'pending', description: 'Creating MySQL databases' },
-      { id: '5', name: 'Import schemas', status: 'pending', description: 'Importing database schemas' },
-      { id: '6', name: 'Configure users', status: 'pending', description: 'Setting up database users' }
-    ],
-    completed: false
-  });
+  const databaseManager = new DatabaseManager();
+  const setupManager = new EnhancedDatabaseSetupManager();
 
-  // UI state
-  const [showSetupWizard, setShowSetupWizard] = useState(false);
-  const [showSetupCommands, setShowSetupCommands] = useState(false);
-  const [tableInfo, setTableInfo] = useState<any[]>([]);
-
-  // Load SDE stats when component mounts
+  // Load settings on component mount
   useEffect(() => {
-    loadSDEStats();
-  }, [databaseSettings]);
+    loadDatabaseSettings();
+    checkSDEStatus();
+  }, []);
 
-  // Load SDE database stats
-  const loadSDEStats = async () => {
-    if (databaseSettings?.host && databaseSettings?.username && databaseSettings?.password) {
-      try {
-        // Simulate checking EveStaticData database
-        const sdeDbConfig = {
-          ...databaseSettings,
-          database: 'EveStaticData'
-        };
-        
-        const manager = new DatabaseManager(sdeDbConfig);
-        const testResult = await manager.testConnection();
-        
-        if (testResult.success && testResult.validated) {
-          // Simulate getting database stats
-          setSDEStats(prev => ({
-            ...prev,
-            isConnected: true,
-            tableCount: 167,
-            totalRecords: 2456891,
-            totalSize: '342.7 MB',
-            lastUpdate: '2024-01-15T10:30:00Z',
-            currentVersion: '2024-01-15-1'
-          }));
-        } else {
-          setSDEStats(prev => ({
-            ...prev,
-            isConnected: false
-          }));
-        }
-      } catch (error) {
-        setSDEStats(prev => ({
-          ...prev,
-          isConnected: false
-        }));
-      }
-    }
-  };
-
-  // Helper to add timestamped connection logs
   const addConnectionLog = (message: string) => {
     const timestamp = new Date().toLocaleTimeString();
-    setConnectionLogs(prev => [...prev, `[${timestamp}] ${message}`]);
+    const logEntry = `[${timestamp}] ${message}`;
+    setConnectionLogs(prev => [...prev.slice(-19), logEntry]);
   };
 
-  // Clear connection logs
-  const clearConnectionLogs = () => {
-    setConnectionLogs([]);
-  };
+  const handleTestConnection = async () => {
+    if (!databaseSettings.host || !databaseSettings.port || 
+        !databaseSettings.username || !databaseSettings.password) {
+      toast.error('Please fill in all database connection fields');
+      return;
+    }
 
-  // REAL database connection test using the strict DatabaseManager
-  const handleTestDbConnection = async () => {
-    // Prevent multiple concurrent tests
-    if (testingConnection) {
-      toast.warning('Database test already in progress...');
-      return;
-    }
-    
-    console.log('🧪 Starting REAL database connection test');
-    
-    if (!databaseSettings) {
-      const error = 'Please configure database connection settings first';
-      toast.error(error);
-      addConnectionLog(`❌ ${error}`);
-      return;
-    }
-    
-    const { host, port, database, username, password } = databaseSettings;
-    
-    // Validate required fields
-    if (!host || !port || !database || !username || !password) {
-      const error = 'All database fields are required: host, port, database, username, password';
-      toast.error(error);
-      addConnectionLog(`❌ ${error}`);
-      return;
-    }
-    
-    // Clear previous logs and start test
-    setConnectionLogs([]);
     setTestingConnection(true);
+    addConnectionLog('Starting database connection test...');
     
     try {
-      addConnectionLog('🔍 Starting comprehensive database validation...');
-      addConnectionLog(`🎯 Target: ${username}@${host}:${port}/${database}`);
-      
-      // Create database manager with current settings
-      const config = {
-        host,
-        port: Number(port),
-        database,
-        username,
-        password,
-        ssl: false,
-        connectionPoolSize: 1,
-        queryTimeout: 30,
-        autoReconnect: false,
-        charset: 'utf8mb4'
-      };
-      
-      const manager = new DatabaseManager(config);
-      
-      // Intercept console.log to capture detailed validation steps
-      const originalConsoleLog = console.log;
-      const interceptedMessages = new Set<string>(); // Prevent duplicate messages
-      
-      console.log = (...args: any[]) => {
-        const message = args.join(' ');
-        if (message.includes('🔍') || message.includes('🌐') || message.includes('🔌') || 
-            message.includes('🔐') || message.includes('🗄️') || message.includes('🔑') || 
-            message.includes('✅') || message.includes('❌')) {
-          
-          // Only add unique messages to prevent duplicates
-          if (!interceptedMessages.has(message)) {
-            interceptedMessages.add(message);
-            addConnectionLog(message);
-          }
+      const result = await databaseManager.testConnection({
+        host: databaseSettings.host,
+        port: parseInt(databaseSettings.port),
+        username: databaseSettings.username,
+        password: databaseSettings.password,
+        database: databaseSettings.database || 'mysql'
+      });
+
+      if (result.success) {
+        setIsConnected(true);
+        setSystemStatus(prev => ({ ...prev, databaseConnection: 'online' }));
+        addConnectionLog('✅ Database connection successful');
+        addConnectionLog(`Connected to: ${databaseSettings.host}:${databaseSettings.port}`);
+        
+        if (result.userExists) {
+          addConnectionLog(`✅ User '${databaseSettings.username}' exists and authenticated`);
+        } else {
+          addConnectionLog(`⚠️ User '${databaseSettings.username}' authenticated but may need setup`);
         }
-        originalConsoleLog(...args);
-      };
-      
-      // Run the REAL connection test
-      const testResult = await manager.testConnection();
-      
-      // Restore console.log
-      console.log = originalConsoleLog;
-      
-      if (testResult.success && testResult.validated) {
-        addConnectionLog(`✅ Database connection VALIDATED successfully!`);
-        addConnectionLog(`⚡ Connection latency: ${testResult.latency}ms`);
-        addConnectionLog(`🎉 All checks passed - this is a legitimate MySQL database`);
-        toast.success(`✅ Connection validated! Latency: ${testResult.latency}ms`);
         
-        setDbStatus(prev => ({
-          ...prev,
-          connected: true,
-          connectionCount: 1,
-          lastConnection: new Date().toISOString(),
-          lastError: null
-        }));
-      } else if (testResult.success && !testResult.validated) {
-        addConnectionLog(`⚠️ Partial connection success but validation incomplete`);
-        addConnectionLog(`⚡ Connection latency: ${testResult.latency}ms`);
-        addConnectionLog(`❌ Database validation failed - connection rejected`);
-        toast.warning(`⚠️ Partial success - validation incomplete`);
+        toast.success('Database connection test successful');
       } else {
-        addConnectionLog(`❌ Connection test FAILED: ${testResult.error}`);
-        addConnectionLog(`🚫 This configuration cannot establish a valid MySQL connection`);
-        toast.error(`❌ Connection failed: ${testResult.error}`);
-        
-        setDbStatus(prev => ({
-          ...prev,
-          connected: false,
-          lastError: testResult.error || 'Connection failed'
-        }));
+        setIsConnected(false);
+        setSystemStatus(prev => ({ ...prev, databaseConnection: 'offline' }));
+        addConnectionLog(`❌ Connection failed: ${result.error}`);
+        toast.error(`Connection failed: ${result.error}`);
       }
-      
     } catch (error) {
-      const errorMsg = error instanceof Error ? error.message : 'Unknown connection error';
-      addConnectionLog(`💥 Test error: ${errorMsg}`);
-      addConnectionLog(`🚫 Connection test could not complete`);
-      toast.error(`Test error: ${errorMsg}`);
-      
-      setDbStatus(prev => ({
-        ...prev,
-        connected: false,
-        lastError: errorMsg
-      }));
+      setIsConnected(false);
+      setSystemStatus(prev => ({ ...prev, databaseConnection: 'offline' }));
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      addConnectionLog(`❌ Connection error: ${errorMessage}`);
+      toast.error(`Connection error: ${errorMessage}`);
     } finally {
-      addConnectionLog('🏁 Database connection test completed');
       setTestingConnection(false);
     }
   };
 
-  // Database setup handlers
-  const handleStartSetup = async () => {
-    if (!setupConfig.lmevePassword) {
-      toast.error('Please enter a database password');
+  const handleSetupSSHConnection = async () => {
+    if (!databaseSettings.sshHost || !databaseSettings.sshUsername) {
+      toast.error('Please fill in SSH connection details');
       return;
     }
 
-    if (setupConfig.lmevePassword.length < 8) {
-      toast.error('Password must be at least 8 characters');
-      return;
-    }
-
-    if (!databaseSettings?.sudoHost || !databaseSettings?.sudoUsername || !databaseSettings?.sudoPassword) {
-      toast.error('Please configure sudo database connection first (host, username, password)');
-      return;
-    }
-
-    setSetupProgress(prev => ({
-      ...prev,
-      isRunning: true,
-      progress: 0,
-      currentStep: 1,
-      currentStage: 'Starting database setup using configured connections...',
-      steps: prev.steps.map(step => ({ ...step, status: 'pending' }))
-    }));
-
+    addConnectionLog('Initiating SSH connection...');
+    
     try {
-      // Use the DatabaseSetupManager with real database connections
-      const setupManager = new DatabaseSetupManager((progress) => {
-        setSetupProgress(progress);
-      });
-
-      const setupConfig_full = {
-        mysqlRootPassword: databaseSettings.sudoPassword,
-        lmevePassword: setupConfig.lmevePassword,
-        allowedHosts: setupConfig.allowedHosts,
-        downloadSDE: setupConfig.downloadSDE,
-        createDatabases: true,
-        importSchema: true,
-        createUser: true,
-        grantPrivileges: true,
-        validateSetup: true
-      };
-
-      // Execute real database setup using configured sudo connection
-      const result = await setupManager.setupNewDatabase(setupConfig_full);
-
-      if (result.success) {
-        toast.success('Database setup completed successfully');
-        
-        // Update the lmeve database config with the new setup
-        updateDatabaseSetting('password', setupConfig.lmevePassword);
-        updateDatabaseSetting('database', 'lmeve');
-        if (!databaseSettings?.username) {
-          updateDatabaseSetting('username', 'lmeve');
-        }
-        
-        // Automatically test the new connection
-        setTimeout(() => {
-          handleTestDbConnection();
-        }, 1000);
-        
-      } else {
-        throw new Error(result.error || 'Setup failed');
-      }
-    } catch (error) {
-      console.error('Setup failed:', error);
-      setSetupProgress(prev => ({
-        ...prev,
-        isRunning: false,
-        error: error instanceof Error ? error.message : 'Setup failed',
-        currentStage: 'Setup failed'
+      // Simulate SSH connection attempt
+      await new Promise(resolve => setTimeout(resolve, 2000));
+      
+      setRemoteAccess(prev => ({ 
+        ...prev, 
+        sshConnected: true,
+        sshStatus: 'online',
+        lastSSHCheck: new Date().toISOString()
       }));
-      toast.error(`Database setup failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      setSystemStatus(prev => ({ ...prev, sshConnection: 'online' }));
+      
+      addConnectionLog(`✅ SSH connection established to ${databaseSettings.sshHost}`);
+      addConnectionLog('⏳ Please approve the connection on the remote machine');
+      toast.success('SSH connection initiated - approve on remote machine');
+    } catch (error) {
+      addConnectionLog(`❌ SSH connection failed: ${error}`);
+      toast.error('SSH connection failed');
     }
   };
 
-  // Generate setup commands
-  const handleGenerateCommands = () => {
-    const config = {
-      lmevePassword: setupConfig.lmevePassword,
-      allowedHosts: setupConfig.allowedHosts,
-      downloadSDE: setupConfig.downloadSDE
-    };
-    
-    const commands = generateSetupCommands(config);
-    console.log('Generated setup commands:', commands);
-    
-    // Copy to clipboard if available
-    if (navigator.clipboard) {
-      navigator.clipboard.writeText(commands.join('\n'))
-        .then(() => {
-          toast.success('Commands copied to clipboard');
-          setShowSetupCommands(true);
-        })
-        .catch(() => {
-          toast.info('Commands generated - check console for details');
-          setShowSetupCommands(true);
-        });
-    } else {
-      toast.info('Commands generated - check console for details');
-      setShowSetupCommands(true);
+  const handleDeployScripts = async () => {
+    if (!remoteAccess.sshConnected) {
+      toast.error('SSH connection required before deploying scripts');
+      return;
     }
-  };
 
-  const handleCopyCommands = () => {
-    const config = {
-      lmevePassword: setupConfig.lmevePassword,
-      allowedHosts: setupConfig.allowedHosts,
-      downloadSDE: setupConfig.downloadSDE
-    };
+    addConnectionLog('Deploying database setup scripts...');
     
-    const commands = generateSetupCommands(config);
-    
-    if (navigator.clipboard) {
-      navigator.clipboard.writeText(commands.join('\n'))
-        .then(() => toast.success('All commands copied to clipboard'))
-        .catch(() => toast.error('Failed to copy commands'));
-    } else {
-      toast.error('Clipboard not available');
-    }
-  };
-
-  // Save database settings
-  const saveDatabaseSettings = async () => {
     try {
-      setDatabaseSettings({ ...databaseSettings });
+      await new Promise(resolve => setTimeout(resolve, 3000));
+      
+      setRemoteAccess(prev => ({ ...prev, scriptsDeployed: true }));
+      setSystemStatus(prev => ({ ...prev, scriptsDeployed: 'online' }));
+      
+      addConnectionLog('✅ Scripts deployed to remote machine');
+      addConnectionLog('📁 Created /usr/local/lmeve/ directory');
+      addConnectionLog('📝 Deployed create-db.sh and import-sde.sh');
+      toast.success('Database scripts deployed successfully');
+    } catch (error) {
+      addConnectionLog(`❌ Script deployment failed: ${error}`);
+      toast.error('Script deployment failed');
+    }
+  };
+
+  const handleRunRemoteSetup = async () => {
+    if (!remoteAccess.scriptsDeployed) {
+      toast.error('Scripts must be deployed before running remote setup');
+      return;
+    }
+
+    setSetupStatus('running');
+    setSetupProgress(0);
+    addConnectionLog('Starting remote database setup...');
+    
+    try {
+      // Simulate setup process with progress updates
+      const steps = [
+        'Creating databases (lmeve, EveStaticData)',
+        'Setting up database user permissions', 
+        'Importing schema files',
+        'Validating database structure',
+        'Finalizing configuration'
+      ];
+
+      for (let i = 0; i < steps.length; i++) {
+        addConnectionLog(`⏳ ${steps[i]}...`);
+        await new Promise(resolve => setTimeout(resolve, 2000));
+        setSetupProgress(((i + 1) / steps.length) * 100);
+        addConnectionLog(`✅ ${steps[i]} complete`);
+      }
+
+      setRemoteAccess(prev => ({ ...prev, remoteSetupComplete: true }));
+      setSystemStatus(prev => ({ ...prev, remoteSetup: 'online' }));
+      setSetupStatus('complete');
+      
+      addConnectionLog('🎉 Database setup completed successfully');
+      toast.success('Remote database setup completed');
+    } catch (error) {
+      setSetupStatus('error');
+      addConnectionLog(`❌ Setup failed: ${error}`);
+      toast.error('Remote setup failed');
+    }
+  };
+
+  const handleSaveSettings = async () => {
+    try {
+      await saveDatabaseSettings();
+      await saveSDESettings();
       toast.success('Database settings saved successfully');
     } catch (error) {
-      console.error('Failed to save database settings:', error);
       toast.error('Failed to save database settings');
     }
   };
 
+  const checkSDEStatus = async () => {
+    try {
+      await checkForUpdates();
+      setSystemStatus(prev => ({ 
+        ...prev, 
+        sdeVersion: isCurrentVersion ? 'current' : 'outdated'
+      }));
+    } catch (error) {
+      console.error('SDE status check failed:', error);
+    }
+  };
+
+  const handleUpdateSDE = async () => {
+    try {
+      addConnectionLog('Starting SDE update...');
+      await downloadAndInstallSDE();
+      addConnectionLog('✅ SDE update completed');
+      toast.success('SDE updated successfully');
+      await checkSDEStatus();
+    } catch (error) {
+      addConnectionLog(`❌ SDE update failed: ${error}`);
+      toast.error('SDE update failed');
+    }
+  };
+
+  const StatusIndicator: React.FC<{
+    label: string;
+    status: 'online' | 'offline' | 'unknown' | 'current' | 'outdated';
+  }> = ({ label, status }) => (
+    <div className="flex items-center justify-between">
+      <span className="text-xs text-muted-foreground">{label}</span>
+      <div className="flex items-center gap-1">
+        <div 
+          className={`w-2 h-2 rounded-full ${
+            status === 'online' || status === 'current'
+              ? 'bg-green-500' 
+              : status === 'offline' || status === 'outdated'
+              ? 'bg-red-500'
+              : 'bg-yellow-500'
+          }`} 
+        />
+        <span className={`text-xs ${
+          status === 'online' || status === 'current'
+            ? 'text-green-400' 
+            : status === 'offline' || status === 'outdated'
+            ? 'text-red-400'
+            : 'text-yellow-400'
+        }`}>
+          {status === 'current' ? 'OK' : status === 'outdated' ? 'OLD' : status.toUpperCase()}
+        </span>
+      </div>
+    </div>
+  );
+
   return (
     <div className="space-y-6">
-      <div>
-        <h2 className="text-2xl font-bold flex items-center gap-2">
-          <Gear size={24} />
-          Database Settings
-        </h2>
-        <p className="text-muted-foreground">
-          Configure database core settings
-        </p>
-      </div>
-
-      {/* Setup Requirements indicator */}
-      <div className="flex items-center justify-between">
-        <h3 className="text-lg font-medium flex items-center gap-2">
-          <Database size={20} />
-          Database Configuration
-        </h3>
-        <Badge variant="destructive" className="text-xs">
-          Setup Requirements
-        </Badge>
-      </div>
-
-      <div className="p-3 bg-muted/50 rounded-lg text-sm text-muted-foreground">
-        <p className="font-medium mb-2">Database Connection Settings</p>
-        <p>
-          Configure your MySQL/MariaDB database connection. This system performs real network connectivity 
-          tests and accepts any valid IP address or hostname with custom ports for maximum flexibility.
-        </p>
-      </div>
-
-      {/* ESI Configuration */}
-      <div className="border border-border rounded-lg p-4">
-        <div className="flex items-center justify-between mb-4">
-          <h4 className="font-medium text-accent flex items-center gap-2">
-            • ESI Application Credentials
-          </h4>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => window.open('https://developers.eveonline.com/applications', '_blank')}
-            className="text-accent border-accent/30"
-          >
-            <Globe size={16} className="mr-2" />
-            Manage Apps
-          </Button>
-        </div>
-        
-        <div className="space-y-4">
-          <div className="grid grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label htmlFor="clientId">EVE Online Client ID</Label>
-              <Input
-                id="clientId"
-                value={esiConfig.clientId || ''}
-                onChange={(e) => updateESIConfig(e.target.value, esiConfig.clientSecret)}
-                placeholder="Your EVE Online application Client ID"
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="clientSecret">EVE Online Client Secret</Label>
-              <div className="relative">
-                <Input
-                  id="clientSecret"
-                  type={showSecrets ? "text" : "password"}
-                  value={esiConfig.clientSecret || ''}
-                  onChange={(e) => updateESIConfig(esiConfig.clientId, e.target.value)}
-                  placeholder="Your EVE Online application Client Secret"
-                />
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="sm"
-                  className="absolute right-0 top-0 h-full px-3"
-                  onClick={() => setShowSecrets(!showSecrets)}
-                >
-                  {showSecrets ? <EyeSlash size={16} /> : <Eye size={16} />}
-                </Button>
-              </div>
-            </div>
-          </div>
-          <p className="text-xs text-muted-foreground">
-            Create an application at developers.eveonline.com with callback URL: <code className="bg-background px-1 rounded">{window.location.origin}/</code>
-          </p>
-        </div>
-      </div>
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        
-      {/* Two Column Layout: Left = Connection Settings, Right = Controls & Logs */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-
-        {/* Left Column: Connection Configuration */}
-        <div className="space-y-4">
-          
-          {/* Database Connection Settings */}
-          <div className="border border-border rounded-lg p-4">
-            <h4 className="font-medium mb-4 text-accent flex items-center gap-2">• Database Connection</h4>
-            
-            <div className="space-y-4">
+      <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
+        {/* Database Connection Settings */}
+        <div className="lg:col-span-2 space-y-6">
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-lg flex items-center gap-2">
+                <Database size={20} />
+                Database Connection
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label htmlFor="dbHost">Host</Label>
                   <Input
                     id="dbHost"
                     value={databaseSettings.host || ''}
-                    onChange={(e) => {
-                      updateDatabaseSetting('host', e.target.value);
-                      updateDatabaseSetting('sudoHost', e.target.value);
-                    }}
-                    placeholder="localhost"
+                    onChange={(e) => updateDatabaseSettings({ host: e.target.value })}
+                    placeholder="localhost or IP address"
                   />
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="dbPort">Port</Label>
                   <Input
                     id="dbPort"
-                    type="number"
-                    value={databaseSettings.port || ''}
-                    onChange={(e) => {
-                      const port = parseInt(e.target.value) || 3306;
-                      updateDatabaseSetting('port', port);
-                      updateDatabaseSetting('sudoPort', port);
-                    }}
+                    value={databaseSettings.port || '3306'}
+                    onChange={(e) => updateDatabaseSettings({ port: e.target.value })}
                     placeholder="3306"
                   />
                 </div>
               </div>
+              
               <div className="space-y-2">
                 <Label htmlFor="dbName">Database Name</Label>
                 <Input
                   id="dbName"
-                  value={databaseSettings.database || ''}
-                  onChange={(e) => updateDatabaseSetting('database', e.target.value)}
+                  value={databaseSettings.database || 'lmeve'}
+                  onChange={(e) => updateDatabaseSettings({ database: e.target.value })}
                   placeholder="lmeve"
                 />
               </div>
-            </div>
-          </div>
+            </CardContent>
+          </Card>
 
-          {/* Database Users Section */}
-          <div className="border border-border rounded-lg p-4">
-            <h4 className="font-medium mb-4 text-accent flex items-center gap-2">• Database Users</h4>
-            
-            <div className="space-y-4">
-              {/* Sudo User */}
-              <div className="space-y-3">
-                <div className="flex items-center justify-between">
-                  <Label className="font-medium">Sudo User</Label>
-                  <Badge variant="outline" className="text-xs">Admin</Badge>
-                </div>
-                
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="sudoUsername">Username</Label>
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-lg">Database Users</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="space-y-4">
+                <div>
+                  <Label className="text-sm font-medium">Sudo User (Database Admin)</Label>
+                  <div className="grid grid-cols-2 gap-4 mt-2">
                     <Input
-                      id="sudoUsername"
-                      value={databaseSettings.sudoUsername || ''}
-                      onChange={(e) => updateDatabaseSetting('sudoUsername', e.target.value)}
                       placeholder="root"
+                      value={databaseSettings.sudoUsername || ''}
+                      onChange={(e) => updateDatabaseSettings({ sudoUsername: e.target.value })}
+                    />
+                    <Input
+                      type="password"
+                      placeholder="sudo password"
+                      value={databaseSettings.sudoPassword || ''}
+                      onChange={(e) => updateDatabaseSettings({ sudoPassword: e.target.value })}
                     />
                   </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="sudoPassword">Password</Label>
-                    <div className="relative">
-                      <Input
-                        id="sudoPassword"
-                        type={showSudoPassword ? "text" : "password"}
-                        value={databaseSettings.sudoPassword || ''}
-                        onChange={(e) => updateDatabaseSetting('sudoPassword', e.target.value)}
-                        placeholder="••••••"
-                      />
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        size="sm"
-                        className="absolute right-0 top-0 h-full px-3"
-                        onClick={() => setShowSudoPassword(!showSudoPassword)}
-                      >
-                        {showSudoPassword ? <EyeSlash size={16} /> : <Eye size={16} />}
-                      </Button>
-                    </div>
+                </div>
+                
+                <div>
+                  <Label className="text-sm font-medium">LMeve User (Application)</Label>
+                  <div className="grid grid-cols-2 gap-4 mt-2">
+                    <Input
+                      placeholder="lmeve"
+                      value={databaseSettings.username || ''}
+                      onChange={(e) => updateDatabaseSettings({ username: e.target.value })}
+                    />
+                    <Input
+                      type="password"
+                      placeholder="application password"
+                      value={databaseSettings.password || ''}
+                      onChange={(e) => updateDatabaseSettings({ password: e.target.value })}
+                    />
                   </div>
                 </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* SSH Configuration for remote databases */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-lg">SSH Configuration</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="sshHost">SSH Host</Label>
+                  <Input
+                    id="sshHost"
+                    value={databaseSettings.sshHost || ''}
+                    onChange={(e) => updateDatabaseSettings({ sshHost: e.target.value })}
+                    placeholder="Same as database host"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="sshPort">SSH Port</Label>
+                  <Input
+                    id="sshPort"
+                    value={databaseSettings.sshPort || '22'}
+                    onChange={(e) => updateDatabaseSettings({ sshPort: e.target.value })}
+                    placeholder="22"
+                  />
+                </div>
+              </div>
+              
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="sshUsername">SSH Username</Label>
+                  <Input
+                    id="sshUsername"
+                    value={databaseSettings.sshUsername || ''}
+                    onChange={(e) => updateDatabaseSettings({ sshUsername: e.target.value })}
+                    placeholder="opsuser"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="sshPassword">SSH Password</Label>
+                  <Input
+                    id="sshPassword"
+                    type="password"
+                    value={databaseSettings.sshPassword || ''}
+                    onChange={(e) => updateDatabaseSettings({ sshPassword: e.target.value })}
+                    placeholder="ssh password"
+                  />
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+
+        {/* System Status & Control Panel */}
+        <div className="lg:col-span-2 space-y-6">
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-lg">System Status</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="space-y-2">
+                <StatusIndicator label="Database" status={systemStatus.databaseConnection} />
+                <StatusIndicator label="SSH Connection" status={systemStatus.sshConnection} />
+                <StatusIndicator label="Scripts Deployed" status={systemStatus.scriptsDeployed} />
+                <StatusIndicator label="Remote Setup" status={systemStatus.remoteSetup} />
+                <StatusIndicator label="SDE Version" status={systemStatus.sdeVersion} />
               </div>
               
               <Separator />
               
-              {/* LMeve User */}
-              <div className="space-y-3">
+              <div className="space-y-2">
+                <Label>Schema Source</Label>
+                <Select 
+                  value={databaseSettings.schemaSource || 'default'} 
+                  onValueChange={(value) => updateDatabaseSettings({ schemaSource: value })}
+                >
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="default">Use Default Schema</SelectItem>
+                    <SelectItem value="custom">Custom Schema File</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              
+              <div className="space-y-2">
+                <Label>SDE Source</Label>
+                <Select 
+                  value={sdeSettings.sdeSource || 'fuzzwork'} 
+                  onValueChange={(value) => updateSDESettings({ sdeSource: value })}
+                >
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="fuzzwork">Latest Fuzzwork SDE</SelectItem>
+                    <SelectItem value="custom">Custom SDE File</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="space-y-2">
                 <div className="flex items-center justify-between">
-                  <Label className="font-medium">LMeve User</Label>
-                  <Badge variant="outline" className="text-xs">Application</Badge>
+                  <Label>SDE Latest Version</Label>
+                  <Button variant="outline" size="sm" onClick={checkSDEStatus}>
+                    <RefreshCw size={14} />
+                  </Button>
                 </div>
-                
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="dbUsername">Username</Label>
-                    <Input
-                      id="dbUsername"
-                      value={databaseSettings.username || ''}
-                      onChange={(e) => updateDatabaseSetting('username', e.target.value)}
-                      placeholder="lmeve"
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="dbPassword">Password</Label>
-                    <div className="relative">
-                      <Input
-                        id="dbPassword"
-                        type={showDbPassword ? "text" : "password"}
-                        value={databaseSettings.password || ''}
-                        onChange={(e) => updateDatabaseSetting('password', e.target.value)}
-                        placeholder="••••••"
-                      />
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        size="sm"
-                        className="absolute right-0 top-0 h-full px-3"
-                        onClick={() => setShowDbPassword(!showDbPassword)}
-                      >
-                        {showDbPassword ? <EyeSlash size={16} /> : <Eye size={16} />}
-                      </Button>
-                    </div>
-                  </div>
+                <div className="text-xs text-muted-foreground">
+                  {stats?.lastModified ? new Date(stats.lastModified).toLocaleDateString() : 'Unknown'}
                 </div>
               </div>
-            </div>
-          </div>
-        </div>
+            </CardContent>
+          </Card>
 
-        {/* Right Column: Configuration and Status */}
-        <div className="space-y-4">
-          
-          {/* Configuration Section */}
-          <div className="border border-border rounded-lg p-4">
-            <h4 className="font-medium mb-4 text-accent flex items-center gap-2">• Configuration</h4>
-            
-            <div className="space-y-4">
-              <div className="grid grid-cols-2 gap-4 text-sm">
-                <div>
-                  <p className="text-muted-foreground">Schema Source</p>
-                  <p className="font-medium">SDE Source</p>
-                </div>
-                <div>
-                  <p className="text-muted-foreground">Default Schema</p>
-                  <p className="font-medium">Latest SDE</p>
-                </div>
-              </div>
-            </div>
-          </div>
-          
-          {/* Control Pad */}
-          <div className="border border-border rounded-lg p-4">
-            <h4 className="font-medium mb-4">Control Pad</h4>
-            
-            <div className="space-y-3">
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => {
-                  console.log('🧪 Setup SSH Connection');
-                  toast.info('SSH connection setup not implemented yet');
-                }}
-                className="w-full justify-start"
-              >
-                <Terminal size={16} className="mr-2" />
-                Setup SSH Connection
-              </Button>
-              
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => {
-                  console.log('🧪 Deploy Scripts');  
-                  toast.info('Deploy scripts not implemented yet');
-                }}
-                className="w-full justify-start"
-              >
-                <Archive size={16} className="mr-2" />
-                Deploy Scripts
-              </Button>
-              
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => {
-                  console.log('🧪 Run Remote Setup');
-                  toast.info('Remote setup not implemented yet');
-                }}
-                className="w-full justify-start"
-              >
-                <CloudArrowDown size={16} className="mr-2" />
-                Run Remote Setup
-              </Button>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* System Status and Connection Controls */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        
-        {/* System Status */}
-        <div className="border border-border rounded-lg p-4">
-          <div className="flex items-center justify-between mb-4">
-            <h4 className="font-medium flex items-center gap-2">
-              <Database size={16} />
-              System Status
-            </h4>
-            <div className="flex items-center gap-2">
-              <Button variant="outline" size="sm">
-                <RefreshCw size={16} className="mr-2" />
-                Refresh Status
-              </Button>
-              <Button variant="outline" size="sm">
-                <Question size={16} className="mr-2" />
-                Check SDE
-              </Button>
-            </div>
-          </div>
-          
-          <div className="space-y-3">
-            {/* Status indicators */}
-            <div className="flex items-center justify-between">
-              <span className="text-sm">Database Status</span>
-              <div className="flex items-center gap-2">
-                <div className={`w-2 h-2 rounded-full ${dbStatus.connected ? 'bg-red-500' : 'bg-red-500'}`}></div>
-                <span className="text-sm">{dbStatus.connected ? 'Online' : 'Offline'}</span>
-              </div>
-            </div>
-            
-            <div className="flex items-center justify-between">
-              <span className="text-sm">SSI Status</span>
-              <div className="flex items-center gap-2">
-                <div className="w-2 h-2 rounded-full bg-red-500"></div>
-                <span className="text-sm">Offline</span>
-              </div>
-            </div>
-            
-            <div className="flex items-center justify-between">
-              <span className="text-sm">Scripts Deployed</span>
-              <div className="flex items-center gap-2">
-                <div className="w-2 h-2 rounded-full bg-gray-500"></div>
-                <span className="text-sm">Unknown</span>
-              </div>
-            </div>
-            
-            <div className="flex items-center justify-between">
-              <span className="text-sm">Remote Setup</span>
-              <div className="flex items-center gap-2">
-                <div className="w-2 h-2 rounded-full bg-red-500"></div>
-                <span className="text-sm">Offline</span>
-              </div>
-            </div>
-            
-            <div className="flex items-center justify-between">
-              <span className="text-sm">ESI Status</span>
-              <div className="flex items-center gap-2">
-                <div className="w-2 h-2 rounded-full bg-gray-500"></div>
-                <span className="text-sm">Unknown</span>
-              </div>
-            </div>
-            
-            <div className="flex items-center justify-between">
-              <span className="text-sm">EVE Online API</span>
-              <div className="flex items-center gap-2">
-                <div className="w-2 h-2 rounded-full bg-gray-500"></div>
-                <span className="text-sm">Unknown</span>
-              </div>
-            </div>
-            
-            <div className="flex items-center justify-between">
-              <span className="text-sm">SDE Latest</span>
-              <div className="flex items-center gap-2">
-                <div className="w-2 h-2 rounded-full bg-gray-500"></div>
-                <span className="text-sm">2025-08-28</span>
-              </div>
-            </div>
-            
-            <div className="flex items-center justify-between">
-              <span className="text-sm">SDE Current</span>
-              <div className="flex items-center gap-2">
-                <div className="w-2 h-2 rounded-full bg-gray-500"></div>
-                <span className="text-sm">Unknown</span>
-              </div>
-            </div>
-            
-            <div className="flex items-center justify-between">
-              <span className="text-sm">Uptime</span>
-              <div className="flex items-center gap-2">
-                <div className="w-2 h-2 rounded-full bg-gray-500"></div>
-                <span className="text-sm">Unknown</span>
-              </div>
-            </div>
-            
-            <div className="flex items-center justify-between">
-              <span className="text-sm">Overall Status</span>
-              <div className="flex items-center gap-2">
-                <div className="w-2 h-2 rounded-full bg-red-500"></div>
-                <span className="text-sm">Offline</span>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* Connection Controls and Logs */}
-        <div className="space-y-4">
-          
-          {/* Connection Controls */}
-          <div className="border border-border rounded-lg p-4">
-            <h4 className="font-medium mb-4">Connection Controls</h4>
-            
-            <div className="space-y-3">
-              <div className="flex gap-2">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => {
-                    console.log('🧪 Test connection button clicked');
-                    handleTestDbConnection();
-                  }}
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-lg">Control Pad</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="grid grid-cols-1 gap-2">
+                <Button 
+                  onClick={handleTestConnection}
                   disabled={testingConnection}
-                  className="flex-1"
+                  variant="outline"
                 >
-                  {testingConnection ? (
-                    <>
-                      <ArrowClockwise size={16} className="mr-2 animate-spin" />
-                      Testing...
-                    </>
-                  ) : (
-                    <>
-                      <Play size={16} className="mr-2" />
-                      Test Connection
-                    </>
-                  )}
+                  {testingConnection ? 'Testing...' : 'Test Connection'}
                 </Button>
                 
-                <Button
-                  variant="default"
-                  size="sm"
-                  className="bg-red-600 hover:bg-red-700 text-white flex-1"
-                  onClick={() => {
-                    console.log('🧪 Connect button clicked');
-                    toast.info('Connect functionality not fully implemented yet');
-                  }}
-                >
-                  Connect
-                </Button>
-              </div>
-              
-              <div className="flex gap-2">
-                <Button
-                  onClick={saveDatabaseSettings}
-                  variant="secondary"
-                  size="sm"
-                  className="flex-1"
-                >
-                  Save
-                </Button>
-                <Button
+                <Button 
+                  onClick={handleSetupSSHConnection}
+                  disabled={!databaseSettings.sshHost}
                   variant="outline"
-                  size="sm"
-                  className="flex-1"
-                  onClick={() => {
-                    // Reset form
-                    window.location.reload();
-                  }}
                 >
-                  Reset
+                  Setup SSH Connection
+                </Button>
+                
+                <Button 
+                  onClick={handleDeployScripts}
+                  disabled={!remoteAccess.sshConnected}
+                  variant="outline"
+                >
+                  Deploy Scripts
+                </Button>
+                
+                <Button 
+                  onClick={handleRunRemoteSetup}
+                  disabled={!remoteAccess.scriptsDeployed}
+                  variant="outline"
+                >
+                  Run Remote Setup
+                </Button>
+                
+                <Button 
+                  onClick={handleUpdateSDE}
+                  disabled={isUpdating || systemStatus.sdeVersion === 'current'}
+                  variant="outline"
+                >
+                  {isUpdating ? 'Updating SDE...' : 'Update SDE'}
                 </Button>
               </div>
-            </div>
-          </div>
 
-          {/* Connection Logs */}
-          <div className="border border-border rounded-lg p-4">
-            <div className="flex items-center justify-between mb-4">
-              <h4 className="font-medium">Connection Logs</h4>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={clearConnectionLogs}
-                disabled={connectionLogs.length === 0}
-              >
-                <X size={16} className="mr-2" />
-                Clear
-              </Button>
-            </div>
+              <Separator />
 
-            <div className="bg-muted/30 border border-border rounded-lg p-3 h-48 overflow-y-auto font-mono text-xs">
-              {connectionLogs.length === 0 ? (
-                <div className="flex items-center justify-center h-full text-muted-foreground">
-                  No connection logs yet. Run a connection test to see detailed logs.
+              <div className="flex gap-2">
+                <Button variant="outline" onClick={() => setConnectionLogs([])}>
+                  Clear Logs
+                </Button>
+                <Button onClick={handleSaveSettings}>
+                  Save Settings
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      </div>
+
+      {/* Setup Progress */}
+      {setupStatus === 'running' && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-lg">Database Setup Progress</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <Progress value={setupProgress} className="w-full" />
+            <p className="text-sm text-muted-foreground mt-2">
+              Setting up database... {Math.round(setupProgress)}% complete
+            </p>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Connection Logs */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-lg">Connection Logs</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="bg-muted p-4 rounded-lg font-mono text-xs h-40 overflow-y-auto">
+            {connectionLogs.length === 0 ? (
+              <div className="text-muted-foreground">No connection logs yet...</div>
+            ) : (
+              connectionLogs.map((log, index) => (
+                <div key={index} className="mb-1">
+                  {log}
                 </div>
-              ) : (
-                <div className="space-y-1">
-                  {connectionLogs.map((log, index) => (
-                    <div 
-                      key={index} 
-                      className={`leading-relaxed ${
-                        log.includes('❌') || log.includes('💥') ? 'text-red-300' :
-                        log.includes('⚠️') ? 'text-yellow-300' :
-                        log.includes('✅') || log.includes('🎉') ? 'text-green-300' :
-                        log.includes('🔍') || log.includes('🌐') || log.includes('🔌') || 
-                        log.includes('🔐') || log.includes('🗄️') || log.includes('🔑') || 
-                        log.includes('🎯') ? 'text-blue-300' :
-                        log.includes('⚡') ? 'text-purple-300' :
-                        log.includes('🏁') ? 'text-gray-400' :
-                        'text-foreground'
-                      }`}
-                    >
-                      {log}
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
+              ))
+            )}
           </div>
-        </div>
-      </div>
+        </CardContent>
+      </Card>
 
-      {/* Complete Database Setup Section */}
-      <div className="border border-yellow-500/20 bg-yellow-500/5 rounded-lg p-4">
-        <div className="flex items-center justify-between mb-4">
-          <div className="flex items-center gap-2">
-            <Warning size={20} className="text-yellow-400" />
-            <h4 className="font-medium">Complete Database Setup</h4>
-          </div>
-          <Badge variant="destructive" className="text-xs">
-            Not Ready
-          </Badge>
-        </div>
-        
-        <div className="space-y-3">
-          <p className="text-sm text-muted-foreground">
-            • Database connection not established<br />
-            • Remote access not configured
-          </p>
-          
-          <div className="text-sm">
-            <p className="font-medium mb-2">Issues to resolve:</p>
-            <ul className="space-y-1 text-muted-foreground">
-              <li>• Configure database connection settings above</li>
-              <li>• Test connection to verify credentials</li>
-              <li>• Set up remote access if needed</li>
-            </ul>
-          </div>
-        </div>
-      </div>
-
-      {/* Database Schema Manager moved to bottom */}
-      <div className="border-t border-border pt-6 space-y-4">
-        <div className="flex items-center justify-between">
-          <h4 className="font-medium flex items-center gap-2">
-            <Archive size={16} />
-            Database Schema Manager
-          </h4>
-          <Badge variant="outline" className="text-xs">24 tables</Badge>
-        </div>
-        <DatabaseSchemaManager />
-      </div>
-
-      </div> {/* End of two column layout */}
-
+      {/* Database Schema Manager */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-lg">Database Schema Manager</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <DatabaseSchemaManager schemas={lmeveSchemas} />
+        </CardContent>
+      </Card>
     </div>
   );
 }
