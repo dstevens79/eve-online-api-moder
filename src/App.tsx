@@ -383,10 +383,7 @@ function AppContent() {
   });
 
   return (
-    <AuthProvider>
-      <DatabaseProvider>
-        <LMeveDataProvider>
-          <div className="min-h-screen bg-background text-foreground">
+    <div className="min-h-screen bg-background text-foreground">
             <div className="flex">
               {/* Sidebar */}
               <div className={`${isMobileView ? 'fixed inset-y-0 left-0 z-50 w-64' : 'w-64'} ${isMobileView && !showMobileMenu ? '-translate-x-full' : ''} transition-transform duration-300 bg-card border-r border-border flex flex-col`}>
@@ -635,12 +632,17 @@ function AppContent() {
 
             <Toaster />
           </div>
-        </LMeveDataProvider>
-      </DatabaseProvider>
-    </AuthProvider>
   );
 }
 
 export default function App() {
-  return <AppContent />;
+  return (
+    <AuthProvider>
+      <DatabaseProvider>
+        <LMeveDataProvider>
+          <AppContent />
+        </LMeveDataProvider>
+      </DatabaseProvider>
+    </AuthProvider>
+  );
 }
