@@ -376,87 +376,271 @@ function AppContent() {
     setActiveSettingsTab(value);
   };
 
-export default function App() {
+  // Show mobile menu or desktop layout
+  const visibleTabs = tabs.filter(tab => {
+    if (!currentUser && tab.id !== 'dashboard') return false;
+    return canAccessTab(currentUser, tab.id);
+  });
+
   return (
-    <div className="min-h-screen bg-background text-foreground p-6">
-      <div className="max-w-4xl mx-auto space-y-8">
-        {/* Hero Section */}
-        <div className="text-center space-y-4">
-          <div className="flex justify-center mb-6">
-            <div className="p-4 bg-accent/20 rounded-full">
-              <Rocket size={48} className="text-accent" />
+    <AuthProvider>
+      <DatabaseProvider>
+        <LMeveDataProvider>
+          <div className="min-h-screen bg-background text-foreground">
+            <div className="flex">
+              {/* Sidebar */}
+              <div className={`${isMobileView ? 'fixed inset-y-0 left-0 z-50 w-64' : 'w-64'} ${isMobileView && !showMobileMenu ? '-translate-x-full' : ''} transition-transform duration-300 bg-card border-r border-border flex flex-col`}>
+                <div className="p-6">
+                  <div className="flex items-center gap-2 text-xl font-bold">
+                    <Rocket className="text-accent" />
+                    EVE Corp Hub
+                  </div>
+                </div>
+
+                <nav className="flex-1 px-3 space-y-1">
+                  {visibleTabs.map((tab) => {
+                    const Icon = tab.icon;
+                    const isActive = activeTab === tab.id;
+                    return (
+                      <button
+                        key={tab.id}
+                        onClick={() => handleTabChange(tab.id)}
+                        className={`w-full flex items-center justify-between px-3 py-2 rounded-lg text-left transition-colors ${
+                          isActive 
+                            ? 'bg-accent text-accent-foreground' 
+                            : 'text-foreground hover:bg-muted'
+                        }`}
+                      >
+                        <div className="flex items-center gap-3">
+                          <Icon size={20} />
+                          <span>{tab.label}</span>
+                        </div>
+                        {tab.badge && (
+                          <Badge variant="secondary" className="text-xs">
+                            {tab.badge}
+                          </Badge>
+                        )}
+                      </button>
+                    );
+                  })}
+
+                  {/* Settings Section */}
+                  {currentUser && (
+                    <div className="mt-6 pt-6 border-t border-border">
+                      <button
+                        onClick={() => handleTabChange('settings')}
+                        className={`w-full flex items-center justify-between px-3 py-2 rounded-lg text-left transition-colors ${
+                          settingsExpanded 
+                            ? 'bg-accent text-accent-foreground' 
+                            : 'text-foreground hover:bg-muted'
+                        }`}
+                      >
+                        <div className="flex items-center gap-3">
+                          <Gear size={20} />
+                          <span>Settings</span>
+                        </div>
+                        {settingsExpanded ? <CaretDown size={16} /> : <CaretRight size={16} />}
+                      </button>
+
+                      {settingsExpanded && (
+                        <div className="mt-1 ml-6 space-y-1">
+                          {settingsTabs
+                            .filter(tab => canAccessSettingsTab(currentUser, tab.id))
+                            .map((tab) => {
+                              const Icon = tab.icon;
+                              const isActive = activeSettingsTab === tab.id;
+                              return (
+                                <button
+                                  key={tab.id}
+                                  onClick={() => handleSettingsTabChange(tab.id)}
+                                  className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg text-left transition-colors text-sm ${
+                                    isActive 
+                                      ? 'bg-accent/50 text-accent-foreground' 
+                                      : 'text-muted-foreground hover:bg-muted hover:text-foreground'
+                                  }`}
+                                >
+                                  <Icon size={16} />
+                                  <span>{tab.label}</span>
+                                </button>
+                              );
+                            })}
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </nav>
+
+                {/* User Section */}
+                <div className="p-3 border-t border-border">
+                  {currentUser ? (
+                    <div className="space-y-2">
+                      <div className="px-3 py-2 text-sm">
+                        <div className="font-medium truncate">{currentUser.characterName}</div>
+                        <div className="text-muted-foreground text-xs truncate">{currentUser.corporationName}</div>
+                        <div className="text-xs text-accent capitalize">{currentUser.role}</div>
+                      </div>
+                      <Button 
+                        variant="ghost" 
+                        size="sm" 
+                        onClick={currentLogout} 
+                        className="w-full justify-start"
+                      >
+                        <SignOut size={16} className="mr-2" />
+                        Logout
+                      </Button>
+                    </div>
+                  ) : (
+                    <div className="space-y-2">
+                      <div className="px-3 py-2 text-sm text-muted-foreground">
+                        Not logged in
+                      </div>
+                      <Button 
+                        variant="ghost" 
+                        size="sm" 
+                        onClick={() => setShowQuickLogin(true)} 
+                        className="w-full justify-start"
+                      >
+                        <SignIn size={16} className="mr-2" />
+                        Login
+                      </Button>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* Mobile menu overlay */}
+              {isMobileView && showMobileMenu && (
+                <div 
+                  className="fixed inset-0 bg-black/50 z-40" 
+                  onClick={() => setShowMobileMenu(false)} 
+                />
+              )}
+
+              {/* Main Content */}
+              <div className="flex-1 flex flex-col min-h-screen">
+                {/* Top bar for mobile */}
+                {isMobileView && (
+                  <div className="bg-card border-b border-border p-4 flex items-center justify-between">
+                    <Button 
+                      variant="ghost" 
+                      size="sm"
+                      onClick={() => setShowMobileMenu(!showMobileMenu)}
+                    >
+                      <List size={20} />
+                    </Button>
+                    <div className="font-semibold">
+                      {tabs.find(tab => tab.id === activeTab)?.label || 'Dashboard'}
+                    </div>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => setIsMobileView(false)}
+                    >
+                      <Monitor size={20} />
+                    </Button>
+                  </div>
+                )}
+
+                {/* Content Area */}
+                <div className="flex-1 p-6">
+                  {activeTab === 'settings' && settingsExpanded ? (
+                    <Settings activeTab={activeSettingsTab} />
+                  ) : (
+                    (() => {
+                      const activeTabConfig = tabs.find(tab => tab.id === activeTab);
+                      const Component = activeTabConfig?.component || Dashboard;
+                      return <Component />;
+                    })()
+                  )}
+                </div>
+              </div>
             </div>
+
+            {/* Quick Login Modal */}
+            {showQuickLogin && (
+              <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+                <div className="bg-card border border-border rounded-lg p-6 w-full max-w-md">
+                  <h3 className="text-lg font-semibold mb-4">Login Required</h3>
+                  
+                  <form onSubmit={handleQuickLogin} className="space-y-4">
+                    <div>
+                      <label className="block text-sm font-medium mb-1">Username</label>
+                      <Input
+                        type="text"
+                        value={loginUsername}
+                        onChange={(e) => setLoginUsername(e.target.value)}
+                        placeholder="Enter username"
+                        disabled={isLoggingIn}
+                      />
+                    </div>
+                    
+                    <div>
+                      <label className="block text-sm font-medium mb-1">Password</label>
+                      <div className="relative">
+                        <Input
+                          type={showPassword ? 'text' : 'password'}
+                          value={loginPassword}
+                          onChange={(e) => setLoginPassword(e.target.value)}
+                          placeholder="Enter password"
+                          disabled={isLoggingIn}
+                        />
+                        <button
+                          type="button"
+                          onClick={() => setShowPassword(!showPassword)}
+                          className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                          disabled={isLoggingIn}
+                        >
+                          {showPassword ? <EyeSlash size={16} /> : <Eye size={16} />}
+                        </button>
+                      </div>
+                    </div>
+                    
+                    <div className="flex gap-2">
+                      <Button 
+                        type="submit" 
+                        disabled={isLoggingIn || !loginUsername.trim() || !loginPassword.trim()}
+                        className="flex-1"
+                      >
+                        {isLoggingIn ? 'Logging in...' : 'Login'}
+                      </Button>
+                      <Button 
+                        type="button" 
+                        variant="outline" 
+                        onClick={() => {
+                          setShowQuickLogin(false);
+                          setLoginUsername('');
+                          setLoginPassword('');
+                          setIsLoggingIn(false);
+                        }}
+                        disabled={isLoggingIn}
+                      >
+                        Cancel
+                      </Button>
+                    </div>
+                  </form>
+                  
+                  <div className="mt-6 pt-4 border-t border-border">
+                    <div className="text-center mb-3">
+                      <span className="text-sm text-muted-foreground">Or login with EVE Online</span>
+                    </div>
+                    <EVELoginButton
+                      onLogin={handleESILogin}
+                      validationStatus={getValidationStatus()}
+                      registeredCorps={registeredCorps}
+                    />
+                  </div>
+                </div>
+              </div>
+            )}
+
+            <Toaster />
           </div>
-          <h1 className="text-4xl font-bold">Welcome to Your Spark</h1>
-          <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
-            Your spark has been successfully created! This is a blank canvas ready for your ideas.
-            Start building something amazing.
-          </p>
-        </div>
+        </LMeveDataProvider>
+      </DatabaseProvider>
+    </AuthProvider>
+  );
+}
 
-        {/* Feature Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Code size={20} className="text-accent" />
-                Ready to Code
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <p className="text-muted-foreground">
-                Built with React, TypeScript, and Tailwind CSS. All the tools you need are already configured.
-              </p>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Palette size={20} className="text-accent" />
-                Beautiful UI
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <p className="text-muted-foreground">
-                Includes shadcn/ui components and a carefully crafted design system for professional apps.
-              </p>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Sparkles size={20} className="text-accent" />
-                Spark Features
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <p className="text-muted-foreground">
-                Built-in authentication, key-value storage, and AI integration ready to use.
-              </p>
-            </CardContent>
-          </Card>
-        </div>
-
-        {/* Action Section */}
-        <div className="text-center space-y-4">
-          <h2 className="text-2xl font-semibold">What's Next?</h2>
-          <p className="text-muted-foreground">
-            Start customizing your app by editing the App.tsx file
-          </p>
-          <Button size="lg" className="bg-accent hover:bg-accent/90 text-accent-foreground">
-            Get Started
-          </Button>
-        </div>
-
-        {/* Footer */}
-        <div className="text-center pt-8 border-t border-border">
-          <p className="text-sm text-muted-foreground">
-            Built with Spark • Ready to deploy
-          </p>
-        </div>
-      </div>
-    </div>
-  )
+export default function App() {
+  return <AppContent />;
 }

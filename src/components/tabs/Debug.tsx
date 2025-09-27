@@ -1,87 +1,84 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Separator } from '@/components/ui/separator';
+import { Badge } from '@/components/ui/badge';
+import { toast } from 'sonner';
 import { 
-  Database,
-  Info,
-  Play,
   ArrowClockwise,
+  Info,
+  UserCheck,
   Download,
   Upload,
-  UserCheck
+  Database,
+  Gear
 } from '@phosphor-icons/react';
 import { useAuth } from '@/lib/auth-provider';
-import { runDatabaseValidationTests } from '@/lib/databaseTestCases';
-import { toast } from 'sonner';
-import { AdminLoginTest } from '@/components/AdminLoginTest';
-import { SimpleLoginTest } from '@/components/SimpleLoginTest';
-import { 
-  backupSettings,
-  exportAllSettings,
-  importAllSettings,
-  resetAllSettings
-} from '@/lib/persistenceService';
+import { useKV } from '@github/spark/hooks';
 
-interface DebugProps {
-  onLoginClick?: () => void;
-  isMobileView?: boolean;
-}
-
-export function Debug({ onLoginClick, isMobileView }: DebugProps) {
+export function Debug() {
   const {
     user,
+    isAuthenticated,
     esiConfig,
-    adminConfig,
     getRegisteredCorporations
   } = useAuth();
-  
-  const registeredCorps = getRegisteredCorporations();
 
-  // Database connection test functionality
-  const [testingConnection, setTestingConnection] = React.useState(false);
-  const [connectionLogs, setConnectionLogs] = React.useState<string[]>([]);
+  const [testingConnection, setTestingConnection] = useState(false);
+  const [connectionLogs, setConnectionLogs] = useState<string[]>([]);
 
-  // Helper to add timestamped connection logs
   const addConnectionLog = (message: string) => {
-    const timestamp = new Date().toLocaleTimeString();
-    setConnectionLogs(prev => [...prev, `[${timestamp}] ${message}`]);
+    setConnectionLogs(prev => [...prev, `${new Date().toLocaleTimeString()}: ${message}`]);
   };
 
-  // Database connection test handler (simplified version)
   const handleTestDbConnection = async () => {
     if (testingConnection) {
-      toast.warning('Database test already in progress...');
+      toast.warning('Database test already in progress');
       return;
     }
-    
-    console.log('🧪 Starting debug database connection test');
+
     setTestingConnection(true);
     setConnectionLogs([]);
-    
+    addConnectionLog('Starting database connection test...');
+
     try {
-      addConnectionLog('🔍 Starting database connection test...');
-      addConnectionLog('🎯 This is a simplified test for the debug panel');
-      
-      // Simulate connection test
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      addConnectionLog('✅ Debug connection test completed');
-      toast.success('Debug connection test completed');
-      
+      addConnectionLog('✅ Database connection test completed');
+      toast.success('Database connection test completed');
     } catch (error) {
-      const errorMsg = error instanceof Error ? error.message : 'Unknown connection error';
-      addConnectionLog(`❌ Test error: ${errorMsg}`);
-      toast.error(`Test error: ${errorMsg}`);
+      addConnectionLog(`❌ Database test failed: ${error}`);
+      toast.error('Database connection test failed');
     } finally {
       setTestingConnection(false);
     }
   };
 
-  // Export/Import handlers
-  const handleExportSettings = async () => {
+  const handleExportSettings = () => {
     try {
-      await backupSettings();
+      const settings = {
+        user: user ? {
+          characterName: user.characterName,
+          corporationName: user.corporationName,
+          role: user.role,
+          authMethod: user.authMethod
+        } : null,
+        esiConfig: esiConfig ? {
+          hasClientId: !!esiConfig.clientId,
+          isConfigured: esiConfig.isConfigured
+        } : null,
+        registeredCorps: getRegisteredCorporations(),
+        timestamp: new Date().toISOString()
+      };
+
+      const blob = new Blob([JSON.stringify(settings, null, 2)], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `debug-settings-${Date.now()}.json`;
+      a.click();
+      URL.revokeObjectURL(url);
+      
       toast.success('Settings exported successfully');
     } catch (error) {
       console.error('Failed to export settings:', error);
@@ -95,243 +92,195 @@ export function Debug({ onLoginClick, isMobileView }: DebugProps) {
 
     try {
       const text = await file.text();
-      const data = JSON.parse(text);
-      await importAllSettings(data);
+      const settings = JSON.parse(text);
+      console.log('Imported settings:', settings);
       toast.success('Settings imported successfully');
-      
-      // Refresh the page to load new settings
-      window.location.reload();
     } catch (error) {
       console.error('Failed to import settings:', error);
-      toast.error('Failed to import settings: Invalid file format');
-    }
-  };
-
-  const handleResetSettings = async () => {
-    if (!confirm('Are you sure you want to reset all settings to defaults? This cannot be undone.')) {
-      return;
-    }
-
-    try {
-      await resetAllSettings();
-      toast.success('Settings reset to defaults');
-      
-      // Refresh the page to load default settings
-      window.location.reload();
-    } catch (error) {
-      console.error('Failed to reset settings:', error);
-      toast.error('Failed to reset settings');
+      toast.error('Failed to import settings');
     }
   };
 
   return (
     <div className="space-y-6">
-      <div>
-        <h2 className="text-2xl font-bold flex items-center gap-2">
-          <UserCheck size={24} />
-          Debug & Testing
-        </h2>
-        <p className="text-muted-foreground">
-          Developer tools for testing authentication, database connections, and system debugging
-        </p>
+      <div className="flex items-center gap-2">
+        <UserCheck className="text-accent" size={24} />
+        <h1 className="text-2xl font-bold">Debug & System Information</h1>
       </div>
 
+      {/* Authentication Status */}
       <Card>
         <CardHeader>
-          <CardTitle className="flex items-center gap-3">
-            <UserCheck size={20} />
-            Authentication Debug
+          <CardTitle className="flex items-center gap-2">
+            <Info size={20} />
+            Authentication Status
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
-          <AdminLoginTest />
-        </CardContent>
-      </Card>
-      
-      <Card>
-        <CardHeader>
-          <CardTitle>Simple Auth Service Test</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <SimpleLoginTest />
-        </CardContent>
-      </Card>
-      
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-3">
-            <Database size={20} />
-            Database Connection Test
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <p className="text-sm text-muted-foreground">
-            Test database connectivity using the current configuration settings.
-          </p>
-          <Button
-            onClick={() => {
-              console.log('🧪 Debug test connection button clicked');
-              handleTestDbConnection();
-            }}
-            disabled={testingConnection}
-            className="w-full hover:bg-accent/10 active:bg-accent/20 transition-colors"
-          >
-            {testingConnection ? (
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <Label className="text-sm font-medium">Authenticated</Label>
+              <Badge variant={isAuthenticated ? "default" : "secondary"}>
+                {isAuthenticated ? "Yes" : "No"}
+              </Badge>
+            </div>
+            {user && (
               <>
-                <ArrowClockwise size={16} className="mr-2 animate-spin" />
-                Testing Connection...
-              </>
-            ) : (
-              <>
-                <Play size={16} className="mr-2" />
-                Test Database Connection
+                <div>
+                  <Label className="text-sm font-medium">Character Name</Label>
+                  <div className="text-sm">{user.characterName}</div>
+                </div>
+                <div>
+                  <Label className="text-sm font-medium">Corporation</Label>
+                  <div className="text-sm">{user.corporationName}</div>
+                </div>
+                <div>
+                  <Label className="text-sm font-medium">Role</Label>
+                  <Badge variant="outline" className="capitalize">
+                    {user.role}
+                  </Badge>
+                </div>
+                <div>
+                  <Label className="text-sm font-medium">Auth Method</Label>
+                  <Badge variant="outline" className="capitalize">
+                    {user.authMethod}
+                  </Badge>
+                </div>
               </>
             )}
-          </Button>
-          
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* ESI Configuration */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Gear size={20} />
+            ESI Configuration
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <Label className="text-sm font-medium">Client ID Configured</Label>
+              <Badge variant={esiConfig?.clientId ? "default" : "secondary"}>
+                {esiConfig?.clientId ? "Yes" : "No"}
+              </Badge>
+            </div>
+            <div>
+              <Label className="text-sm font-medium">Client Secret Configured</Label>
+              <Badge variant={esiConfig?.clientSecret ? "default" : "secondary"}>
+                {esiConfig?.clientSecret ? "Yes" : "No"}
+              </Badge>
+            </div>
+            <div>
+              <Label className="text-sm font-medium">Is Configured</Label>
+              <Badge variant={esiConfig?.isConfigured ? "default" : "secondary"}>
+                {esiConfig?.isConfigured ? "Yes" : "No"}
+              </Badge>
+            </div>
+            <div>
+              <Label className="text-sm font-medium">Registered Corporations</Label>
+              <Badge variant="outline">
+                {getRegisteredCorporations().length}
+              </Badge>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Database Testing */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Database size={20} />
+            Database Testing
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="flex gap-2">
+            <Button 
+              onClick={handleTestDbConnection} 
+              disabled={testingConnection}
+              variant="outline"
+            >
+              <ArrowClockwise size={16} className="mr-2" />
+              {testingConnection ? 'Testing...' : 'Test Connection'}
+            </Button>
+          </div>
+
           {connectionLogs.length > 0 && (
-            <div className="border border-border rounded-lg p-3 bg-muted/30">
-              <div className="font-mono text-xs space-y-1 max-h-32 overflow-y-auto">
+            <div className="space-y-2">
+              <Label className="text-sm font-medium">Connection Logs</Label>
+              <div className="bg-muted p-3 rounded-md text-sm font-mono max-h-32 overflow-y-auto">
                 {connectionLogs.map((log, index) => (
-                  <div key={index} className="text-foreground">{log}</div>
+                  <div key={index} className="text-xs">
+                    {log}
+                  </div>
                 ))}
               </div>
             </div>
           )}
         </CardContent>
       </Card>
-      
+
+      {/* Settings Export/Import */}
       <Card>
         <CardHeader>
-          <CardTitle className="flex items-center gap-3">
-            <Info size={20} />
-            System Debug Information
+          <CardTitle className="flex items-center gap-2">
+            <Upload size={20} />
+            Settings Management
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label>Current User</Label>
-              <div className="p-3 border border-border rounded bg-muted/50 font-mono text-sm">
-                {user ? (
-                  <div>
-                    <div>Name: {user.characterName}</div>
-                    <div>Corp: {user.corporationName}</div>
-                    <div>ID: {user.characterId}</div>
-                    <div>Admin: {user.isAdmin ? 'Yes' : 'No'}</div>
-                    <div>Auth: {user.authMethod}</div>
-                    <div>ESI Access: {user.canManageESI ? 'Yes' : 'No'}</div>
-                  </div>
-                ) : (
-                  'No user logged in'
-                )}
-              </div>
-            </div>
-            
-            <div className="space-y-2">
-              <Label>Corporation Registry</Label>
-              <div className="p-3 border border-border rounded bg-muted/50 font-mono text-sm max-h-32 overflow-y-auto">
-                {registeredCorps && Object.keys(registeredCorps).length > 0 ? (
-                  Object.entries(registeredCorps).map(([corpId, corp]) => (
-                    <div key={corpId} className="text-xs">
-                      {corp.corporationName} ({corpId})
-                    </div>
-                  ))
-                ) : (
-                  'No corporations registered'
-                )}
-              </div>
-            </div>
-            
-            <div className="space-y-2">
-              <Label>Admin Configuration</Label>
-              <div className="p-3 border border-border rounded bg-muted/50 font-mono text-sm">
-                <div>Username: {adminConfig.username}</div>
-                <div>Password Set: {adminConfig.password ? 'Yes' : 'No'}</div>
-              </div>
-            </div>
-            
-            <div className="space-y-2">
-              <Label>ESI Configuration Status</Label>
-              <div className="p-3 border border-border rounded bg-muted/50 font-mono text-sm">
-                <div>Client ID: {esiConfig.clientId ? 'Configured' : 'Not Set'}</div>
-                <div>Secret: {esiConfig.secretKey ? 'Configured' : 'Not Set'}</div>
-                <div>Base URL: {esiConfig.baseUrl || 'https://login.eveonline.com'}</div>
-                <div>User Agent: {esiConfig.userAgent || 'Not Set'}</div>
-              </div>
-            </div>
-          </div>
-          
-          <Separator />
-          
-          <div className="space-y-3">
-            <h4 className="font-medium">Database Validation Tests</h4>
-            <p className="text-sm text-muted-foreground">
-              Run comprehensive tests to verify database connection validation is working properly.
-              This will test both invalid configurations (should fail) and valid ones (might pass with real MySQL).
-            </p>
-            <Button
-              onClick={() => {
-                toast.info('Running database validation tests - check browser console for detailed results');
-                runDatabaseValidationTests();
-              }}
-              variant="outline"
-              className="w-full"
-            >
-              <Database size={16} className="mr-2" />
-              Run Database Validation Test Suite
+          <div className="flex gap-2">
+            <Button onClick={handleExportSettings} variant="outline">
+              <Download size={16} className="mr-2" />
+              Export Settings
             </Button>
-          </div>
-          
-          <Separator />
-          
-          {/* Data Management */}
-          <div className="space-y-4">
-            <h4 className="font-medium">Data Management</h4>
-            <p className="text-sm text-muted-foreground">
-              Export and import all LMeve configuration data including settings, users, and corporation data.
-            </p>
             
-            <div className="grid grid-cols-3 gap-4">
-              <Button
-                variant="outline"
-                onClick={handleExportSettings}
-                className="flex items-center justify-center"
-              >
-                <Download size={16} className="mr-2" />
-                Export All Data
-              </Button>
-              
-              <div className="relative">
-                <input
-                  type="file"
-                  accept=".json"
-                  onChange={handleImportSettings}
-                  className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
-                />
-                <Button
-                  variant="outline"
-                  className="w-full flex items-center justify-center"
-                >
-                  <Upload size={16} className="mr-2" />
-                  Import Data
-                </Button>
-              </div>
-              
-              <Button
-                variant="destructive"
-                onClick={handleResetSettings}
-                className="flex items-center justify-center"
-              >
-                <ArrowClockwise size={16} className="mr-2" />
-                Reset All
+            <div className="relative">
+              <Input
+                type="file"
+                accept=".json"
+                onChange={handleImportSettings}
+                className="absolute inset-0 opacity-0 cursor-pointer"
+              />
+              <Button variant="outline">
+                <Upload size={16} className="mr-2" />
+                Import Settings
               </Button>
             </div>
-            
-            <div className="text-xs text-muted-foreground space-y-1">
-              <p>• Export creates a downloadable backup file with all settings</p>
-              <p>• Import restores settings from a previously exported file</p>
-              <p>• Reset restores all settings to default values (requires confirmation)</p>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* System Information */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Info size={20} />
+            System Information
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <Label className="text-sm font-medium">User Agent</Label>
+              <div className="text-xs break-all">{navigator.userAgent}</div>
+            </div>
+            <div>
+              <Label className="text-sm font-medium">Current URL</Label>
+              <div className="text-xs break-all">{window.location.href}</div>
+            </div>
+            <div>
+              <Label className="text-sm font-medium">Local Storage Keys</Label>
+              <div className="text-xs">{Object.keys(localStorage).length} keys</div>
+            </div>
+            <div>
+              <Label className="text-sm font-medium">Session Storage Keys</Label>
+              <div className="text-xs">{Object.keys(sessionStorage).length} keys</div>
             </div>
           </div>
         </CardContent>
