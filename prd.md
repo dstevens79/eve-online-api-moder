@@ -1,75 +1,133 @@
-# Spark Template - Bootstrap Application
+# LMeve - EVE Online Corporation Management Tool
 
-A clean, production-ready React application template built with modern web technologies and best practices.
+## Core Purpose & Success
+- **Mission Statement**: A comprehensive web-based corporation management tool for EVE Online that helps CEOs and directors manage member assets, manufacturing, mining operations, and corporation logistics efficiently, while providing integrated API exploration capabilities for advanced users.
+- **Success Indicators**: Reduced time spent on manual corporation management tasks, improved member engagement tracking, streamlined asset and production oversight, enhanced API integration capabilities.
+- **Experience Qualities**: Professional, efficient, comprehensive - feels like a serious business management tool for virtual corporations with developer-grade API capabilities.
 
-**Experience Qualities**: 
-1. **Clean and Modern** - Minimalist design with purposeful whitespace and clear typography
-2. **Professional and Reliable** - Consistent interface elements that communicate trustworthiness  
-3. **Welcoming and Approachable** - Friendly copy and intuitive navigation that invites exploration
-
-**Complexity Level**: Micro Tool (single-purpose)
-- Simple showcase template demonstrating the Spark development environment and component system
+## Project Classification & Approach
+- **Complexity Level**: Complex Application (advanced functionality, multiple data views, corporation management features, integrated API tools)
+- **Primary User Activity**: Managing - CEOs and directors actively managing corporation operations, with secondary support for API exploration and custom integrations.
 
 ## Essential Features
 
-### Welcome Interface
-- **Functionality**: Display application overview with feature highlights
-- **Purpose**: Orient new users and demonstrate template capabilities
-- **Trigger**: Page load
-- **Progression**: Page loads → Shows hero section → Displays feature cards → Presents next steps
-- **Success criteria**: Users understand the template's purpose and feel confident starting development
+### Corporation Management Core
 
-### Component Showcase  
-- **Functionality**: Demonstrate key UI components and styling system
-- **Purpose**: Show developers what's available in the template
-- **Trigger**: Visual inspection of the interface
-- **Progression**: User sees cards → Recognizes consistent styling → Understands design system
-- **Success criteria**: Clear visual hierarchy and component consistency
+#### Tabbed Interface
+- **Functionality**: Core navigation between different management areas (Members, Assets, Manufacturing, Mining, API Tools, etc.)
+- **Purpose**: Organize complex corporation data into manageable sections
+- **Success criteria**: Intuitive navigation with persistent state across sessions
 
-### Developer Onboarding
-- **Functionality**: Guide developers on next steps and available tools
-- **Purpose**: Reduce time to first meaningful edit
-- **Trigger**: Reading the welcome content
-- **Progression**: User reads welcome → Understands stack → Sees next steps → Clicks Get Started
-- **Success criteria**: Developer knows how to begin customizing the application
+#### Member Management
+- **Functionality**: Track corporation members, their assets, activities, and contributions
+- **Purpose**: Monitor member engagement and asset allocation
+- **Success criteria**: Real-time member data with activity tracking and contribution metrics
+
+#### Asset Tracking
+- **Functionality**: Monitor corporation and member assets across different locations and types with live EVE data
+- **Purpose**: Maintain oversight of corporation resources and member holdings
+- **Success criteria**: Comprehensive asset overview with location tracking and value calculations
+
+#### Manufacturing Job Scheduling
+- **Functionality**: Real-time tracking of active manufacturing jobs with progress monitoring, pause/resume capabilities, and completion alerts
+- **Purpose**: Optimize production workflows and resource allocation
+- **Success criteria**: Live job tracking with automated alerts and scheduling tools
+
+#### Blueprint Management
+- **Functionality**: Comprehensive blueprint library with research levels, material efficiency tracking, and production planning
+- **Purpose**: Maximize production efficiency and track blueprint investments
+- **Success criteria**: Complete blueprint database with research progress and efficiency metrics
+
+#### Production Planning
+- **Functionality**: Advanced planning tools for creating production schedules, cost analysis, and profit estimation
+- **Purpose**: Strategic planning for manufacturing operations
+- **Success criteria**: Accurate cost/profit analysis with scheduling optimization
+
+#### Mining Operations
+- **Functionality**: Monitor mining activities, ore processing, and resource allocation
+- **Purpose**: Track and optimize mining fleet operations
+- **Success criteria**: Real-time mining metrics with efficiency tracking
+
+### Integrated API Tools
+
+#### API Endpoint Browser
+- **Functionality**: Browse and search through EVE Online ESI endpoints organized by category, integrated within corporation management workflows
+- **Purpose**: Allow advanced users to explore additional API functionality and customize data retrieval
+- **Success criteria**: ESI endpoints accessible within corporation management context with clear documentation
+
+#### Custom API Integration
+- **Functionality**: Configure and execute custom API requests for specialized corporation data needs
+- **Purpose**: Enable advanced users to extend corporation management capabilities
+- **Success criteria**: Successful custom API integration with corporation data workflows
+
+#### Enhanced Authentication Management
+- **Functionality**: Handle EVE Online SSO authentication flow for both standard corporation features and custom API access
+- **Purpose**: Provide seamless access to all corporation and character-specific data
+- **Success criteria**: Unified authentication supporting both core features and API exploration
+
+#### Advanced Data Viewer
+- **Functionality**: Enhanced data presentation with JSON viewing, syntax highlighting, and data export capabilities
+- **Purpose**: Support both standard corporation reporting and custom data analysis
+- **Success criteria**: Flexible data presentation supporting various corporation management needs
+
+### System Features
+
+#### Real-time Data Dashboard
+- **Functionality**: Live connection status, API health monitoring, and automatic data refresh capabilities
+- **Purpose**: Ensure data accuracy and system reliability across all features
+- **Success criteria**: Reliable API integration with clear status indicators for all data sources
+
+## Design Direction
+
+### Visual Tone & Identity
+- **Emotional Response**: Professional confidence, data-driven decision making, corporate efficiency with technical precision
+- **Design Personality**: Clean, professional, data-focused enterprise software with subtle developer tool aesthetics
+- **Visual Metaphors**: Corporate dashboards with technical precision elements, space/sci-fi elements from EVE
+- **Complexity Balance**: Rich corporation management interface with integrated but non-intrusive technical tools
+
+### Unified Color Strategy
+- **Primary Color**: Deep space blue (#1a365d) - corporate stability and trust
+- **Secondary Colors**: Steel grays (#2d3748, #4a5568) for data containers and technical elements
+- **Accent Color**: EVE Online orange (#f56500) for important actions and alerts
+- **Technical Accent**: Warm orange (oklch(0.65 0.15 45)) for API-related features and technical highlights
+- **Background Palette**: 
+  - Light gray backgrounds for main content areas
+  - Darker themes for technical/API sections
+  - High contrast ratios maintained throughout (WCAG AA compliance)
+
+### Typography System
+- **Primary**: Inter for all UI text, headers, and general content
+- **Technical**: JetBrains Mono for data, numbers, code, and API responses
+- **Hierarchy**: 
+  - H1 (Page Title): Inter Bold/32px
+  - H2 (Section Headers): Inter Semibold/24px
+  - H3 (Feature Names): Inter Medium/18px
+  - Body: Inter Regular/16px
+  - Data/Code: JetBrains Mono Regular/14px
+- **Focus**: Balance between corporate clarity and technical precision
+
+### Component Selection & Layout
+- **Navigation**: Tabbed interface with expandable technical sections
+- **Data Display**: Tables for corporation data, enhanced viewers for API responses
+- **Cards**: Metric summaries and feature groupings
+- **Forms**: Parameter inputs with validation for both corp management and API features
+- **States**: Unified loading, error, and success states across all features
+- **Mobile**: Responsive design prioritizing core corporation features, with technical tools accessible but streamlined
+
+### Animation Strategy
+- **Corporate Features**: Smooth, professional transitions focused on data workflows
+- **Technical Features**: Subtle state changes that don't interfere with technical work
+- **Integration Points**: Gentle transitions between corporation management and API tool contexts
 
 ## Edge Case Handling
-- **Missing dependencies**: Graceful fallbacks if packages aren't installed
-- **Component failures**: Error boundaries prevent full app crashes  
-- **Styling issues**: Default styles ensure readable content even with CSS failures
+- **Large Data Sets**: Pagination and virtualization for performance across all features
+- **API Rate Limiting**: Intelligent request queuing affecting both corp data and custom requests
+- **Network Issues**: Graceful degradation with clear distinction between corp features and API tools
+- **Authentication**: Unified error handling for both corporation access and technical API permissions
+- **Mixed User Types**: Clear progressive disclosure - corp managers see management features prominently, technical users can access advanced tools
 
-The interface should feel clean and professional, communicating reliability while remaining approachable for developers of all skill levels.
-
-## Color Selection
-Complementary (opposite colors) - Using a balanced blue and neutral palette that feels both professional and modern.
-
-- **Primary Color**: Deep Navy (oklch(0.078 0.021 285.75)) - Professional and trustworthy, used for primary actions
-- **Secondary Colors**: Light Gray (oklch(0.961 0.006 247.858)) - Subtle backgrounds and secondary elements
-- **Accent Color**: Vibrant Blue (oklch(0.506 0.162 252.555)) - Call-to-action highlighting and interactive elements
-- **Foreground/Background Pairings**: 
-  - Background (Light Gray #FAFAFA): Dark Navy text (#141418) - Ratio 19.1:1 ✓
-  - Card (White #FFFFFF): Dark Navy text (#141418) - Ratio 20.8:1 ✓  
-  - Primary (Dark Navy #141418): Light Gray text (#FAFAFA) - Ratio 19.1:1 ✓
-  - Accent (Vibrant Blue #6366F1): White text (#FFFFFF) - Ratio 5.2:1 ✓
-
-Clean, modern typography using Inter for excellent readability across all device sizes.
-
-- **Typographic Hierarchy**: 
-  - H1 (Main Title): Inter Bold/36px/tight letter spacing
-  - H2 (Section Headers): Inter Semibold/24px/normal letter spacing
-  - H3 (Card Titles): Inter Medium/20px/normal letter spacing  
-  - Body Text: Inter Regular/16px/1.5 line height
-  - Small Text: Inter Regular/14px/muted foreground color
-
-Subtle, purposeful animations that enhance usability without distracting from content.
-
-- **Purposeful Meaning**: Motion communicates state changes and guides attention to important actions
-- **Hierarchy of Movement**: Primary actions get gentle hover animations, cards have subtle lift effects on interaction
-
-## Component Selection
-- **Components**: Card, Button, and basic layout components from shadcn providing consistent interaction patterns
-- **Customizations**: Custom hero section layout, feature grid arrangement using CSS Grid
-- **States**: Buttons show hover states with subtle color transitions, cards have gentle shadow increases on hover
-- **Icon Selection**: Phosphor icons for clear, consistent visual language (Rocket for brand, Code/Palette/Sparkles for features)  
-- **Spacing**: Consistent 24px grid system using Tailwind's spacing scale (space-y-6, gap-6)
-- **Mobile**: Responsive grid layout that stacks cards vertically on mobile, maintains readability at all viewport sizes
+## Implementation Considerations
+- **Architecture**: Core corporation management with pluggable API exploration modules
+- **Data Flow**: Unified data layer supporting both corporation management and custom API integration
+- **User Experience**: Primary focus on corporation management with optional technical enhancement
+- **Performance**: Optimized for corporation management workflows, with API tools designed to not impact core performance
