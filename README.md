@@ -1,23 +1,54 @@
-# ✨ Welcome to Your Spark Template!
-You've just launched your brand-new Spark Template Codespace — everything’s fired up and ready for you to explore, build, and create with Spark!
+# LMeve - EVE Online Corporation Management
 
-This template is your blank canvas. It comes with a minimal setup to help you get started quickly with Spark development.
+LMeve is a comprehensive corporation management system for EVE Online, providing tools for managing members, assets, manufacturing, mining operations, and more.
 
-🚀 What's Inside?
-- A clean, minimal Spark environment
-- Pre-configured for local development
-- Ready to scale with your ideas
-  
-🧠 What Can You Do?
+## 🚀 Features
 
-Right now, this is just a starting point — the perfect place to begin building and testing your Spark applications.
+- **Member Management** - Track corporation members and roles
+- **Asset Management** - Monitor corporation and personal assets
+- **Manufacturing System** - Manage production jobs and assignments
+- **Mining Operations** - Track mining activities and yields
+- **Logistics** - Handle material movement and transportation
+- **Killmail Analysis** - Review combat activities and losses
+- **Market Analysis** - Monitor market trends and opportunities
+- **Income Tracking** - Financial oversight and revenue management
+- **ESI Integration** - Full EVE Online API integration
+- **Multi-Database Support** - Local and remote database options
 
-🧹 Just Exploring?
-No problem! If you were just checking things out and don’t need to keep this code:
+## 📚 Documentation
 
-- Simply delete your Spark.
-- Everything will be cleaned up — no traces left behind.
+Complete documentation is available in the [`docs/`](docs/) directory:
 
-📄 License For Spark Template Resources 
+- [`docs/implementation/`](docs/implementation/) - Technical implementation details
+- [`docs/database/`](docs/database/) - Database setup and configuration
+- [`docs/security/`](docs/security/) - Security policies and procedures
+- [`docs/testing/`](docs/testing/) - Test results and validation
+- [`docs/notifications/`](docs/notifications/) - Notification system documentation
+
+For remote database setup, see [`docs/REMOTE_DATABASE_SETUP.md`](docs/REMOTE_DATABASE_SETUP.md).
+
+## 🔧 Quick Start
+
+1. **Local Development**: Default admin credentials are `admin` / `12345`
+2. **ESI Authentication**: Configure ESI credentials in Settings for full EVE Online integration
+3. **Database Setup**: Use the provided scripts in [`scripts/database/`](scripts/database/) for database initialization
+
+## 🛠️ Development
+
+This is a React-based application using:
+- **Vite** - Build tool and development server
+- **TypeScript** - Type-safe JavaScript
+- **Tailwind CSS** - Utility-first CSS framework
+- **Shadcn/ui** - Component library
+- **React Query** - Data fetching and state management
+
+## 🏗️ Architecture
+
+The application supports multiple authentication methods:
+- **Local Authentication** - Username/password for development
+- **ESI SSO** - EVE Online Single Sign-On integration
+- **Corporation Roles** - Automatic role assignment based on EVE corporation membership
+
+## 📄 License
 
 The Spark Template files and resources from GitHub are licensed under the terms of the MIT license, Copyright GitHub, Inc.
