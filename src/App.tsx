@@ -34,7 +34,8 @@ import {
   DeviceMobile,
   Monitor,
   List,
-  Palette
+  Palette,
+  Planet
 } from '@phosphor-icons/react';
 import { useKV } from '@github/spark/hooks';
 import { TabType } from '@/lib/types';
@@ -61,6 +62,7 @@ import { Debug } from '@/components/tabs/Debug';
 import { Notifications } from '@/components/tabs/Notifications';
 import { Corporations } from '@/components/Corporations';
 import { Theme } from '@/components/tabs/Theme';
+import { PlanetaryInteraction } from '@/components/tabs/PlanetaryInteraction';
 
 function AppContent() {
   const [activeTab, setActiveTab] = useKV<TabType>('active-tab', 'dashboard');
@@ -317,6 +319,7 @@ function AppContent() {
     { id: 'assets', label: 'Assets', icon: Package, component: Assets },
     { id: 'manufacturing', label: 'Manufacturing', icon: Factory, component: Manufacturing, badge: '3' },
     { id: 'mining', label: 'Mining', icon: HardHat, component: Mining },
+    { id: 'planetary', label: 'Planetary Interaction', icon: Planet, component: PlanetaryInteraction, badge: '5' },
     { id: 'logistics', label: 'Logistics', icon: Truck, component: Logistics },
     { id: 'killmails', label: 'Killmails', icon: Crosshair, component: Killmails },
     { id: 'market', label: 'Market', icon: TrendUp, component: Market },
